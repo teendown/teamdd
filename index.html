@@ -580,6 +580,43 @@
     }
 
 
+
+    /* ── Accounting / Payment Status Badges ── */
+    .pay-badge {
+      display: inline-flex; align-items: center; gap: 3px;
+      padding: 2px 7px; border-radius: 20px;
+      font-size: 10.5px; font-weight: 800; white-space: nowrap;
+    }
+    .pay-badge.unpaid   { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    .pay-badge.partial  { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+    .pay-badge.paid     { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+    .accounting-summary-bar {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 8px; padding: 0.875rem 1rem;
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+      border-radius: 10px; margin: 0.75rem 1rem;
+    }
+    .accounting-summary-item { text-align: center; }
+    .accounting-summary-label { font-size: 10px; color: rgba(255,255,255,0.55); font-weight: 600; margin-bottom: 2px; }
+    .accounting-summary-value { font-size: 1rem; font-weight: 900; color: #fff; font-family: monospace; }
+    .accounting-summary-value.unpaid-val { color: #f87171; }
+    .accounting-summary-value.paid-val { color: #4ade80; }
+    .payment-section {
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+      padding: 0.875rem; margin-top: 0.75rem;
+    }
+    .payment-status-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+    .pay-status-btn {
+      padding: 5px 12px; border-radius: 20px; border: 1.5px solid;
+      font-size: 0.8125rem; font-weight: 700; cursor: pointer;
+      transition: all 0.15s ease; background: transparent;
+    }
+    .pay-status-btn.active-unpaid   { background: #fef2f2; color: #dc2626; border-color: #dc2626; }
+    .pay-status-btn.active-partial  { background: #fffbeb; color: #d97706; border-color: #d97706; }
+    .pay-status-btn.active-paid     { background: #f0fdf4; color: #16a34a; border-color: #16a34a; }
+    .pay-status-btn.inactive { color: #94a3b8; border-color: #e2e8f0; }
+    .pay-status-btn.inactive:hover { border-color: #94a3b8; color: #475569; }
+
     /* ── Install / Add to Home Screen Button ── */
     .splash-install-btn {
       display: flex; align-items: center; gap: 0.5rem;
@@ -2310,6 +2347,12 @@ function StatementTab({
   setVatIncluded,
   paid,
   setPaid,
+  paymentStatus,
+  setPaymentStatus,
+  paymentMethod,
+  setPaymentMethod,
+  paymentDate,
+  setPaymentDate,
   remark,
   setRemark,
   onResetForm,
@@ -2751,6 +2794,55 @@ function StatementTab({
       marginTop: '2px'
     }
   }, vatIncluded ? '체크됨: 부가세 10%가 자동 계산되어 합계표에 표시됩니다.' : '체크 해제됨: 부가세가 0원으로 표시되고 공급가액만 청구됩니다.')))), /*#__PURE__*/React.createElement("div", {
+    className: "form-section"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "section-title"
+  }, "\uD83D\uDCB3 \uC785\uAE08 \u00B7 \uC218\uAE08 \uAD00\uB9AC"),
+  /*#__PURE__*/React.createElement("div", { style: { marginBottom: '10px' } },
+    /*#__PURE__*/React.createElement("div", { style: { fontSize: '0.75rem', fontWeight: '700', color: '#475569', marginBottom: '6px' } }, "\uC785\uAE08 \uC0C1\uD0태"),
+    /*#__PURE__*/React.createElement("div", { className: "payment-status-btns" },
+      ["\uBBF8\uC218\uAE08", "\uBD80\uBD84\uC785\uAE08", "\uC785\uAE08\uC644\uB8CC"].map(function(s) {
+        var clsMap = {"\uBBF8\uC218\uAE08": "active-unpaid", "\uBD80\uBD84\uC785\uAE08": "active-partial", "\uC785\uAE08\uC644\uB8CC": "active-paid"};
+        return /*#__PURE__*/React.createElement("button", {
+          key: s,
+          className: "pay-status-btn " + (paymentStatus === s ? clsMap[s] : "inactive"),
+          onClick: function() { setPaymentStatus(s); }
+        }, s);
+      })
+    )
+  ),
+  /*#__PURE__*/React.createElement("div", { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' } },
+    /*#__PURE__*/React.createElement("div", { className: "form-group" },
+      /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC785\uAE08\uBC29\uBC95"),
+      /*#__PURE__*/React.createElement("select", {
+        className: "form-select",
+        value: paymentMethod,
+        onChange: function(e) { setPaymentMethod(e.target.value); }
+      },
+        ["\uACC4\uC88C\uC774\uCCB4", "\uD604\uAE08", "\uCE74\uB4DC", "\uC5B4\uC74C", "\uAE30\uD0C0"].map(function(m) {
+          return /*#__PURE__*/React.createElement("option", { key: m, value: m }, m);
+        })
+      )
+    ),
+    /*#__PURE__*/React.createElement("div", { className: "form-group" },
+      /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC785\uAE08\uC77C\uC790"),
+      /*#__PURE__*/React.createElement("input", {
+        type: "date", className: "form-input",
+        value: paymentDate,
+        onChange: function(e) { setPaymentDate(e.target.value); }
+      })
+    )
+  ),
+  paymentStatus !== "\uC785\uAE08\uC644\uB8CC" && /*#__PURE__*/React.createElement("div", { className: "form-group", style: { marginTop: '8px' } },
+    /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC785\uAE08\uAE08\uC561 (\uBD80\uBD84\uC785\uAE08\uC2DC \uC785\uB825)"),
+    /*#__PURE__*/React.createElement("input", {
+      type: "number", className: "form-input",
+      placeholder: "0",
+      value: paid || '',
+      onChange: function(e) { setPaid(Number(e.target.value) || 0); }
+    })
+  )
+  ), /*#__PURE__*/React.createElement("div", {
     className: "form-section"
   }, /*#__PURE__*/React.createElement("div", {
     className: "section-title"
@@ -3747,6 +3839,7 @@ function DocHistoryTab({
   const [searchCustomer, setSearchCustomer] = useState('');
   const [searchItem, setSearchItem] = useState('');
   const [searchDocNo, setSearchDocNo] = useState('');
+  const [paymentFilter, setPaymentFilter] = useState('\uC804\uCCB4');
   const [docTypeFilter, setDocTypeFilter] = useState('전체');
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
@@ -3803,6 +3896,10 @@ function DocHistoryTab({
       const docNo = (doc.doc_no || '').toLowerCase();
       if (!docNo.includes(searchDocNo.toLowerCase())) return false;
     }
+    if (paymentFilter !== '\uC804\uCCB4') {
+      var ps = doc.paymentStatus || doc.payment_status || '\uBBF8\uC218\uAE08';
+      if (ps !== paymentFilter) return false;
+    }
     return true;
   });
   const handleDelete = async doc => {
@@ -3817,7 +3914,25 @@ function DocHistoryTab({
     const vat = doc.vat_included !== false ? Math.floor(supply * 0.1) : Number(doc.vat) || 0;
     return supply + vat;
   };
-  const totalSumAmount = filtered.reduce((sum, d) => sum + calculateTotal(d), 0);
+  const totalSumAmount = filtered.reduce(function(sum, d) { return sum + calculateTotal(d); }, 0);
+  var totalUnpaid = filtered.reduce(function(sum, d) {
+    var ps = d.paymentStatus || d.payment_status || '\uBBF8\uC218\uAE08';
+    if (ps === '\uC785\uAE08\uC644\uB8CC') return sum;
+    var total = calculateTotal(d);
+    var paidAmt = Number(d.paid) || 0;
+    return sum + (total - paidAmt);
+  }, 0);
+  var totalPaid = filtered.reduce(function(sum, d) {
+    var ps = d.paymentStatus || d.payment_status || '\uBBF8\uC218\uAE08';
+    if (ps === '\uC785\uAE08\uC644\uB8CC') return sum + calculateTotal(d);
+    return sum + (Number(d.paid) || 0);
+  }, 0);
+  function getPayBadge(doc) {
+    var ps = doc.paymentStatus || doc.payment_status || '\uBBF8\uC218\uAE08';
+    var cls = ps === '\uC785\uAE08\uC644\uB8CC' ? 'paid' : ps === '\uBD80\uBD84\uC785\uAE08' ? 'partial' : 'unpaid';
+    var icon = ps === '\uC785\uAE08\uC644\uB8CC' ? '\u2705' : ps === '\uBD80\uBD84\uC785\uAE08' ? '\uD83D\uDFE1' : '\uD83D\uDD34';
+    return /*#__PURE__*/React.createElement('span', { className: 'pay-badge ' + cls }, icon + ' ' + ps);
+  }
   return /*#__PURE__*/React.createElement("div", {
     className: "management-container"
   }, /*#__PURE__*/React.createElement("div", {
@@ -3991,7 +4106,20 @@ function DocHistoryTab({
       fontFamily: 'monospace',
       fontSize: '0.9375rem'
     }
-  }, totalSumAmount.toLocaleString(), "\uC6D0"))), loading ? /*#__PURE__*/React.createElement("div", {
+  }, totalSumAmount.toLocaleString(), "\uC6D0"))),
+  
+  /*#__PURE__*/React.createElement("div", { className: "accounting-summary-bar" },
+    /*#__PURE__*/React.createElement("div", { className: "accounting-summary-item" },
+      /*#__PURE__*/React.createElement("div", { className: "accounting-summary-label" }, "\uCD1D \uBBF8\uC218\uAE08"),
+      /*#__PURE__*/React.createElement("div", { className: "accounting-summary-value unpaid-val" }, totalUnpaid.toLocaleString(), "\uC6D0")
+    ),
+    /*#__PURE__*/React.createElement("div", { className: "accounting-summary-item" },
+      /*#__PURE__*/React.createElement("div", { className: "accounting-summary-label" }, "\uCD1D \uC785\uAE08\uC561"),
+      /*#__PURE__*/React.createElement("div", { className: "accounting-summary-value paid-val" }, totalPaid.toLocaleString(), "\uC6D0")
+    )
+  ),
+  
+  loading ? /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '2rem',
       textAlign: 'center',
@@ -4061,7 +4189,7 @@ function DocHistoryTab({
         fontFamily: 'monospace',
         color: '#1d6bf3'
       }
-    }, total.toLocaleString(), "\uC6D0"), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {
+    }, total.toLocaleString(), "\uC6D0", /*#__PURE__*/React.createElement("br", null), getPayBadge(doc)), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
         gap: '4px'
@@ -4304,6 +4432,9 @@ function App() {
   const [vatIncluded, setVatIncluded] = useState(true);
   const [vat, setVat] = useState(0);
   const [paid, setPaid] = useState(0);
+  const [paymentStatus, setPaymentStatus] = useState('미수금');
+  const [paymentMethod, setPaymentMethod] = useState('계좌이체');
+  const [paymentDate, setPaymentDate] = useState('');
   const [remark, setRemark] = useState('');
 
   // 미저장 변경사항 상태 관리
@@ -4452,6 +4583,9 @@ function App() {
       vat,
       vatIncluded,
       paid,
+      paymentStatus,
+      paymentMethod,
+      paymentDate,
       remark
     });
     setIsSavedThisSession(true);
@@ -4473,6 +4607,9 @@ function App() {
     setVatIncluded(doc.vat_included !== false);
     setVat(doc.vat || 0);
     setPaid(doc.paid || 0);
+    setPaymentStatus(doc.paymentStatus || doc.payment_status || '미수금');
+    setPaymentMethod(doc.paymentMethod || doc.payment_method || '계좌이체');
+    setPaymentDate(doc.paymentDate || doc.payment_date || '');
     setRemark(doc.remark || '');
     setEditingDocId(doc.id || null);
     setIsSavedThisSession(true);
@@ -4497,6 +4634,9 @@ function App() {
       price: 0
     }]);
     setPaid(0);
+    setPaymentStatus('미수금');
+    setPaymentMethod('계좌이체');
+    setPaymentDate('');
     setRemark('');
     setEditingDocId(null);
     setIsSavedThisSession(false);
@@ -4545,6 +4685,12 @@ function App() {
     setVatIncluded: setVatIncluded,
     paid: paid,
     setPaid: setPaid,
+    paymentStatus: paymentStatus,
+    setPaymentStatus: setPaymentStatus,
+    paymentMethod: paymentMethod,
+    setPaymentMethod: setPaymentMethod,
+    paymentDate: paymentDate,
+    setPaymentDate: setPaymentDate,
     remark: remark,
     setRemark: setRemark,
     onResetForm: handleRequestResetForm,
