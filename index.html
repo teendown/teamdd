@@ -954,7 +954,7 @@ alter table documents disable row level security;`;
       );
     }
 
-    function StatementTab({ docType, setDocType, docNo, setDocNo, docDate, setDocDate, docTime, setDocTime, selectedSupplierKey, setSelectedSupplierKey, suppliersList, currentSupplier, setCurrentSupplier, customer, setCustomer, customersList, items, setItems, vat, setVat, vatIncluded, setVatIncluded, paid, setPaid, remark, setRemark, onResetForm, onSaveDocument }) {
+    function StatementTab({ docType, setDocType, docNo, setDocNo, docDate, setDocDate, docTime, setDocTime, selectedSupplierKey, setSelectedSupplierKey, suppliersList, currentSupplier, setCurrentSupplier, customer, setCustomer, customersList, items, setItems, vat, setVat, vatIncluded, setVatIncluded, paid, setPaid, remark, setRemark, onResetForm, onSaveDocument, onAddNewCustomer }) {
       const [showAutocomplete, setShowAutocomplete] = useState(false);
       const matchingCustomers = (customer.name || '').trim() ? customersList.filter(c => (c.name || '').toLowerCase().includes(customer.name.toLowerCase())) : [];
 
@@ -1016,28 +1016,27 @@ alter table documents disable row level security;`;
                 {showAutocomplete && matchingCustomers.length > 0 && (
                   <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: '#ffffff', border: '1px solid #d1d5db', borderRadius: '8px', zIndex: 20 }}>
                     {matchingCustomers.map(c => (
-                      <button key={c.id} style={{ width: '100%', textAlign: 'left', padding: '0.625rem', background: 'none', border: 'none', borderBottom: '1px solid #eee', cursor: 'pointer' }} onClick={() => { setCustomer({ name: c.name, person: c.person, phone: c.phone, addr: c.addr }); setShowAutocomplete(false); }}>
+                      <button key={c.id} style={{ width: '100%', textAlign: 'left', padding: '0.625rem', background: 'none', border: 'none', borderBottom: '1px solid #eee', cursor: 'pointer' }} onClick={() => { setCustomer({ name: c.name, person: c.person, phone: c.phone, addr: c.addr, selectedMachine: c.selectedMachine }); setShowAutocomplete(false); }}>
                         <div style={{ fontWeight: '700' }}>{c.name}</div>
                         <div style={{ fontSize: '10px', color: '#666' }}>{c.person} • {c.phone}</div>
                       </button>
                     ))}
                   </div>
                 )}
+                {showAutocomplete && matchingCustomers.length === 0 && customer.name.trim() !== '' && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: '#ffffff', border: '1px solid #d1d5db', borderRadius: '8px', zIndex: 20, padding: '1rem', textAlign: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                    <div style={{ marginBottom: '0.5rem', color: '#4b5563', fontSize: '0.875rem' }}>"{customer.name}" 거래처가 없습니다.</div>
+                    <button type="button" className="btn btn-primary" style={{ width: '100%' }} onClick={() => onAddNewCustomer(customer.name)}>+ 새 거래처 등록하기</button>
+                  </div>
+                )}
               </div>
-              <div className="grid-2">
-                <div className="form-group">
-                  <label className="form-label">담당자</label>
-                  <input type="text" className="form-input" value={customer.person} onChange={e => setCustomer({ ...customer, person: e.target.value })} />
+              {customer.person || customer.phone || customer.addr ? (
+                <div style={{ marginTop: '0.5rem', padding: '0.5rem', backgroundColor: '#f9fafb', borderRadius: '4px', fontSize: '0.875rem', color: '#4b5563' }}>
+                  {customer.person && <div><strong>담당자:</strong> {customer.person}</div>}
+                  {customer.phone && <div><strong>연락처:</strong> {customer.phone}</div>}
+                  {customer.addr && <div><strong>주소:</strong> {customer.addr}</div>}
                 </div>
-                <div className="form-group">
-                  <label className="form-label">연락처</label>
-                  <input type="text" className="form-input" value={customer.phone} onChange={e => setCustomer({ ...customer, phone: e.target.value })} />
-                </div>
-              </div>
-              <div className="form-group">
-                <label className="form-label">주소</label>
-                <input type="text" className="form-input" value={customer.addr} onChange={e => setCustomer({ ...customer, addr: e.target.value })} />
-              </div>
+              ) : null}
             </div>
 
             <div className="form-section">
@@ -1058,7 +1057,16 @@ alter table documents disable row level security;`;
                     <input type="number" className="form-input" placeholder="단가" value={item.price} onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, price: Number(e.target.value) || 0 } : i))} />
                   </div>
                 </div>
+                  </div>
+                </div>
               ))}
+            </div>
+
+            <div className="form-section">
+              <div className="section-title">📝 비고 / 특이사항</div>
+              <div className="form-group">
+                <textarea className="form-input" style={{ minHeight: '60px', resize: 'vertical' }} value={remark} onChange={e => setRemark(e.target.value)} placeholder="명세서 하단에 인쇄될 비고를 입력하세요" />
+              </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
@@ -1078,7 +1086,7 @@ alter table documents disable row level security;`;
       );
     }
 
-    function CustomerTab({ customers, onSaveCustomer, onDeleteCustomer, onSelectCustomer }) {
+    function CustomerTab({ customers, onSaveCustomer, onDeleteCustomer, onSelectCustomer, openAddModal, setOpenAddModal }) {
       const [search, setSearch] = useState('');
       const [showModal, setShowModal] = useState(false);
       const [isEditMode, setIsEditMode] = useState(false);
@@ -1098,6 +1106,18 @@ alter table documents disable row level security;`;
         setMachineNoInput('');
         setShowModal(true);
       };
+
+      React.useEffect(() => {
+        if (openAddModal) {
+          setIsEditMode(false);
+          setForm({ id: null, code: `C${String(customers.length + 1).padStart(4, '0')}`, name: '', person: '', phone: '', addr: '', bizno: '', machine: '', memo: '' });
+          setMachineList([]);
+          setMachineInput('');
+          setMachineNoInput('');
+          setShowModal(true);
+          if (setOpenAddModal) setOpenAddModal(false);
+        }
+      }, [openAddModal, customers.length, setOpenAddModal]);
 
       const handleOpenEdit = (c) => {
         setIsEditMode(true);
@@ -1479,6 +1499,7 @@ alter table documents disable row level security;`;
 
     function App() {
       const [activeTab, setActiveTab] = useState('doc');
+      const [openAddCustomerModal, setOpenAddCustomerModal] = useState(false);
 
       // Supabase 연결 상태
       const [supabaseUrl, setSupabaseUrl] = useState(() => localStorage.getItem('supabase_url') || 'https://wmrfwrsaacolkpjyrffy.supabase.co');
@@ -1642,11 +1663,17 @@ alter table documents disable row level security;`;
                 remark={remark} setRemark={setRemark}
                 onResetForm={handleResetForm}
                 onSaveDocument={handleSaveDocument}
+                onAddNewCustomer={(name) => {
+                  setActiveTab('customers');
+                  setOpenAddCustomerModal(true);
+                }}
               />
             )}
             {activeTab === 'customers' && (
               <CustomerTab
                 customers={customersList}
+                openAddModal={openAddCustomerModal}
+                setOpenAddModal={setOpenAddCustomerModal}
                 onSaveCustomer={handleSaveCustomer}
                 onDeleteCustomer={handleDeleteCustomer}
                 onSelectCustomer={(c) => { 
