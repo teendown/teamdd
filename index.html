@@ -1078,13 +1078,13 @@ alter table documents disable row level security;`;
       const [search, setSearch] = useState('');
       const [showModal, setShowModal] = useState(false);
       const [isEditMode, setIsEditMode] = useState(false);
-      const [form, setForm] = useState({ id: null, code: '', name: '', person: '', phone: '', addr: '', bizno: '', memo: '' });
+      const [form, setForm] = useState({ id: null, code: '', name: '', person: '', phone: '', addr: '', bizno: '', machine: '', memo: '' });
 
-      const filtered = customers.filter(c => (c.name || '').toLowerCase().includes(search.toLowerCase()) || (c.phone || '').includes(search) || (c.person || '').includes(search));
+      const filtered = customers.filter(c => (c.name || '').toLowerCase().includes(search.toLowerCase()) || (c.phone || '').includes(search) || (c.person || '').includes(search) || (c.machine || '').toLowerCase().includes(search.toLowerCase()));
 
       const handleOpenAdd = () => {
         setIsEditMode(false);
-        setForm({ id: null, code: `C${String(customers.length + 1).padStart(4, '0')}`, name: '', person: '', phone: '', addr: '', bizno: '', memo: '' });
+        setForm({ id: null, code: `C${String(customers.length + 1).padStart(4, '0')}`, name: '', person: '', phone: '', addr: '', bizno: '', machine: '', memo: '' });
         setShowModal(true);
       };
 
@@ -1098,6 +1098,7 @@ alter table documents disable row level security;`;
           phone: c.phone || '',
           addr: c.addr || '',
           bizno: c.bizno || '',
+          machine: c.machine || '',
           memo: c.memo || ''
         });
         setShowModal(true);
@@ -1111,7 +1112,7 @@ alter table documents disable row level security;`;
               <button className="btn btn-primary" onClick={handleOpenAdd}>+ 거래처 추가</button>
             </div>
             <div style={{ padding: '0.75rem', backgroundColor: '#f9fafb' }}>
-              <input type="text" className="form-input" placeholder="상호명, 담당자, 연락처 검색..." value={search} onChange={e => setSearch(e.target.value)} />
+              <input type="text" className="form-input" placeholder="상호명, 기종, 담당자, 연락처 검색..." value={search} onChange={e => setSearch(e.target.value)} />
             </div>
 
             {/* Mobile Cards View */}
@@ -1123,6 +1124,7 @@ alter table documents disable row level security;`;
                     <span style={{ fontSize: '0.6875rem', color: '#6b7280', fontFamily: 'monospace' }}>{c.code}</span>
                   </div>
                   <div style={{ fontSize: '0.75rem', color: '#4b5563', marginBottom: '0.5rem' }}>
+                    <div>기종: <span style={{ fontWeight: 'bold' }}>{c.machine || '-'}</span></div>
                     <div>담당자: {c.person || '-'}</div>
                     <div>연락처: {c.phone || '-'}</div>
                     <div style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>주소: {c.addr || '-'}</div>
@@ -1140,13 +1142,14 @@ alter table documents disable row level security;`;
             <div className="desktop-table-view">
               <table className="data-table">
                 <thead>
-                  <tr><th>Code</th><th>상호명</th><th>담당자</th><th>연락처</th><th>주소</th><th>작업</th></tr>
+                  <tr><th>Code</th><th>상호명</th><th>기종</th><th>담당자</th><th>연락처</th><th>주소</th><th>작업</th></tr>
                 </thead>
                 <tbody>
                   {filtered.map(c => (
                     <tr key={c.id}>
                       <td style={{ fontFamily: 'monospace' }}>{c.code}</td>
                       <td style={{ fontWeight: '700' }}>{c.name}</td>
+                      <td>{c.machine}</td>
                       <td>{c.person}</td>
                       <td>{c.phone}</td>
                       <td style={{ fontSize: '11px' }}>{c.addr}</td>
@@ -1170,11 +1173,15 @@ alter table documents disable row level security;`;
                 <h3 style={{ marginBottom: '1rem', fontWeight: '900' }}>{isEditMode ? '✏️ 고객(거래처) 정보 상세/수정' : '➕ 새 거래처 등록'}</h3>
                 <div className="grid-2">
                   <div className="form-group"><label className="form-label">상호명 *</label><input type="text" className="form-input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
-                  <div className="form-group"><label className="form-label">사업자등록번호</label><input type="text" className="form-input" value={form.bizno} onChange={e => setForm({ ...form, bizno: e.target.value })} /></div>
+                  <div className="form-group"><label className="form-label">기종</label><input type="text" className="form-input" placeholder="예: 굴삭기 DX140W" value={form.machine} onChange={e => setForm({ ...form, machine: e.target.value })} /></div>
                 </div>
                 <div className="grid-2">
                   <div className="form-group"><label className="form-label">담당자</label><input type="text" className="form-input" value={form.person} onChange={e => setForm({ ...form, person: e.target.value })} /></div>
                   <div className="form-group"><label className="form-label">연락처</label><input type="text" className="form-input" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">사업자등록번호</label>
+                  <input type="text" className="form-input" value={form.bizno} onChange={e => setForm({ ...form, bizno: e.target.value })} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">주소</label>
