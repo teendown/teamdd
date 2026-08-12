@@ -1025,11 +1025,11 @@ alter table documents disable row level security;`;
                         <tr style={{ backgroundColor: '#1d6bf3', color: '#ffffff', fontSize: '12px', height: '30px' }}>
                           <th style={{ width: '40px', textAlign: 'center', fontWeight: '700', borderRight: '1px solid rgba(255,255,255,0.2)' }}>No</th>
                           <th style={{ textAlign: 'center', fontWeight: '700', borderRight: '1px solid rgba(255,255,255,0.2)' }}>품명 및 규격</th>
-                          <th style={{ width: '60px', textAlign: 'center', fontWeight: '700', borderRight: '1px solid rgba(255,255,255,0.2)' }}>단위</th>
-                          <th style={{ width: '65px', textAlign: 'center', fontWeight: '700', borderRight: '1px solid rgba(255,255,255,0.2)' }}>수량</th>
-                          <th style={{ width: '95px', textAlign: 'center', fontWeight: '700', borderRight: '1px solid rgba(255,255,255,0.2)' }}>단가</th>
-                          <th style={{ width: '105px', textAlign: 'center', fontWeight: '700', borderRight: '1px solid rgba(255,255,255,0.2)' }}>공급가액</th>
-                          <th style={{ width: '90px', textAlign: 'center', fontWeight: '700' }}>비고</th>
+                          <th style={{ width: '55px', textAlign: 'center', fontWeight: '700', borderRight: '1px solid rgba(255,255,255,0.2)' }}>단위</th>
+                          <th style={{ width: '45px', textAlign: 'center', fontWeight: '700', borderRight: '1px solid rgba(255,255,255,0.2)' }}>수량</th>
+                          <th style={{ width: '110px', textAlign: 'center', fontWeight: '700', borderRight: '1px solid rgba(255,255,255,0.2)' }}>단가</th>
+                          <th style={{ width: '120px', textAlign: 'center', fontWeight: '700', borderRight: '1px solid rgba(255,255,255,0.2)' }}>공급가액</th>
+                          <th style={{ width: '80px', textAlign: 'center', fontWeight: '700' }}>비고</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1311,19 +1311,18 @@ alter table documents disable row level security;`;
             <div className="form-section">
               <div className="section-title">
                 <span>📦 품목 리스트 ({items.length}건)</span>
-                <button className="btn btn-outline" style={{ fontSize: '11px', padding: '4px 8px', minHeight: '32px' }} onClick={() => setItems([...items, { id: Date.now().toString(), code: '', name: '', unit: 'EA', qty: 1, price: 0 }])}>+ 행 추가</button>
               </div>
               {items.map((item, idx) => (
                 <div key={item.id} className="item-card">
                   <div className="item-card-header">
-                    <span style={{ fontSize: '11px', color: '#666' }}>#{idx + 1}</span>
-                    <button style={{ border: 'none', background: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '11px', padding: '4px' }} onClick={() => setItems(items.length === 1 ? [{ id: Date.now().toString(), code: '', name: '', unit: 'EA', qty: 1, price: 0 }] : items.filter(i => i.id !== item.id))}>삭제</button>
+                    <span style={{ fontSize: '11px', color: '#666', fontWeight: '800' }}>#{idx + 1} 품목</span>
+                    <button style={{ border: 'none', background: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '11px', padding: '4px', fontWeight: '700' }} onClick={() => setItems(items.length === 1 ? [{ id: Date.now().toString(), code: '', name: '', unit: 'EA', qty: 1, price: 0 }] : items.filter(i => i.id !== item.id))}>🗑️ 삭제</button>
                   </div>
-                  <input type="text" className="form-input" placeholder="품명 및 규격" value={item.name} onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, name: e.target.value } : i))} style={{ marginBottom: '4px' }} />
-                  <div className="item-grid">
-                    <input type="text" className="form-input" placeholder="단위" value={item.unit} onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, unit: e.target.value } : i))} />
-                    <input type="number" className="form-input" placeholder="수량" value={item.qty} onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, qty: Number(e.target.value) || 0 } : i))} />
-                    <input type="number" className="form-input" placeholder="단가" value={item.price} onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, price: Number(e.target.value) || 0 } : i))} />
+                  <input type="text" className="form-input" placeholder="품명 및 규격" value={item.name} onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, name: e.target.value } : i))} style={{ marginBottom: '4px', fontWeight: '700' }} />
+                  <div style={{ display: 'grid', gridTemplateColumns: '65px 75px 1fr', gap: '4px' }}>
+                    <input type="text" className="form-input" placeholder="단위" value={item.unit} onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, unit: e.target.value } : i))} style={{ textAlign: 'center' }} />
+                    <input type="number" className="form-input" placeholder="수량" value={item.qty} onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, qty: Number(e.target.value) || 0 } : i))} style={{ textAlign: 'center', fontWeight: '700' }} />
+                    <input type="number" className="form-input" placeholder="단가 (금액)" value={item.price} onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, price: Number(e.target.value) || 0 } : i))} style={{ textAlign: 'right', fontWeight: '800', color: '#1d6bf3' }} />
                   </div>
                   <input type="text" className="form-input" placeholder="품목 비고 / 메모 (선택사항)" value={item.memo || item.remark || ''} onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, memo: e.target.value, remark: e.target.value } : i))} style={{ marginTop: '4px', fontSize: '0.75rem' }} />
                 </div>
@@ -1350,6 +1349,17 @@ alter table documents disable row level security;`;
                   </div>
                 </div>
               </label>
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <button 
+                type="button" 
+                className="btn btn-outline" 
+                style={{ width: '100%', minHeight: '44px', fontSize: '0.875rem', fontWeight: '800', color: '#1d6bf3', borderColor: '#3b82f6', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 2px 4px rgba(29,107,243,0.1)' }}
+                onClick={() => setItems([...items, { id: Date.now().toString(), code: '', name: '', unit: 'EA', qty: 1, price: 0 }])}
+              >
+                <span>➕ 품목 행 추가 (새 품목 입력)</span>
+              </button>
             </div>
 
             <div className="form-section">
