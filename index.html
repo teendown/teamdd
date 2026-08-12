@@ -907,7 +907,7 @@ async function dbSaveDocument(docData) {
     doc_no: docData.docNo,
     doc_date: docData.docDate,
     doc_time: docData.docTime,
-    customer_name: docData.(customer == null ? undefined : customer.name) || '',
+    customer_name: (docData.customer == null ? undefined : docData.customer.name) || '',
     customer_data: docData.customer || {},
     supplier_key: docData.supplierKey || '',
     supplier_data: docData.supplier || {},
@@ -3684,7 +3684,7 @@ function DocHistoryTab({
     if (docTypeFilter !== '전체' && (doc.doc_type || doc.docType) !== docTypeFilter) return false;
     if (searchKeyword.trim()) {
       const kw = searchKeyword.toLowerCase();
-      const custName = (doc.customer_name || doc.(customer_data == null ? undefined : customer_data.name) || '').toLowerCase();
+      const custName = (doc.customer_name || (doc.customer_data == null ? undefined : doc.customer_data.name) || '').toLowerCase();
       const docNo = (doc.doc_no || '').toLowerCase();
       const itemsStr = JSON.stringify(doc.items || []).toLowerCase();
       if (!custName.includes(kw) && !docNo.includes(kw) && !itemsStr.includes(kw)) {
@@ -3879,15 +3879,15 @@ function DocHistoryTab({
     const firstItemName = (items[0] == null ? undefined : items[0].name) || '품목 없음';
     const itemSummary = items.length > 1 ? `${firstItemName} 외 ${items.length - 1}건` : firstItemName;
     const total = calculateTotal(doc);
-    const custName = doc.customer_name || doc.(customer_data == null ? undefined : customer_data.name) || '-';
-    const custMachine = doc.(customer_data == null ? undefined : customer_data.selectedMachine) ? ` (${doc.customer_data.selectedMachine})` : '';
+    const custName = doc.customer_name || (doc.customer_data == null ? undefined : doc.customer_data.name) || '-';
+    const custMachine = (doc.customer_data == null ? undefined : doc.customer_data.selectedMachine) ? ` (${doc.customer_data.selectedMachine})` : '';
     return /*#__PURE__*/React.createElement("tr", {
       key: doc.id || doc.doc_no
     }, /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {
       style: {
         fontWeight: '700'
       }
-    }, doc.doc_date || doc.(created_at == null ? undefined : created_at.split)('T')[0]), /*#__PURE__*/React.createElement("div", {
+    }, doc.doc_date || (doc.created_at == null ? undefined : doc.created_at.split)('T')[0]), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: '11px',
         color: '#64748b',
@@ -3950,8 +3950,8 @@ function DocHistoryTab({
     const firstItemName = (items[0] == null ? undefined : items[0].name) || '품목 없음';
     const itemSummary = items.length > 1 ? `${firstItemName} 외 ${items.length - 1}건` : firstItemName;
     const total = calculateTotal(doc);
-    const custName = doc.customer_name || doc.(customer_data == null ? undefined : customer_data.name) || '-';
-    const custMachine = doc.(customer_data == null ? undefined : customer_data.selectedMachine) ? ` (${doc.customer_data.selectedMachine})` : '';
+    const custName = doc.customer_name || (doc.customer_data == null ? undefined : doc.customer_data.name) || '-';
+    const custMachine = (doc.customer_data == null ? undefined : doc.customer_data.selectedMachine) ? ` (${doc.customer_data.selectedMachine})` : '';
     return /*#__PURE__*/React.createElement("div", {
       key: doc.id || doc.doc_no,
       className: "mobile-data-card"
