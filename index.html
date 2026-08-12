@@ -1153,6 +1153,9 @@ alter table documents disable row level security;`;
         </header>
       );
     }
+
+    function StatementTab({ docType, setDocType, docNo, setDocNo, docDate, setDocDate, docTime, setDocTime, selectedSupplierKey, setSelectedSupplierKey, suppliersList, currentSupplier, setCurrentSupplier, customer, setCustomer, customersList, items, setItems, vat, setVat, vatIncluded, setVatIncluded, paid, setPaid, remark, setRemark, onResetForm, onSaveDocument, onAddNewCustomer, editingDocId }) {
+      const [showAutocomplete, setShowAutocomplete] = useState(false);
       const matchingCustomers = (customer.name || '').trim() ? customersList.filter(c => (c.name || '').toLowerCase().includes((customer.name || '').toLowerCase())) : [];
 
       const handleExportPNG = async () => {
