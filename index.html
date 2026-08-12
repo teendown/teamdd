@@ -1079,12 +1079,17 @@ alter table documents disable row level security;`;
       const [showModal, setShowModal] = useState(false);
       const [isEditMode, setIsEditMode] = useState(false);
       const [form, setForm] = useState({ id: null, code: '', name: '', person: '', phone: '', addr: '', bizno: '', machine: '', memo: '' });
+      const [machineInput, setMachineInput] = useState('');
+      const [machineList, setMachineList] = useState([]);
+      const [selectMachineCustomer, setSelectMachineCustomer] = useState(null);
 
       const filtered = customers.filter(c => (c.name || '').toLowerCase().includes(search.toLowerCase()) || (c.phone || '').includes(search) || (c.person || '').includes(search) || (c.machine || '').toLowerCase().includes(search.toLowerCase()));
 
       const handleOpenAdd = () => {
         setIsEditMode(false);
         setForm({ id: null, code: `C${String(customers.length + 1).padStart(4, '0')}`, name: '', person: '', phone: '', addr: '', bizno: '', machine: '', memo: '' });
+        setMachineList([]);
+        setMachineInput('');
         setShowModal(true);
       };
 
@@ -1101,7 +1106,43 @@ alter table documents disable row level security;`;
           machine: c.machine || '',
           memo: c.memo || ''
         });
+        setMachineList(c.machine ? c.machine.split(',').map(s => s.trim()).filter(s => s) : []);
+        setMachineInput('');
         setShowModal(true);
+      };
+
+      const handleAddMachine = () => {
+        if (!machineInput.trim()) return;
+        setMachineList([...machineList, machineInput.trim()]);
+        setMachineInput('');
+      };
+
+      const handleRemoveMachine = (idx) => {
+        setMachineList(machineList.filter((_, i) => i !== idx));
+      };
+
+      const handleSave = () => {
+        if (!form.name) { alert('상호명은 필수입니다.'); return; }
+        const finalMachine = machineList.join(',');
+        onSaveCustomer({ ...form, machine: finalMachine }, isEditMode);
+        setShowModal(false);
+      };
+
+      const renderMachineDisplay = (machineStr) => {
+        if (!machineStr) return '-';
+        const list = machineStr.split(',').map(s => s.trim()).filter(s => s);
+        if (list.length === 0) return '-';
+        if (list.length === 1) return <span style={{ fontWeight: 'bold' }}>{list[0]}</span>;
+        return <span style={{ fontWeight: 'bold' }}>{list[0]} <span style={{ fontSize: '0.6875rem', color: '#3b82f6' }}>(외 {list.length - 1}대)</span></span>;
+      };
+
+      const handleSelectInvoice = (c) => {
+        const list = c.machine ? c.machine.split(',').map(s => s.trim()).filter(s => s) : [];
+        if (list.length > 1) {
+          setSelectMachineCustomer({ ...c, parsedMachines: list });
+        } else {
+          onSelectCustomer({ ...c, selectedMachine: list[0] || '' });
+        }
       };
 
       return (
@@ -1124,7 +1165,7 @@ alter table documents disable row level security;`;
                     <span style={{ fontSize: '0.6875rem', color: '#6b7280', fontFamily: 'monospace' }}>{c.code}</span>
                   </div>
                   <div style={{ fontSize: '0.75rem', color: '#4b5563', marginBottom: '0.5rem' }}>
-                    <div>기종: <span style={{ fontWeight: 'bold' }}>{c.machine || '-'}</span></div>
+                    <div>기종: {renderMachineDisplay(c.machine)}</div>
                     <div>담당자: {c.person || '-'}</div>
                     <div>연락처: {c.phone || '-'}</div>
                     <div style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>주소: {c.addr || '-'}</div>
@@ -1133,7 +1174,7 @@ alter table documents disable row level security;`;
                     <button className="btn btn-outline" style={{ flex: 1, minHeight: '32px', fontSize: '0.75rem' }} onClick={() => handleOpenEdit(c)}>상세 / 수정</button>
                     <button className="btn btn-red-outline" style={{ flex: 1, minHeight: '32px', fontSize: '0.75rem' }} onClick={() => onDeleteCustomer(c.id)}>삭제</button>
                   </div>
-                  <button className="btn btn-primary" style={{ width: '100%', minHeight: '36px', fontSize: '0.75rem' }} onClick={() => onSelectCustomer(c)}>명세서에 선택</button>
+                  <button className="btn btn-primary" style={{ width: '100%', minHeight: '36px', fontSize: '0.75rem' }} onClick={() => handleSelectInvoice(c)}>명세서에 선택</button>
                 </div>
               ))}
             </div>
@@ -1149,13 +1190,13 @@ alter table documents disable row level security;`;
                     <tr key={c.id}>
                       <td style={{ fontFamily: 'monospace' }}>{c.code}</td>
                       <td style={{ fontWeight: '700' }}>{c.name}</td>
-                      <td>{c.machine}</td>
+                      <td>{renderMachineDisplay(c.machine)}</td>
                       <td>{c.person}</td>
                       <td>{c.phone}</td>
                       <td style={{ fontSize: '11px' }}>{c.addr}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'flex', gap: '4px' }}>
-                          <button className="btn btn-primary" style={{ fontSize: '10px', padding: '4px 6px' }} onClick={() => onSelectCustomer(c)}>명세서 선택</button>
+                          <button className="btn btn-primary" style={{ fontSize: '10px', padding: '4px 6px' }} onClick={() => handleSelectInvoice(c)}>명세서 선택</button>
                           <button className="btn btn-outline" style={{ fontSize: '10px', padding: '4px 6px' }} onClick={() => handleOpenEdit(c)}>수정</button>
                           <button className="btn btn-red-outline" style={{ fontSize: '10px', padding: '4px 6px' }} onClick={() => onDeleteCustomer(c.id)}>삭제</button>
                         </div>
@@ -1169,19 +1210,33 @@ alter table documents disable row level security;`;
 
           {showModal && (
             <div className="modal-overlay">
-              <div className="modal-content">
+              <div className="modal-content" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
                 <h3 style={{ marginBottom: '1rem', fontWeight: '900' }}>{isEditMode ? '✏️ 고객(거래처) 정보 상세/수정' : '➕ 새 거래처 등록'}</h3>
+                
+                <div className="form-group">
+                  <label className="form-label">기종 (장비 목록)</label>
+                  <div style={{ display: 'flex', gap: '4px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                    {machineList.map((m, idx) => (
+                      <span key={idx} style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '2px 8px', borderRadius: '9999px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {m}
+                        <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontWeight: 'bold' }} onClick={() => handleRemoveMachine(idx)}>×</button>
+                      </span>
+                    ))}
+                    {machineList.length === 0 && <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>등록된 기종이 없습니다.</span>}
+                  </div>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    <input type="text" className="form-input" placeholder="기종명 입력 (예: 굴삭기 DX140W)" value={machineInput} onChange={e => setMachineInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddMachine()} />
+                    <button className="btn btn-outline" onClick={handleAddMachine}>추가</button>
+                  </div>
+                </div>
+
                 <div className="grid-2">
                   <div className="form-group"><label className="form-label">상호명 *</label><input type="text" className="form-input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
-                  <div className="form-group"><label className="form-label">기종</label><input type="text" className="form-input" placeholder="예: 굴삭기 DX140W" value={form.machine} onChange={e => setForm({ ...form, machine: e.target.value })} /></div>
+                  <div className="form-group"><label className="form-label">사업자등록번호</label><input type="text" className="form-input" value={form.bizno} onChange={e => setForm({ ...form, bizno: e.target.value })} /></div>
                 </div>
                 <div className="grid-2">
                   <div className="form-group"><label className="form-label">담당자</label><input type="text" className="form-input" value={form.person} onChange={e => setForm({ ...form, person: e.target.value })} /></div>
                   <div className="form-group"><label className="form-label">연락처</label><input type="text" className="form-input" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">사업자등록번호</label>
-                  <input type="text" className="form-input" value={form.bizno} onChange={e => setForm({ ...form, bizno: e.target.value })} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">주소</label>
@@ -1193,12 +1248,26 @@ alter table documents disable row level security;`;
                 </div>
                 
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                  <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => { 
-                    if (!form.name) { alert('상호명은 필수입니다.'); return; }
-                    onSaveCustomer(form, isEditMode); 
-                    setShowModal(false); 
-                  }}>{isEditMode ? '수정 완료' : '등록 완료'}</button>
+                  <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSave}>{isEditMode ? '수정 완료' : '등록 완료'}</button>
                   <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setShowModal(false)}>닫기 / 취소</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {selectMachineCustomer && (
+            <div className="modal-overlay">
+              <div className="modal-content" style={{ maxWidth: '300px', textAlign: 'center' }}>
+                <h3 style={{ marginBottom: '1rem', fontWeight: '900' }}>🚜 기종 선택</h3>
+                <p style={{ fontSize: '0.875rem', color: '#4b5563', marginBottom: '1rem' }}>명세서를 작성할 장비를 선택해 주세요.</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {selectMachineCustomer.parsedMachines.map((m, idx) => (
+                    <button key={idx} className="btn btn-outline" style={{ textAlign: 'left', padding: '0.75rem', fontWeight: 'bold' }} onClick={() => {
+                      onSelectCustomer({ ...selectMachineCustomer, selectedMachine: m });
+                      setSelectMachineCustomer(null);
+                    }}>{m}</button>
+                  ))}
+                  <button className="btn btn-red-outline" style={{ marginTop: '0.5rem' }} onClick={() => setSelectMachineCustomer(null)}>취소</button>
                 </div>
               </div>
             </div>
@@ -1567,7 +1636,23 @@ alter table documents disable row level security;`;
                 customers={customersList}
                 onSaveCustomer={handleSaveCustomer}
                 onDeleteCustomer={handleDeleteCustomer}
-                onSelectCustomer={(c) => { setCustomer(c); setActiveTab('doc'); }}
+                onSelectCustomer={(c) => { 
+                  setCustomer(c); 
+                  if (c.selectedMachine) {
+                    setItems(prev => {
+                      const newItems = [...prev];
+                      if (!newItems[0].name) {
+                        newItems[0].name = c.selectedMachine;
+                      }
+                      return newItems;
+                    });
+                    setRemark(prev => {
+                      const prefix = `[기종: ${c.selectedMachine}] `;
+                      return prev.includes(prefix) ? prev : prefix + prev;
+                    });
+                  }
+                  setActiveTab('doc'); 
+                }}
               />
             )}
             {activeTab === 'suppliers' && (
