@@ -653,7 +653,7 @@
       return getLocalItem('dd_' + table + '_list_v1', fallback);
     }
 
-    async function dbSave(table, rowData, isEdit = false) {
+    async function dbSave(table, rowData, isEdit = false, currentList = []) {
       const sb = getSupabaseClient();
       let serverRow = null;
       if (sb) {
@@ -669,24 +669,24 @@
           }
         } catch(e) { /* fallback */ }
       }
-      const local = getLocalItem('dd_' + table + '_list_v1', []);
+      
       let updated;
       if (isEdit && rowData.id) {
-        updated = local.map(r => r.id === rowData.id ? { ...r, ...(serverRow || rowData) } : r);
+        updated = currentList.map(r => r.id === rowData.id ? { ...r, ...(serverRow || rowData) } : r);
       } else {
         const saved = serverRow || { ...rowData, id: table + '_' + Date.now() };
-        updated = [saved, ...local.filter(r => r.id !== saved.id)];
+        updated = [saved, ...currentList.filter(r => r.id !== saved.id)];
       }
       setLocalItem('dd_' + table + '_list_v1', updated);
       return updated;
     }
 
-    async function dbDelete(table, rowId) {
+    async function dbDelete(table, rowId, currentList = []) {
       const sb = getSupabaseClient();
       if (sb) {
         try { await sb.from(table).delete().eq('id', rowId); } catch(e) {}
       }
-      const updated = (getLocalItem('dd_' + table + '_list_v1', [])).filter(r => r.id !== rowId);
+      const updated = currentList.filter(r => r.id !== rowId);
       setLocalItem('dd_' + table + '_list_v1', updated);
       return updated;
     }
@@ -1439,35 +1439,35 @@ alter table documents disable row level security;`;
 
       // 고객 CRUD
       const handleSaveCustomer = async (c, isEdit) => {
-        const updated = await dbSave('customers', c, isEdit);
+        const updated = await dbSave('customers', c, isEdit, customersList);
         setCustomersList(updated);
         alert('✓ 거래처 정보가 저장되었습니다.');
       };
       const handleDeleteCustomer = async (id) => {
         if (!confirm('거래처를 삭제하시겠습니까?')) return;
-        setCustomersList(await dbDelete('customers', id));
+        setCustomersList(await dbDelete('customers', id, customersList));
       };
 
       // 공급자 CRUD
       const handleSaveSupplier = async (s, isEdit) => {
-        const updated = await dbSave('suppliers', s, isEdit);
+        const updated = await dbSave('suppliers', s, isEdit, suppliersList);
         setSuppliersList(updated);
         alert('✓ 공급자 정보가 저장되었습니다.');
       };
       const handleDeleteSupplier = async (id) => {
         if (!confirm('공급자를 삭제하시겠습니까?')) return;
-        setSuppliersList(await dbDelete('suppliers', id));
+        setSuppliersList(await dbDelete('suppliers', id, suppliersList));
       };
 
       // 부품 CRUD
       const handleSavePart = async (p, isEdit) => {
-        const updated = await dbSave('parts', p, isEdit);
+        const updated = await dbSave('parts', p, isEdit, partsList);
         setPartsList(updated);
         alert('✓ 부품 정보가 저장되었습니다.');
       };
       const handleDeletePart = async (id) => {
         if (!confirm('부품을 삭제하시겠습니까?')) return;
-        setPartsList(await dbDelete('parts', id));
+        setPartsList(await dbDelete('parts', id, partsList));
       };
 
       // 문서 저장
