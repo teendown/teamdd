@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TEAM D.D - 거래명세서 작성 및 고객/공급자/부품 관리</title>
+
+  <!-- Pretendard & Inter Web Fonts -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+  <!-- React 18 & ReactDOM CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  
+  <!-- Babel Standalone for JSX in browser -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- html2canvas for A4 export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <style>
+    /* Mobile-first responsive styling for Team D.D System */
+    :root {
+      --font-main: 'Pretendard', 'Noto Sans KR', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --bg-app: #f3f4f6;
+      --bg-card: #ffffff;
+      --bg-muted: #f9fafb;
+      --border-color: #e5e7eb;
+      --primary: #111827;
+      --primary-hover: #1f2937;
+      --accent-green: #16a34a;
+      --accent-green-bg: #ecfdf5;
+      --accent-green-border: #a7f3d0;
+      --accent-red: #dc2626;
+      --accent-red-bg: #fef2f2;
+      --accent-red-border: #fecaca;
+      --text-main: #111827;
+      --text-secondary: #4b5563;
+      --text-muted: #9ca3af;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -1px rgba(0,0,0,0.04);
+      --shadow-lg: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.04);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body, #root {
+      min-height: 100vh;
+      font-family: var(--font-main);
+      background-color: var(--bg-app);
+      color: var(--text-main);
+      line-height: 1.5;
+    }
+
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .top-header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      padding: 0.5rem;
+      background-color: var(--bg-app);
+    }
+
+    @media (min-width: 640px) {
+      .top-header {
+        padding: 0.75rem 1rem;
+      }
+    }
+
+    .header-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      padding: 0.625rem 0.875rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .brand-title {
+      font-size: 0.9375rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      color: var(--primary);
+    }
+
+    .brand-sub {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+      display: none;
+    }
+
+    @media (min-width: 640px) {
+      .brand-sub {
+        display: inline;
+      }
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      padding: 0.375rem 0.625rem;
+      border-radius: 9999px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .status-badge.connected {
+      background-color: var(--accent-green-bg);
+      color: #065f46;
+      border-color: var(--accent-green-border);
+    }
+
+    .status-badge.disconnected {
+      background-color: var(--accent-red-bg);
+      color: #991b1b;
+      border-color: var(--accent-red-border);
+    }
+
+    .tab-bar-container {
+      margin-top: 0.375rem;
+      background-color: var(--bg-card);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+      padding: 0.25rem;
+      box-shadow: var(--shadow-sm);
+      overflow-x: auto;
+    }
+
+    .tab-nav {
+      display: flex;
+      gap: 0.25rem;
+      background-color: #f3f4f6;
+      padding: 0.25rem;
+      border-radius: var(--radius-sm);
+      width: 100%;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 0.5rem 0.25rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    @media (min-width: 640px) {
+      .tab-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.8125rem;
+      }
+    }
+
+    .tab-btn.active {
+      background-color: #ffffff;
+      color: var(--primary);
+      font-weight: 800;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .main-content {
+      flex: 1;
+      display: flex;
+      width: 100%;
+    }
+
+    .generator-split {
+      display: flex;
+      width: 100%;
+      flex-direction: column;
+    }
+
+    @media (min-width: 1024px) {
+      .generator-split {
+        flex-direction: row;
+      }
+    }
+
+    .form-panel {
+      width: 100%;
+      background-color: var(--bg-card);
+      border-right: 1px solid var(--border-color);
+      padding: 0.875rem;
+    }
+
+    @media (min-width: 640px) {
+      .form-panel {
+        padding: 1.25rem;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .form-panel {
+        width: 380px;
+        flex-shrink: 0;
+        max-height: calc(100vh - 100px);
+        overflow-y: auto;
+      }
+    }
+
+    .preview-panel {
+      flex: 1;
+      padding: 0.5rem;
+      background-color: #eef0f3;
+      overflow-x: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 500px;
+    }
+
+    @media (min-width: 640px) {
+      .preview-panel {
+        padding: 1.25rem;
+      }
+    }
+
+    .form-section {
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      font-size: 0.8125rem;
+      font-weight: 700;
+      margin-bottom: 0.375rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--primary);
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .form-label {
+      font-size: 0.6875rem;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      padding: 0.625rem 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: var(--radius-sm);
+      font-size: 0.8125rem;
+      font-family: inherit;
+      background-color: #ffffff;
+      outline: none;
+      min-height: 40px;
+    }
+
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--primary);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.375rem;
+    }
+
+    .btn {
+      padding: 0.625rem 0.875rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.8125rem;
+      font-weight: 700;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.375rem;
+      min-height: 42px;
+      touch-action: manipulation;
+    }
+
+    .btn-primary { background-color: var(--primary); color: #ffffff; }
+    .btn-outline { background-color: #ffffff; border-color: #d1d5db; color: var(--text-main); }
+    .btn-green { background-color: var(--accent-green); color: #ffffff; }
+    .btn-red-outline { background-color: #fef2f2; border-color: #fecaca; color: #dc2626; }
+
+    .item-card {
+      background-color: var(--bg-muted);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 0.625rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .item-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.375rem;
+    }
+
+    .item-grid {
+      display: grid;
+      grid-template-columns: 65px 1fr 1fr;
+      gap: 0.375rem;
+    }
+
+    /* Mobile Scaled A4 Preview Box */
+    .document-page-wrapper {
+      background: #ffffff;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      margin-bottom: 1.5rem;
+      max-width: 100%;
+      overflow-x: auto;
+    }
+
+    .document-page {
+      width: 800px;
+      min-height: 1131px;
+      padding: 40px;
+      background-color: #ffffff;
+      color: #000000;
+      box-sizing: border-box;
+      position: relative;
+      font-family: var(--font-main);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .doc-title-main {
+      font-size: 24px;
+      font-weight: 900;
+      text-align: center;
+      letter-spacing: 6px;
+      padding: 8px 0;
+      border-bottom: 2px solid #000000;
+      margin-bottom: 12px;
+    }
+
+    .doc-info-bar {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .parties-table, .items-table, .doc-totals-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .parties-table th, .parties-table td,
+    .items-table th, .items-table td,
+    .doc-totals-table td {
+      border: 1px solid #000000;
+      padding: 5px 8px;
+      font-size: 11px;
+    }
+
+    .parties-table th, .items-table th {
+      background-color: #f3f4f6;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .stamp-box {
+      position: absolute;
+      right: 50px;
+      bottom: 120px;
+      width: 70px;
+      height: 70px;
+      border: 2px solid #dc2626;
+      border-radius: 50%;
+      color: #dc2626;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 14px;
+      transform: rotate(-12deg);
+      opacity: 0.85;
+    }
+
+    .management-container {
+      flex: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0.75rem;
+      width: 100%;
+    }
+
+    @media (min-width: 640px) {
+      .management-container {
+        padding: 1.25rem;
+      }
+    }
+
+    .card-box {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .card-box-header {
+      padding: 0.875rem 1rem;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    @media (min-width: 640px) {
+      .card-box-header {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+    }
+
+    /* Mobile Cards vs Desktop Table */
+    .mobile-cards-view {
+      display: block;
+      padding: 0.75rem;
+    }
+
+    .desktop-table-view {
+      display: none;
+    }
+
+    @media (min-width: 768px) {
+      .mobile-cards-view { display: none; }
+      .desktop-table-view { display: block; }
+    }
+
+    .mobile-data-card {
+      background-color: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 0.875rem;
+      margin-bottom: 0.625rem;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+    }
+
+    .data-table th {
+      background-color: var(--bg-muted);
+      color: var(--text-secondary);
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      padding: 0.625rem 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .data-table td {
+      padding: 0.625rem 0.75rem;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0,0,0,0.5);
+      backdrop-filter: blur(4px);
+      z-index: 60;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.75rem;
+    }
+
+    .modal-content {
+      background-color: #ffffff;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      width: 100%;
+      max-width: 540px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 1rem;
+    }
+
+    @media print {
+      body { background-color: #ffffff !important; }
+      .top-header, .tab-bar-container, .form-panel, .modal-overlay { display: none !important; }
+      .preview-panel { padding: 0 !important; background: transparent !important; }
+      .document-page-wrapper { box-shadow: none !important; margin: 0 !important; }
+      .document-page { width: 100% !important; height: 100vh !important; padding: 20px !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React Application Logic Script -->
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    const DEFAULT_SUPPLIERS = {
+      sejin: {
+        id: "sejin",
+        company: "세진건설기계",
+        bizno: "568-23-00015",
+        name: "허강",
+        addr: "전북특별자치도 전주시 덕진구 추천로 269(팔복동1가)",
+        tel: "010-2644-2921",
+        email: "lkjhg-2921@naver.com",
+        bank: "우리은행 1002-753-378007 허강",
+        hasStamp: true
+      },
+      ds_gimje: {
+        id: "ds_gimje",
+        company: "디에스건설기계 김제점",
+        bizno: "213-17-24815",
+        name: "경아름",
+        addr: "전북특별자치도 김제시 용지면 황도로 919,1동",
+        tel: "010-4908-4703",
+        fax: "063-900-3553",
+        email: "areum1438@naver.com",
+        bank: "하나은행 716-910596-07807 경아름",
+        hasStamp: false
+      }
+    };
+
+    const INITIAL_SUPPLIERS_LIST = [
+      { id: "sejin", code: "S0001", name: "세진건설기계", bizno: "568-23-00015", person: "허강", phone: "010-2644-2921", addr: "전북특별자치도 전주시 덕진구 추천로 269(팔복동1가)", bank: "우리은행 1002-753-378007 허강", hasStamp: true },
+      { id: "ds_gimje", code: "S0002", name: "디에스건설기계 김제점", bizno: "213-17-24815", person: "경아름", phone: "010-4908-4703", addr: "전북특별자치도 김제시 용지면 황도로 919,1동", bank: "하나은행 716-910596-07807 경아름", hasStamp: false }
+    ];
+
+    const DEMO_CUSTOMERS = [
+      { id: "demo1", code: "C0001", name: "전주건설", person: "김철수", phone: "010-1234-5678", addr: "전북특별자치도 전주시 덕진구 추천로 100", bizno: "123-45-67890", memo: "VIP 거래처" },
+      { id: "demo2", code: "C0002", name: "김제중기", person: "이영희", phone: "010-9876-5432", addr: "전북특별자치도 김제시 용지면 황도로 50", bizno: "213-17-24815", memo: "정기점검" }
+    ];
+
+    const DEMO_PARTS = [
+      { id: "pdemo1", code: "P0001", name: "엔진오일 필터", category: "필터/오일", unit: "EA", price: 25000, stock: 3, min_stock: 5, memo: "저재고" },
+      { id: "pdemo2", code: "P0002", name: "유압유 20L", category: "필터/오일", unit: "CAN", price: 85000, stock: 12, min_stock: 3, memo: "정품 오일" },
+      { id: "pdemo3", code: "P0003", name: "고압 유압호스", category: "유압부품", unit: "EA", price: 45000, stock: 1, min_stock: 4, memo: "긴급재고" },
+      { id: "pdemo4", code: "P0004", name: "시동모터 (스타트모터)", category: "전기부품", unit: "EA", price: 320000, stock: 8, min_stock: 2, memo: "" },
+      { id: "pdemo5", code: "P0005", name: "에어필터 엘리먼트", category: "필터/오일", unit: "EA", price: 18000, stock: 0, min_stock: 5, memo: "품절" }
+    ];
+
+    const DOC_TYPES = ["거래명세서", "견적서", "청구서", "영수증", "발주서"];
+    const PART_CATEGORIES = ["전체", "필터/오일", "유압부품", "전기부품", "엔진부품", "기타"];
+
+    const getLocalItem = (key, fallback) => {
+      try {
+        const item = localStorage.getItem(key);
+        return item ? JSON.parse(item) : fallback;
+      } catch (e) { return fallback; }
+    };
+
+    const setLocalItem = (key, value) => {
+      try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+    };
+
+    function DocumentCanvas({ docType, docNo, docDate, docTime, supplier, customer, items, vat, vatIncluded, paid, remark }) {
+      const ITEMS_PER_PAGE = 15;
+      const totalSupply = items.reduce((sum, item) => sum + (Number(item.qty) || 0) * (Number(item.price) || 0), 0);
+      const vatAmount = vatIncluded ? Math.floor(totalSupply * 0.1) : Number(vat) || 0;
+      const grandTotal = totalSupply + vatAmount;
+
+      const pages = [];
+      for (let i = 0; i < items.length; i += ITEMS_PER_PAGE) {
+        pages.push(items.slice(i, i + ITEMS_PER_PAGE));
+      }
+      if (pages.length === 0) pages.push([]);
+
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+          {pages.map((pageItems, pageIdx) => (
+            <div key={pageIdx} className="document-page-wrapper">
+              <div className="document-page">
+                <div>
+                  <div className="doc-title-main">{docType || '거 래 명 세 서'}</div>
+                  <div className="doc-info-bar">
+                    <div>일자: {docDate || '2026-08-12'} {docTime}</div>
+                    <div>문서번호: {docNo || '자동발행'}</div>
+                    <div>페이지: {pageIdx + 1} / {pages.length}</div>
+                  </div>
+
+                  <table className="parties-table">
+                    <tbody>
+                      <tr>
+                        <th style={{ width: '40px' }} rowSpan="4">공<br/>급<br/>받<br/>는<br/>자</th>
+                        <th style={{ width: '70px' }}>성명/상호</th>
+                        <td>{customer.name || '-'}</td>
+                        <th style={{ width: '40px' }} rowSpan="4">공<br/>급<br/>자</th>
+                        <th style={{ width: '70px' }}>등록번호</th>
+                        <td style={{ fontWeight: '800' }}>{supplier.bizno || '-'}</td>
+                      </tr>
+                      <tr>
+                        <th>담당자</th>
+                        <td>{customer.person || '-'}</td>
+                        <th>상호명</th>
+                        <td style={{ fontWeight: '800' }}>{supplier.company || supplier.name || '-'}</td>
+                      </tr>
+                      <tr>
+                        <th>연락처</th>
+                        <td>{customer.phone || '-'}</td>
+                        <th>대표자</th>
+                        <td>{supplier.name || '-'}</td>
+                      </tr>
+                      <tr>
+                        <th>주소</th>
+                        <td style={{ fontSize: '10px' }}>{customer.addr || '-'}</td>
+                        <th>사업장주소</th>
+                        <td style={{ fontSize: '10px' }}>{supplier.addr || '-'}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <table className="items-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '35px' }}>No</th>
+                        <th>품명 및 규격</th>
+                        <th style={{ width: '50px' }}>단위</th>
+                        <th style={{ width: '60px' }}>수량</th>
+                        <th style={{ width: '90px' }}>단가</th>
+                        <th style={{ width: '100px' }}>공급가액</th>
+                        <th style={{ width: '90px' }}>비고</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Array.from({ length: ITEMS_PER_PAGE }).map((_, idx) => {
+                        const item = pageItems[idx];
+                        const amount = item ? (Number(item.qty) || 0) * (Number(item.price) || 0) : 0;
+                        return (
+                          <tr key={idx} style={{ height: '28px' }}>
+                            <td style={{ textAlign: 'center', color: '#6b7280' }}>{item ? pageIdx * ITEMS_PER_PAGE + idx + 1 : ''}</td>
+                            <td style={{ fontWeight: item ? '700' : 'normal' }}>{item?.name || ''}</td>
+                            <td style={{ textAlign: 'center' }}>{item?.unit || ''}</td>
+                            <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{item?.qty ? Number(item.qty).toLocaleString() : ''}</td>
+                            <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{item?.price ? Number(item.price).toLocaleString() : ''}</td>
+                            <td style={{ textAlign: 'right', fontWeight: '700', fontFamily: 'monospace' }}>{item && amount > 0 ? amount.toLocaleString() : ''}</td>
+                            <td style={{ fontSize: '10px', color: '#6b7280' }}>{item?.code || ''}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {supplier.hasStamp && <div className="stamp-box">직인</div>}
+
+                <div>
+                  <table className="doc-totals-table">
+                    <tbody>
+                      <tr>
+                        <td style={{ backgroundColor: '#f3f4f6', width: '90px', textAlign: 'center' }}>공급가액</td>
+                        <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>₩ {totalSupply.toLocaleString()}</td>
+                        <td style={{ backgroundColor: '#f3f4f6', width: '90px', textAlign: 'center' }}>부가세</td>
+                        <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>₩ {vatAmount.toLocaleString()}</td>
+                        <td style={{ backgroundColor: '#111827', color: '#ffffff', width: '90px', textAlign: 'center' }}>합계금액</td>
+                        <td style={{ textAlign: 'right', fontWeight: '900', fontSize: '14px', fontFamily: 'monospace' }}>
+                          ₩ {grandTotal.toLocaleString()}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <div style={{ marginTop: '8px', padding: '6px 8px', border: '1px solid #000000', fontSize: '10.5px', display: 'flex', justifyContent: 'space-between', backgroundColor: '#fafafa' }}>
+                    <div><strong>입금계좌:</strong> {supplier.bank || '문의바람'}</div>
+                    <div><strong>비고:</strong> {remark || '특이사항 없음'}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    function Header({ activeTab, setActiveTab, isConnected }) {
+      return (
+        <header className="top-header">
+          <div className="header-card">
+            <div>
+              <h1 className="brand-title">TEAM D.D</h1>
+              <span className="brand-sub">세진 568-23-00015 (허강) • 디에스김제 213-17-24815 (경아름)</span>
+            </div>
+            <div className={`status-badge ${isConnected ? 'connected' : 'disconnected'}`}>
+              <span>{isConnected ? '🟢 DB 연결됨' : '🔴 로컬저장 모드'}</span>
+            </div>
+          </div>
+
+          <div className="tab-bar-container">
+            <div className="tab-nav">
+              <button className={`tab-btn ${activeTab === 'doc' ? 'active' : ''}`} onClick={() => setActiveTab('doc')}>📄 명세서</button>
+              <button className={`tab-btn ${activeTab === 'customers' ? 'active' : ''}`} onClick={() => setActiveTab('customers')}>👥 고객관리</button>
+              <button className={`tab-btn ${activeTab === 'suppliers' ? 'active' : ''}`} onClick={() => setActiveTab('suppliers')}>🏢 공급자</button>
+              <button className={`tab-btn ${activeTab === 'parts' ? 'active' : ''}`} onClick={() => setActiveTab('parts')}>🛠️ 부품관리</button>
+            </div>
+          </div>
+        </header>
+      );
+    }
+
+    function StatementTab({ docType, setDocType, docNo, setDocNo, docDate, setDocDate, docTime, setDocTime, selectedSupplierKey, setSelectedSupplierKey, suppliersList, currentSupplier, setCurrentSupplier, customer, setCustomer, customersList, items, setItems, vat, setVat, vatIncluded, setVatIncluded, paid, setPaid, remark, setRemark, onResetForm, onSaveDocument }) {
+      const [showAutocomplete, setShowAutocomplete] = useState(false);
+      const matchingCustomers = (customer.name || '').trim() ? customersList.filter(c => (c.name || '').toLowerCase().includes(customer.name.toLowerCase())) : [];
+
+      const handleExportPNG = async () => {
+        const pages = document.querySelectorAll('.document-page');
+        if (!pages || pages.length === 0) return;
+        for (let i = 0; i < pages.length; i++) {
+          const canvas = await window.html2canvas(pages[i], { scale: 2, backgroundColor: '#ffffff' });
+          const link = document.createElement('a');
+          link.download = `${docType}_${docNo || '명세서'}_${i + 1}페이지.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+        }
+      };
+
+      return (
+        <div className="generator-split">
+          <div className="form-panel">
+            <div className="form-section">
+              <div className="section-title">📄 문서 기본 설정</div>
+              <div className="grid-2">
+                <div className="form-group">
+                  <label className="form-label">문서 종류</label>
+                  <select className="form-select" value={docType} onChange={e => setDocType(e.target.value)}>
+                    {DOC_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">공급자 선택</label>
+                  <select className="form-select" value={selectedSupplierKey} onChange={e => setSelectedSupplierKey(e.target.value)}>
+                    {suppliersList.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="grid-2">
+                <div className="form-group">
+                  <label className="form-label">문서번호</label>
+                  <input type="text" className="form-input" value={docNo} onChange={e => setDocNo(e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">일자</label>
+                  <input type="date" className="form-input" value={docDate} onChange={e => setDocDate(e.target.value)} />
+                </div>
+              </div>
+            </div>
+
+            <div className="form-section">
+              <div className="section-title">👥 공급받는자 (거래처)</div>
+              <div className="form-group" style={{ position: 'relative' }}>
+                <label className="form-label">거래처명 검색 / 입력</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="거래처 검색 (자동완성)"
+                  value={customer.name}
+                  onChange={e => { setCustomer({ ...customer, name: e.target.value }); setShowAutocomplete(true); }}
+                  onFocus={() => setShowAutocomplete(true)}
+                />
+                {showAutocomplete && matchingCustomers.length > 0 && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: '#ffffff', border: '1px solid #d1d5db', borderRadius: '8px', zIndex: 20 }}>
+                    {matchingCustomers.map(c => (
+                      <button key={c.id} style={{ width: '100%', textAlign: 'left', padding: '0.625rem', background: 'none', border: 'none', borderBottom: '1px solid #eee', cursor: 'pointer' }} onClick={() => { setCustomer({ name: c.name, person: c.person, phone: c.phone, addr: c.addr }); setShowAutocomplete(false); }}>
+                        <div style={{ fontWeight: '700' }}>{c.name}</div>
+                        <div style={{ fontSize: '10px', color: '#666' }}>{c.person} • {c.phone}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="grid-2">
+                <div className="form-group">
+                  <label className="form-label">담당자</label>
+                  <input type="text" className="form-input" value={customer.person} onChange={e => setCustomer({ ...customer, person: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">연락처</label>
+                  <input type="text" className="form-input" value={customer.phone} onChange={e => setCustomer({ ...customer, phone: e.target.value })} />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">주소</label>
+                <input type="text" className="form-input" value={customer.addr} onChange={e => setCustomer({ ...customer, addr: e.target.value })} />
+              </div>
+            </div>
+
+            <div className="form-section">
+              <div className="section-title">
+                <span>📦 품목 리스트 ({items.length}건)</span>
+                <button className="btn btn-outline" style={{ fontSize: '11px', padding: '4px 8px', minHeight: '32px' }} onClick={() => setItems([...items, { id: Date.now().toString(), code: '', name: '', unit: 'EA', qty: 1, price: 0 }])}>+ 행 추가</button>
+              </div>
+              {items.map((item, idx) => (
+                <div key={item.id} className="item-card">
+                  <div className="item-card-header">
+                    <span style={{ fontSize: '11px', color: '#666' }}>#{idx + 1}</span>
+                    <button style={{ border: 'none', background: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '11px', padding: '4px' }} onClick={() => setItems(items.length === 1 ? [{ id: Date.now().toString(), code: '', name: '', unit: 'EA', qty: 1, price: 0 }] : items.filter(i => i.id !== item.id))}>삭제</button>
+                  </div>
+                  <input type="text" className="form-input" placeholder="품명 및 규격" value={item.name} onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, name: e.target.value } : i))} style={{ marginBottom: '4px' }} />
+                  <div className="item-grid">
+                    <input type="text" className="form-input" placeholder="단위" value={item.unit} onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, unit: e.target.value } : i))} />
+                    <input type="number" className="form-input" placeholder="수량" value={item.qty} onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, qty: Number(e.target.value) || 0 } : i))} />
+                    <input type="number" className="form-input" placeholder="단가" value={item.price} onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, price: Number(e.target.value) || 0 } : i))} />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
+              <div className="grid-2">
+                <button className="btn btn-green" onClick={handleExportPNG}>📸 이미지 저장</button>
+                <button className="btn btn-primary" onClick={() => window.print()}>🖨️ 인쇄 / PDF</button>
+              </div>
+              <button className="btn btn-outline" onClick={onSaveDocument}>💾 로컬/DB 저장</button>
+              <button className="btn btn-red-outline" onClick={onResetForm}>🔄 초기화</button>
+            </div>
+          </div>
+
+          <div className="preview-panel">
+            <DocumentCanvas docType={docType} docNo={docNo} docDate={docDate} docTime={docTime} supplier={currentSupplier} customer={customer} items={items} vat={vat} vatIncluded={vatIncluded} paid={paid} remark={remark} />
+          </div>
+        </div>
+      );
+    }
+
+    function CustomerTab({ customers, onSaveCustomer, onDeleteCustomer, onSelectCustomer }) {
+      const [search, setSearch] = useState('');
+      const [showModal, setShowModal] = useState(false);
+      const [form, setForm] = useState({ code: '', name: '', person: '', phone: '', addr: '', bizno: '', memo: '' });
+
+      const filtered = customers.filter(c => (c.name || '').toLowerCase().includes(search.toLowerCase()) || (c.phone || '').includes(search));
+
+      const handleOpenAdd = () => {
+        setForm({ code: `C000${customers.length + 1}`, name: '', person: '', phone: '', addr: '', bizno: '', memo: '' });
+        setShowModal(true);
+      };
+
+      return (
+        <div className="management-container">
+          <div className="card-box">
+            <div className="card-box-header">
+              <h2 style={{ fontSize: '1.125rem', fontWeight: '900' }}>👥 고객 (거래처) 관리</h2>
+              <button className="btn btn-primary" onClick={handleOpenAdd}>+ 거래처 추가</button>
+            </div>
+            <div style={{ padding: '0.75rem', backgroundColor: '#f9fafb' }}>
+              <input type="text" className="form-input" placeholder="검색..." value={search} onChange={e => setSearch(e.target.value)} />
+            </div>
+
+            {/* Mobile Cards View */}
+            <div className="mobile-cards-view">
+              {filtered.map(c => (
+                <div key={c.id} className="mobile-data-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.375rem' }}>
+                    <span style={{ fontWeight: '900', fontSize: '0.9375rem' }}>{c.name}</span>
+                    <span style={{ fontSize: '0.6875rem', color: '#6b7280', fontFamily: 'monospace' }}>{c.code}</span>
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#4b5563', marginBottom: '0.5rem' }}>
+                    <div>담당자: {c.person || '-'}</div>
+                    <div>연락처: {c.phone || '-'}</div>
+                    <div>주소: {c.addr || '-'}</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.375rem' }}>
+                    <button className="btn btn-primary" style={{ flex: 1, minHeight: '36px', fontSize: '0.75rem' }} onClick={() => onSelectCustomer(c)}>명세서에 선택</button>
+                    <button className="btn btn-red-outline" style={{ minHeight: '36px', fontSize: '0.75rem' }} onClick={() => onDeleteCustomer(c.id)}>삭제</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="desktop-table-view">
+              <table className="data-table">
+                <thead>
+                  <tr><th>Code</th><th>상호명</th><th>담당자</th><th>연락처</th><th>주소</th><th>작업</th></tr>
+                </thead>
+                <tbody>
+                  {filtered.map(c => (
+                    <tr key={c.id}>
+                      <td>{c.code}</td>
+                      <td style={{ fontWeight: '700' }}>{c.name}</td>
+                      <td>{c.person}</td>
+                      <td>{c.phone}</td>
+                      <td>{c.addr}</td>
+                      <td>
+                        <button className="btn btn-primary" style={{ fontSize: '10px', padding: '2px 6px', marginRight: '4px' }} onClick={() => onSelectCustomer(c)}>명세서 선택</button>
+                        <button className="btn btn-red-outline" style={{ fontSize: '10px', padding: '2px 6px' }} onClick={() => onDeleteCustomer(c.id)}>삭제</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {showModal && (
+            <div className="modal-overlay">
+              <div className="modal-content">
+                <h3 style={{ marginBottom: '1rem', fontWeight: '900' }}>➕ 새 거래처 등록</h3>
+                <div className="form-group"><label className="form-label">상호명 *</label><input type="text" className="form-input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
+                <div className="form-group"><label className="form-label">담당자</label><input type="text" className="form-input" value={form.person} onChange={e => setForm({ ...form, person: e.target.value })} /></div>
+                <div className="form-group"><label className="form-label">연락처</label><input type="text" className="form-input" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
+                <div className="form-group"><label className="form-label">주소</label><input type="text" className="form-input" value={form.addr} onChange={e => setForm({ ...form, addr: e.target.value })} /></div>
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                  <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => { onSaveCustomer(form); setShowModal(false); }}>저장</button>
+                  <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setShowModal(false)}>취소</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function SupplierTab({ suppliers, onSelectSupplier }) {
+      return (
+        <div className="management-container">
+          <div className="card-box">
+            <div className="card-box-header">
+              <h2 style={{ fontSize: '1.125rem', fontWeight: '900' }}>🏢 공급자 관리</h2>
+            </div>
+            <div className="mobile-cards-view">
+              {suppliers.map(s => (
+                <div key={s.id} className="mobile-data-card">
+                  <div style={{ fontWeight: '900', fontSize: '0.9375rem', marginBottom: '0.25rem' }}>{s.name}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#4b5563', marginBottom: '0.5rem' }}>
+                    <div>사업자번호: {s.bizno}</div>
+                    <div>연락처: {s.phone || s.tel}</div>
+                  </div>
+                  <button className="btn btn-primary" style={{ width: '100%', minHeight: '36px', fontSize: '0.75rem' }} onClick={() => onSelectSupplier(s)}>명세서 공급자로 선택</button>
+                </div>
+              ))}
+            </div>
+
+            <div className="desktop-table-view">
+              <table className="data-table">
+                <thead>
+                  <tr><th>Code</th><th>상호명</th><th>사업자번호</th><th>연락처</th><th>작업</th></tr>
+                </thead>
+                <tbody>
+                  {suppliers.map(s => (
+                    <tr key={s.id}>
+                      <td>{s.code}</td>
+                      <td style={{ fontWeight: '700' }}>{s.name}</td>
+                      <td>{s.bizno}</td>
+                      <td>{s.phone || s.tel}</td>
+                      <td>
+                        <button className="btn btn-primary" style={{ fontSize: '10px', padding: '2px 6px' }} onClick={() => onSelectSupplier(s)}>명세서 선택</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function PartsTab({ parts, onSelectPart }) {
+      return (
+        <div className="management-container">
+          <div className="card-box">
+            <div className="card-box-header">
+              <h2 style={{ fontSize: '1.125rem', fontWeight: '900' }}>🛠️ 부품 및 재고 관리</h2>
+            </div>
+
+            <div className="mobile-cards-view">
+              {parts.map(p => (
+                <div key={p.id} className="mobile-data-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                    <span style={{ fontWeight: '900', fontSize: '0.9375rem' }}>{p.name}</span>
+                    <span style={{ fontSize: '0.6875rem', backgroundColor: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: '9999px', fontWeight: '700' }}>재고 {p.stock}</span>
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#4b5563', marginBottom: '0.5rem' }}>
+                    <div>단가: ₩ {Number(p.price).toLocaleString()} | 분류: {p.category}</div>
+                  </div>
+                  <button className="btn btn-primary" style={{ width: '100%', minHeight: '36px', fontSize: '0.75rem' }} onClick={() => onSelectPart(p)}>명세서 항목으로 선택</button>
+                </div>
+              ))}
+            </div>
+
+            <div className="desktop-table-view">
+              <table className="data-table">
+                <thead>
+                  <tr><th>코드</th><th>품명</th><th>카테고리</th><th>단가</th><th>재고</th><th>작업</th></tr>
+                </thead>
+                <tbody>
+                  {parts.map(p => (
+                    <tr key={p.id}>
+                      <td>{p.code}</td>
+                      <td style={{ fontWeight: '700' }}>{p.name}</td>
+                      <td>{p.category}</td>
+                      <td>₩ {Number(p.price).toLocaleString()}</td>
+                      <td>{p.stock}</td>
+                      <td>
+                        <button className="btn btn-primary" style={{ fontSize: '10px', padding: '2px 6px' }} onClick={() => onSelectPart(p)}>명세서 선택</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function App() {
+      const [activeTab, setActiveTab] = useState('doc');
+      const [suppliersList, setSuppliersList] = useState(() => getLocalItem('dd_suppliers_list_v1', INITIAL_SUPPLIERS_LIST));
+      const [selectedSupplierKey, setSelectedSupplierKey] = useState('sejin');
+      const [currentSupplier, setCurrentSupplier] = useState(DEFAULT_SUPPLIERS.sejin);
+
+      const [customersList, setCustomersList] = useState(() => getLocalItem('dd_customers_list_v1', DEMO_CUSTOMERS));
+      const [customer, setCustomer] = useState({ name: '', person: '', phone: '', addr: '' });
+
+      const [partsList, setPartsList] = useState(() => getLocalItem('dd_parts_list_v1', DEMO_PARTS));
+
+      const [docType, setDocType] = useState('거래명세서');
+      const [docNo, setDocNo] = useState('20260812-001');
+      const [docDate, setDocDate] = useState('2026-08-12');
+      const [docTime, setDocTime] = useState('16:15');
+      const [items, setItems] = useState([
+        { id: '1', code: 'P0001', name: '엔진오일 필터', unit: 'EA', qty: 2, price: 25000 },
+        { id: '2', code: 'P0002', name: '유압유 20L', unit: 'CAN', qty: 1, price: 85000 }
+      ]);
+      const [vatIncluded, setVatIncluded] = useState(true);
+
+      useEffect(() => {
+        const found = suppliersList.find(s => s.id === selectedSupplierKey);
+        if (found) {
+          setCurrentSupplier({ ...found, company: found.name, tel: found.phone || found.tel });
+        } else if (DEFAULT_SUPPLIERS[selectedSupplierKey]) {
+          setCurrentSupplier(DEFAULT_SUPPLIERS[selectedSupplierKey]);
+        }
+      }, [selectedSupplierKey, suppliersList]);
+
+      return (
+        <div className="app-container">
+          <Header activeTab={activeTab} setActiveTab={setActiveTab} isConnected={false} />
+          <main className="main-content">
+            {activeTab === 'doc' && (
+              <StatementTab
+                docType={docType} setDocType={setDocType}
+                docNo={docNo} setDocNo={setDocNo}
+                docDate={docDate} setDocDate={setDocDate}
+                docTime={docTime} setDocTime={setDocTime}
+                selectedSupplierKey={selectedSupplierKey} setSelectedSupplierKey={setSelectedSupplierKey}
+                suppliersList={suppliersList} currentSupplier={currentSupplier} setCurrentSupplier={setCurrentSupplier}
+                customer={customer} setCustomer={setCustomer} customersList={customersList}
+                items={items} setItems={setItems}
+                vatIncluded={vatIncluded} setVatIncluded={setVatIncluded}
+                onResetForm={() => setCustomer({ name: '', person: '', phone: '', addr: '' })}
+                onSaveDocument={() => alert('✓ 명세서가 성공적으로 저장되었습니다.')}
+              />
+            )}
+            {activeTab === 'customers' && (
+              <CustomerTab
+                customers={customersList}
+                onSaveCustomer={(c) => setCustomersList([...customersList, { ...c, id: Date.now() }])}
+                onDeleteCustomer={(id) => setCustomersList(customersList.filter(c => c.id !== id))}
+                onSelectCustomer={(c) => { setCustomer(c); setActiveTab('doc'); }}
+              />
+            )}
+            {activeTab === 'suppliers' && (
+              <SupplierTab
+                suppliers={suppliersList}
+                onSelectSupplier={(s) => { setSelectedSupplierKey(s.id); setActiveTab('doc'); }}
+              />
+            )}
+            {activeTab === 'parts' && (
+              <PartsTab
+                parts={partsList}
+                onSelectPart={(p) => { setItems([...items, { id: Date.now().toString(), code: p.code, name: p.name, unit: p.unit || 'EA', qty: 1, price: p.price }]); setActiveTab('doc'); }}
+              />
+            )}
+          </main>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
