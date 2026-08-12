@@ -570,6 +570,79 @@
         page-break-inside: avoid;
       }
     }
+
+    /* ── Splash / Login Screen ── */
+    .splash-screen {
+      position: fixed; inset: 0; z-index: 9999;
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 45%, #1d4ed8 100%);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      font-family: var(--font-main, 'Pretendard', sans-serif);
+      animation: splashFadeIn 0.6s ease;
+    }
+    @keyframes splashFadeIn {
+      from { opacity: 0; } to { opacity: 1; }
+    }
+    .splash-logo-wrap {
+      display: flex; flex-direction: column; align-items: center;
+      margin-bottom: 3rem;
+    }
+    .splash-icon {
+      width: 72px; height: 72px; background: rgba(255,255,255,0.12);
+      border-radius: 20px; display: flex; align-items: center;
+      justify-content: center; margin-bottom: 1.25rem;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    .splash-title {
+      font-size: 3rem; font-weight: 900; color: #ffffff;
+      letter-spacing: -0.02em; line-height: 1;
+    }
+    .splash-title span { color: #60a5fa; }
+    .splash-subtitle {
+      font-size: 0.875rem; color: rgba(255,255,255,0.55);
+      margin-top: 0.5rem; letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .splash-label {
+      font-size: 0.8125rem; font-weight: 600; color: rgba(255,255,255,0.6);
+      text-align: center; margin-bottom: 1rem; letter-spacing: 0.04em;
+    }
+    .splash-cards {
+      display: flex; flex-direction: column; gap: 0.875rem;
+      width: 100%; max-width: 340px; padding: 0 1.25rem;
+    }
+    .splash-card {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 16px; padding: 1.125rem 1.25rem;
+      cursor: pointer; transition: all 0.22s ease;
+      display: flex; align-items: center; gap: 1rem;
+      backdrop-filter: blur(8px);
+    }
+    .splash-card:hover, .splash-card:active {
+      background: rgba(255,255,255,0.16);
+      border-color: rgba(255,255,255,0.35);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.25);
+    }
+    .splash-card-avatar {
+      width: 46px; height: 46px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.375rem; flex-shrink: 0;
+    }
+    .splash-card-info { flex: 1; }
+    .splash-card-name {
+      font-size: 1rem; font-weight: 800; color: #ffffff; line-height: 1.3;
+    }
+    .splash-card-sub {
+      font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-top: 2px;
+    }
+    .splash-card-arrow { color: rgba(255,255,255,0.35); font-size: 1.125rem; }
+    .splash-footer {
+      margin-top: 2.5rem; font-size: 0.6875rem;
+      color: rgba(255,255,255,0.3); text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -4025,10 +4098,57 @@ function DocHistoryTab({
     }, "\uD83D\uDDD1\uFE0F \uC0AD\uC81C")));
   })))));
 }
+
+// ── Splash / Login Screen Component ─────────────────────────────────────────
+function SplashScreen(_ref) {
+  var suppliersList = _ref.suppliersList;
+  var onSelect = _ref.onSelect;
+  var avatarColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+  return React.createElement('div', { className: 'splash-screen' },
+    React.createElement('div', { className: 'splash-logo-wrap' },
+      React.createElement('div', { className: 'splash-icon' },
+        React.createElement('svg', { width: 38, height: 38, viewBox: '0 0 24 24', fill: 'none', stroke: '#60a5fa', strokeWidth: 2 },
+          React.createElement('rect', { x: 2, y: 3, width: 20, height: 14, rx: 2 }),
+          React.createElement('path', { d: 'M8 21h8M12 17v4' })
+        )
+      ),
+      React.createElement('div', { className: 'splash-title' },
+        'TEAM ', React.createElement('span', null, 'D.D')
+      ),
+      React.createElement('div', { className: 'splash-subtitle' }, 'Construction Machine Management')
+    ),
+    React.createElement('div', { className: 'splash-label' }, '\uACF5\uAE09\uC790\uB97C \uC120\uD0DD\uD558\uC138\uC694'),
+    React.createElement('div', { className: 'splash-cards' },
+      suppliersList.map(function(s, idx) {
+        return React.createElement('div', {
+          key: s.id,
+          className: 'splash-card',
+          onClick: function() { onSelect(s.id); }
+        },
+          React.createElement('div', {
+            className: 'splash-card-avatar',
+            style: { background: avatarColors[idx % avatarColors.length] + '33', border: '1.5px solid ' + avatarColors[idx % avatarColors.length] + '66' }
+          }, React.createElement('span', { style: { fontSize: '1.25rem' } }, '\uD83C\uDFEC')),
+          React.createElement('div', { className: 'splash-card-info' },
+            React.createElement('div', { className: 'splash-card-name' }, s.name || s.company),
+            React.createElement('div', { className: 'splash-card-sub' }, s.bizno || s.phone || '')
+          ),
+          React.createElement('div', { className: 'splash-card-arrow' }, '\u203A')
+        );
+      })
+    ),
+    React.createElement('div', { className: 'splash-footer' }, 'TEAM D.D \u00B7 \uB300\uD55C\uBBFC\uAD6D \uAC74\uC124\uAE30\uACC4 \uC815\uBE44 1\uB4F1')
+  );
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState('doc');
   const [openAddCustomerModal, setOpenAddCustomerModal] = useState(false);
   const [editingDocId, setEditingDocId] = useState(null);
+  // Splash login screen - bypass if supplier was already chosen this session
+  const [isLoggedIn, setIsLoggedIn] = useState(function() {
+    return !!sessionStorage.getItem('dd_logged_in');
+  });
 
   // Supabase 연결 상태
   const [supabaseUrl, setSupabaseUrl] = useState(() => localStorage.getItem('supabase_url') || 'https://wmrfwrsaacolkpjyrffy.supabase.co');
@@ -4270,6 +4390,8 @@ function App() {
     setPendingReset(false);
     setPendingTab(null);
   };
+  if (!isLoggedIn) return React.createElement(SplashScreen, { suppliersList: suppliersList, onSelect: function(key) { setSelectedSupplierKey(key); localStorage.setItem('selected_supplier_key', key); sessionStorage.setItem('dd_logged_in', '1'); setIsLoggedIn(true); } });
+
   return /*#__PURE__*/React.createElement("div", {
     className: "app-container"
   }, /*#__PURE__*/React.createElement(Header, {
