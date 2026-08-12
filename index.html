@@ -695,6 +695,7 @@
 
     async function dbSaveDocument(docData) {
       const sb = getSupabaseClient();
+      const docId = docData.id || ('doc_' + Date.now());
       const payload = {
         doc_type: docData.docType,
         doc_no: docData.docNo,
@@ -710,11 +711,54 @@
         paid: docData.paid || 0,
         remark: docData.remark || ''
       };
+
       if (sb) {
-        try { await sb.from('documents').insert(payload); } catch(e) {}
+        try {
+          if (docData.id && !String(docData.id).startsWith('doc_')) {
+            await sb.from('documents').update(payload).eq('id', docData.id);
+          } else {
+            await sb.from('documents').insert(payload);
+          }
+        } catch(e) {}
+      }
+
+      const local = getLocalItem('dd_documents_history_v1', []);
+      const existingIdx = local.findIndex(d => d.id === docId || (d.doc_no === docData.docNo && d.doc_date === docData.docDate));
+      let updated;
+      if (existingIdx >= 0) {
+        updated = [...local];
+        updated[existingIdx] = { ...payload, id: local[existingIdx].id, updated_at: new Date().toISOString() };
+      } else {
+        updated = [{ ...payload, id: docId, created_at: new Date().toISOString() }, ...local];
+      }
+      setLocalItem('dd_documents_history_v1', updated);
+      return updated;
+    }
+
+    async function dbFetchDocuments() {
+      const sb = getSupabaseClient();
+      let list = [];
+      if (sb) {
+        try {
+          const { data, error } = await sb.from('documents').select('*').order('created_at', { ascending: false });
+          if (!error && data && data.length > 0) list = data;
+        } catch(e) {}
+      }
+      if (list.length === 0) {
+        list = getLocalItem('dd_documents_history_v1', []);
+      }
+      return list;
+    }
+
+    async function dbDeleteDocument(docId) {
+      const sb = getSupabaseClient();
+      if (sb && docId && !String(docId).startsWith('doc_')) {
+        try { await sb.from('documents').delete().eq('id', docId); } catch(e) {}
       }
       const local = getLocalItem('dd_documents_history_v1', []);
-      setLocalItem('dd_documents_history_v1', [{ ...payload, id: 'doc_' + Date.now(), created_at: new Date().toISOString() }, ...local]);
+      const updated = local.filter(d => d.id !== docId && d.doc_no !== docId);
+      setLocalItem('dd_documents_history_v1', updated);
+      return updated;
     }
 
     const SQL_ALL = `-- TEAM D.D 전체 스키마 (한번에 실행)
@@ -1063,6 +1107,7 @@ alter table documents disable row level security;`;
           <div className="tab-bar-container">
             <div className="tab-nav">
               <button className={`tab-btn ${activeTab === 'doc' ? 'active' : ''}`} onClick={() => setActiveTab('doc')}>📄 명세서</button>
+              <button className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')}>📁 문서조회</button>
               <button className={`tab-btn ${activeTab === 'customers' ? 'active' : ''}`} onClick={() => setActiveTab('customers')}>👥 고객관리</button>
               <button className={`tab-btn ${activeTab === 'suppliers' ? 'active' : ''}`} onClick={() => setActiveTab('suppliers')}>🏢 공급자</button>
               <button className={`tab-btn ${activeTab === 'parts' ? 'active' : ''}`} onClick={() => setActiveTab('parts')}>🛠️ 부품관리</button>
@@ -1072,7 +1117,7 @@ alter table documents disable row level security;`;
       );
     }
 
-    function StatementTab({ docType, setDocType, docNo, setDocNo, docDate, setDocDate, docTime, setDocTime, selectedSupplierKey, setSelectedSupplierKey, suppliersList, currentSupplier, setCurrentSupplier, customer, setCustomer, customersList, items, setItems, vat, setVat, vatIncluded, setVatIncluded, paid, setPaid, remark, setRemark, onResetForm, onSaveDocument, onAddNewCustomer }) {
+    function StatementTab({ docType, setDocType, docNo, setDocNo, docDate, setDocDate, docTime, setDocTime, selectedSupplierKey, setSelectedSupplierKey, suppliersList, currentSupplier, setCurrentSupplier, customer, setCustomer, customersList, items, setItems, vat, setVat, vatIncluded, setVatIncluded, paid, setPaid, remark, setRemark, onResetForm, onSaveDocument, onAddNewCustomer, editingDocId }) {
       const [showAutocomplete, setShowAutocomplete] = useState(false);
       const matchingCustomers = (customer.name || '').trim() ? customersList.filter(c => (c.name || '').toLowerCase().includes((customer.name || '').toLowerCase())) : [];
 
@@ -1091,6 +1136,12 @@ alter table documents disable row level security;`;
       return (
         <div className="generator-split">
           <div className="form-panel">
+            {editingDocId && (
+              <div style={{ marginBottom: '0.75rem', padding: '0.625rem 0.875rem', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', color: '#1e40af', fontSize: '0.8125rem', fontWeight: '700', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>✏️ 저장된 문서 [{docNo}] 수정 중입니다.</span>
+                <button style={{ border: 'none', background: 'none', color: '#1d6bf3', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.75rem' }} onClick={onResetForm}>신규 작성 전환</button>
+              </div>
+            )}
             <div className="form-section">
               <div className="section-title">📄 문서 기본 설정</div>
               <div className="grid-2">
@@ -1623,9 +1674,227 @@ alter table documents disable row level security;`;
       );
     }
 
+    function DocHistoryTab({ onLoadDocument, isConnected }) {
+      const [documents, setDocuments] = useState([]);
+      const [loading, setLoading] = useState(false);
+      const [searchKeyword, setSearchKeyword] = useState('');
+      const [docTypeFilter, setDocTypeFilter] = useState('전체');
+      
+      const [startDate, setStartDate] = useState(() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+      });
+      const [endDate, setEndDate] = useState(() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      });
+
+      const loadDocs = async () => {
+        setLoading(true);
+        const data = await dbFetchDocuments();
+        setDocuments(data || []);
+        setLoading(false);
+      };
+
+      useEffect(() => {
+        loadDocs();
+      }, [isConnected]);
+
+      const setPresetDate = (type) => {
+        const today = new Date();
+        const endStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        setEndDate(endStr);
+
+        if (type === 'today') {
+          setStartDate(endStr);
+        } else if (type === 'month') {
+          setStartDate(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`);
+        } else if (type === 'last_month') {
+          const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+          const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+          setStartDate(`${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}-01`);
+          setEndDate(`${lastMonthEnd.getFullYear()}-${String(lastMonthEnd.getMonth() + 1).padStart(2, '0')}-${String(lastMonthEnd.getDate()).padStart(2, '0')}`);
+        } else if (type === '3months') {
+          const d3 = new Date(today.getFullYear(), today.getMonth() - 3, 1);
+          setStartDate(`${d3.getFullYear()}-${String(d3.getMonth() + 1).padStart(2, '0')}-01`);
+        } else if (type === 'all') {
+          setStartDate('');
+          setEndDate('');
+        }
+      };
+
+      const filtered = documents.filter(doc => {
+        const date = doc.doc_date || (doc.created_at ? doc.created_at.split('T')[0] : '');
+        if (startDate && date < startDate) return false;
+        if (endDate && date > endDate) return false;
+        if (docTypeFilter !== '전체' && (doc.doc_type || doc.docType) !== docTypeFilter) return false;
+
+        if (searchKeyword.trim()) {
+          const kw = searchKeyword.toLowerCase();
+          const custName = (doc.customer_name || doc.customer_data?.name || '').toLowerCase();
+          const docNo = (doc.doc_no || '').toLowerCase();
+          const itemsStr = JSON.stringify(doc.items || []).toLowerCase();
+          if (!custName.includes(kw) && !docNo.includes(kw) && !itemsStr.includes(kw)) {
+            return false;
+          }
+        }
+        return true;
+      });
+
+      const handleDelete = async (doc) => {
+        if (!confirm(`[${doc.doc_no || doc.doc_type}] 문서를 삭제하시겠습니까?`)) return;
+        const updated = await dbDeleteDocument(doc.id);
+        setDocuments(updated);
+        alert('✓ 문서가 삭제되었습니다.');
+      };
+
+      const calculateTotal = (doc) => {
+        const items = doc.items || [];
+        const supply = items.reduce((sum, i) => sum + (Number(i.qty) || 0) * (Number(i.price) || 0), 0);
+        const vat = doc.vat_included !== false ? Math.floor(supply * 0.1) : Number(doc.vat) || 0;
+        return supply + vat;
+      };
+
+      const totalSumAmount = filtered.reduce((sum, d) => sum + calculateTotal(d), 0);
+
+      return (
+        <div className="management-container">
+          <div className="card-box">
+            <div className="card-box-header">
+              <h2 style={{ fontSize: '1.125rem', fontWeight: '900' }}>📁 저장된 문서 기간별 조회 및 수정</h2>
+              <button className="btn btn-outline" style={{ fontSize: '0.75rem' }} onClick={loadDocs}>🔄 새로고침</button>
+            </div>
+
+            {/* Filter Section */}
+            <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '0.8125rem', fontWeight: '700', color: '#334155' }}>🗓️ 기간 검색:</span>
+                <input type="date" className="form-input" style={{ width: 'auto', minWidth: '130px' }} value={startDate} onChange={e => setStartDate(e.target.value)} />
+                <span style={{ color: '#64748b' }}>~</span>
+                <input type="date" className="form-input" style={{ width: 'auto', minWidth: '130px' }} value={endDate} onChange={e => setEndDate(e.target.value)} />
+                
+                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                  <button className="btn btn-outline" style={{ padding: '2px 8px', fontSize: '11px' }} onClick={() => setPresetDate('today')}>오늘</button>
+                  <button className="btn btn-outline" style={{ padding: '2px 8px', fontSize: '11px' }} onClick={() => setPresetDate('month')}>이번달</button>
+                  <button className="btn btn-outline" style={{ padding: '2px 8px', fontSize: '11px' }} onClick={() => setPresetDate('last_month')}>지난달</button>
+                  <button className="btn btn-outline" style={{ padding: '2px 8px', fontSize: '11px' }} onClick={() => setPresetDate('3months')}>3개월</button>
+                  <button className="btn btn-outline" style={{ padding: '2px 8px', fontSize: '11px' }} onClick={() => setPresetDate('all')}>전체</button>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
+                <select className="form-select" value={docTypeFilter} onChange={e => setDocTypeFilter(e.target.value)}>
+                  <option value="전체">모든 문서 종류</option>
+                  {DOC_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <input type="text" className="form-input" placeholder="거래처명, 문서번호, 품목명 검색..." value={searchKeyword} onChange={e => setSearchKeyword(e.target.value)} />
+              </div>
+            </div>
+
+            {/* Stats Summary Bar */}
+            <div style={{ padding: '0.75rem 1rem', backgroundColor: '#eff6ff', borderBottom: '1px solid #bfdbfe', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8125rem', color: '#1e3a8a', fontWeight: '700' }}>
+              <div>📊 조회 결과: <span style={{ color: '#1d6bf3', fontWeight: '900' }}>{filtered.length}건</span></div>
+              <div>💰 총 합계금액: <span style={{ color: '#1d6bf3', fontWeight: '900', fontFamily: 'monospace', fontSize: '0.9375rem' }}>{totalSumAmount.toLocaleString()}원</span></div>
+            </div>
+
+            {loading ? (
+              <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>문서를 불러오는 중입니다...</div>
+            ) : filtered.length === 0 ? (
+              <div style={{ padding: '2.5rem', textAlign: 'center', color: '#94a3b8' }}>
+                <div>📭 해당 조건의 저장된 문서가 없습니다.</div>
+                <div style={{ fontSize: '0.75rem', marginTop: '4px' }}>기간이나 검색어를 변경해 보세요.</div>
+              </div>
+            ) : (
+              <>
+                <div className="desktop-table-view">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>발행일자 / 번호</th>
+                        <th>종류</th>
+                        <th>공급받는자 (거래처)</th>
+                        <th>품목 요약</th>
+                        <th>합계금액</th>
+                        <th>작업</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtered.map(doc => {
+                        const items = doc.items || [];
+                        const firstItemName = items[0]?.name || '품목 없음';
+                        const itemSummary = items.length > 1 ? `${firstItemName} 외 ${items.length - 1}건` : firstItemName;
+                        const total = calculateTotal(doc);
+                        const custName = doc.customer_name || doc.customer_data?.name || '-';
+                        const custMachine = doc.customer_data?.selectedMachine ? ` (${doc.customer_data.selectedMachine})` : '';
+
+                        return (
+                          <tr key={doc.id || doc.doc_no}>
+                            <td>
+                              <div style={{ fontWeight: '700' }}>{doc.doc_date || doc.created_at?.split('T')[0]}</div>
+                              <div style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace' }}>{doc.doc_no}</div>
+                            </td>
+                            <td>
+                              <span style={{ padding: '2px 8px', borderRadius: '4px', backgroundColor: '#f1f5f9', color: '#334155', fontWeight: '700', fontSize: '11px' }}>{doc.doc_type || '거래명세서'}</span>
+                            </td>
+                            <td style={{ fontWeight: '700', color: '#0f172a' }}>
+                              {custName}<span style={{ color: '#1d6bf3', fontSize: '11px' }}>{custMachine}</span>
+                            </td>
+                            <td style={{ fontSize: '12px', color: '#475569' }}>{itemSummary}</td>
+                            <td style={{ fontWeight: '900', fontFamily: 'monospace', color: '#1d6bf3' }}>{total.toLocaleString()}원</td>
+                            <td>
+                              <div style={{ display: 'flex', gap: '4px' }}>
+                                <button className="btn btn-primary" style={{ padding: '3px 8px', fontSize: '11px' }} onClick={() => onLoadDocument(doc)}>📥 불러오기/수정</button>
+                                <button className="btn btn-red-outline" style={{ padding: '3px 8px', fontSize: '11px' }} onClick={() => handleDelete(doc)}>🗑️ 삭제</button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="mobile-cards-view">
+                  {filtered.map(doc => {
+                    const items = doc.items || [];
+                    const firstItemName = items[0]?.name || '품목 없음';
+                    const itemSummary = items.length > 1 ? `${firstItemName} 외 ${items.length - 1}건` : firstItemName;
+                    const total = calculateTotal(doc);
+                    const custName = doc.customer_name || doc.customer_data?.name || '-';
+                    const custMachine = doc.customer_data?.selectedMachine ? ` (${doc.customer_data.selectedMachine})` : '';
+
+                    return (
+                      <div key={doc.id || doc.doc_no} className="mobile-data-card">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                          <span style={{ padding: '2px 6px', borderRadius: '4px', backgroundColor: '#eff6ff', color: '#1d6bf3', fontWeight: '800', fontSize: '10px' }}>{doc.doc_type || '거래명세서'}</span>
+                          <span style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace' }}>{doc.doc_no}</span>
+                        </div>
+                        <div style={{ fontWeight: '800', fontSize: '0.9375rem', marginBottom: '2px' }}>
+                          {custName}<span style={{ color: '#1d6bf3', fontSize: '11px' }}>{custMachine}</span>
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '6px' }}>
+                          <div>일자: {doc.doc_date || '-'} | 품목: {itemSummary}</div>
+                          <div style={{ fontSize: '0.875rem', fontWeight: '900', color: '#1d6bf3', marginTop: '2px' }}>합계: {total.toLocaleString()}원</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <button className="btn btn-primary" style={{ flex: 1, minHeight: '32px', fontSize: '0.75rem' }} onClick={() => onLoadDocument(doc)}>📥 불러오기/수정</button>
+                          <button className="btn btn-red-outline" style={{ flex: 1, minHeight: '32px', fontSize: '0.75rem' }} onClick={() => handleDelete(doc)}>🗑️ 삭제</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     function App() {
       const [activeTab, setActiveTab] = useState('doc');
       const [openAddCustomerModal, setOpenAddCustomerModal] = useState(false);
+      const [editingDocId, setEditingDocId] = useState(null);
 
       // Supabase 연결 상태
       const [supabaseUrl, setSupabaseUrl] = useState(() => localStorage.getItem('supabase_url') || 'https://wmrfwrsaacolkpjyrffy.supabase.co');
@@ -1754,20 +2023,40 @@ alter table documents disable row level security;`;
         setPartsList(await dbDelete('parts', id, partsList));
       };
 
-      // 문서 저장
+      // 문서 저장 및 수정
       const handleSaveDocument = async () => {
-        await dbSaveDocument({ docType, docNo, docDate, docTime, customer, supplier: currentSupplier, supplierKey: selectedSupplierKey, items, vat, vatIncluded, paid, remark });
-        alert(`✓ ${docType} (번호: ${docNo}) 저장 완료!`);
+        await dbSaveDocument({
+          id: editingDocId,
+          docType, docNo, docDate, docTime, customer, supplier: currentSupplier, supplierKey: selectedSupplierKey, items, vat, vatIncluded, paid, remark
+        });
+        alert(`✓ ${docType} (번호: ${docNo}) 저장/수정 완료!`);
+      };
+
+      const handleLoadDocument = (doc) => {
+        setDocType(doc.doc_type || doc.docType || '거래명세서');
+        setDocNo(doc.doc_no || doc.docNo || '');
+        setDocDate(doc.doc_date || doc.docDate || '');
+        setDocTime(doc.doc_time || doc.docTime || '');
+        if (doc.customer_data) setCustomer(doc.customer_data);
+        else setCustomer({ name: doc.customer_name || '', person: '', phone: '', addr: '' });
+        if (doc.supplier_key) setSelectedSupplierKey(doc.supplier_key);
+        if (doc.items && Array.isArray(doc.items)) setItems(doc.items);
+        setVatIncluded(doc.vat_included !== false);
+        setVat(doc.vat || 0);
+        setPaid(doc.paid || 0);
+        setRemark(doc.remark || '');
+        setEditingDocId(doc.id || null);
+        setActiveTab('doc');
+        alert(`✓ [${doc.doc_no || doc.doc_type}] 문서를 편집기로 불러왔습니다. 수정 후 저장해 보세요.`);
       };
 
       const handleResetForm = () => {
-        if (confirm('명세서 내용을 초기화하시겠습니까?')) {
-          const now = new Date();
-          setDocNo(`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${String(Math.floor(Math.random()*100)).padStart(3,'0')}`);
-          setCustomer({ name: '', person: '', phone: '', addr: '' });
-          setItems([{ id: Date.now().toString(), code: '', name: '', unit: 'EA', qty: 1, price: 0 }]);
-          setPaid(0); setRemark('');
-        }
+        const now = new Date();
+        setDocNo(`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${String(Math.floor(Math.random()*100)).padStart(3,'0')}`);
+        setCustomer({ name: '', person: '', phone: '', addr: '' });
+        setItems([{ id: Date.now().toString(), code: '', name: '', unit: 'EA', qty: 1, price: 0 }]);
+        setPaid(0); setRemark('');
+        setEditingDocId(null);
       };
 
       return (
@@ -1801,6 +2090,13 @@ alter table documents disable row level security;`;
                   setActiveTab('customers');
                   setOpenAddCustomerModal(true);
                 }}
+                editingDocId={editingDocId}
+              />
+            )}
+            {activeTab === 'history' && (
+              <DocHistoryTab
+                onLoadDocument={handleLoadDocument}
+                isConnected={isConnected}
               />
             )}
             {activeTab === 'customers' && (
