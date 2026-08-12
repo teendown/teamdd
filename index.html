@@ -809,7 +809,7 @@ alter table documents disable row level security;`;
     function DocumentCanvas({ docType, docNo, docDate, docTime, supplier, customer, items, vat, vatIncluded, paid, remark }) {
       const ITEMS_PER_PAGE = 24;
       const totalSupply = items.reduce((sum, item) => sum + (Number(item.qty) || 0) * (Number(item.price) || 0), 0);
-      const vatAmount = vatIncluded ? Math.floor(totalSupply * 0.1) : Number(vat) || 0;
+      const vatAmount = vat === -1 ? 0 : (vatIncluded ? Math.floor(totalSupply * 0.1) : (vat > 0 ? Number(vat) : Math.floor(totalSupply * 0.1)));
       const grandTotal = totalSupply + vatAmount;
 
       const pages = [];
@@ -1011,7 +1011,7 @@ alter table documents disable row level security;`;
                     <div style={{ flex: 1, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRight: '1px solid #e2e8f0' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1d6bf3" strokeWidth="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                        <span style={{ fontSize: '12px', fontWeight: '800', color: '#1e293b' }}>부가세 (10%)</span>
+                        <span style={{ fontSize: '12px', fontWeight: '800', color: '#1e293b' }}>{vat === -1 ? '부가세 (면세)' : '부가세 (10%)'}</span>
                       </div>
                       <span style={{ fontSize: '14px', fontWeight: '800', fontFamily: 'monospace', color: '#0f172a' }}>{vatAmount.toLocaleString()}</span>
                     </div>
@@ -1236,8 +1236,44 @@ alter table documents disable row level security;`;
                     <input type="number" className="form-input" placeholder="수량" value={item.qty} onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, qty: Number(e.target.value) || 0 } : i))} />
                     <input type="number" className="form-input" placeholder="단가" value={item.price} onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, price: Number(e.target.value) || 0 } : i))} />
                   </div>
+                  <input type="text" className="form-input" placeholder="품목 비고 / 코드 (선택사항)" value={item.code || ''} onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, code: e.target.value } : i))} style={{ marginTop: '4px', fontSize: '0.75rem' }} />
                 </div>
               ))}
+            </div>
+
+            <div className="form-section">
+              <div className="section-title">💰 부가세 설정</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginBottom: '8px' }}>
+                <button
+                  type="button"
+                  className={`btn ${vatIncluded && vat !== -1 ? 'btn-primary' : 'btn-outline'}`}
+                  style={{ fontSize: '0.75rem', padding: '8px 4px', fontWeight: vatIncluded && vat !== -1 ? '800' : '500' }}
+                  onClick={() => { setVatIncluded(true); setVat(0); }}
+                >
+                  VAT 포함 (10%)
+                </button>
+                <button
+                  type="button"
+                  className={`btn ${!vatIncluded && vat === 0 ? 'btn-primary' : 'btn-outline'}`}
+                  style={{ fontSize: '0.75rem', padding: '8px 4px', fontWeight: (!vatIncluded && vat === 0) ? '800' : '500' }}
+                  onClick={() => { setVatIncluded(false); setVat(0); }}
+                >
+                  VAT 별도 (10%)
+                </button>
+                <button
+                  type="button"
+                  className={`btn ${vat === -1 ? 'btn-primary' : 'btn-outline'}`}
+                  style={{ fontSize: '0.75rem', padding: '8px 4px', fontWeight: vat === -1 ? '800' : '500' }}
+                  onClick={() => { setVatIncluded(false); setVat(-1); }}
+                >
+                  VAT 없음 (면세)
+                </button>
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#475569', padding: '6px 8px', backgroundColor: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                {vatIncluded && vat !== -1 && '✓ 공급가액 10% 부가세가 기본 계산에 포함됩니다.'}
+                {!vatIncluded && vat === 0 && '✓ 공급가액에 부가세 10%가 추가로 합산됩니다.'}
+                {vat === -1 && '✓ 부가세가 0원으로 처리되는 면세 문서입니다.'}
+              </div>
             </div>
 
             <div className="form-section">
