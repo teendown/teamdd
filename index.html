@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>TEAM D.D - 거래명세서 작성 및 고객/공급자/부품 관리</title>
 
+  <!-- PWA Manifest & Icons -->
+  <link rel="manifest" href="/teamdd/manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TEAM D.D">
+  <link rel="apple-touch-icon" href="/teamdd/icon-512.jpg">
+  <meta name="theme-color" content="#1d4ed8">
   <!-- Pretendard & Inter Web Fonts -->
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -570,6 +578,32 @@
         page-break-inside: avoid;
       }
     }
+
+
+    /* ── Install / Add to Home Screen Button ── */
+    .splash-install-btn {
+      display: flex; align-items: center; gap: 0.5rem;
+      margin-top: 1.5rem; padding: 0.75rem 1.5rem;
+      background: rgba(250, 204, 21, 0.15);
+      border: 1.5px solid rgba(250, 204, 21, 0.5);
+      border-radius: 50px; cursor: pointer;
+      color: #fde68a; font-size: 0.875rem; font-weight: 700;
+      transition: all 0.22s ease; font-family: var(--font-main, sans-serif);
+    }
+    .splash-install-btn:hover {
+      background: rgba(250, 204, 21, 0.25);
+      border-color: rgba(250, 204, 21, 0.8);
+      transform: translateY(-1px);
+    }
+    .splash-install-ios-guide {
+      margin-top: 1.25rem; padding: 0.875rem 1.25rem;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px; max-width: 320px;
+      text-align: center; font-size: 0.75rem;
+      color: rgba(255,255,255,0.65); line-height: 1.6;
+    }
+    .splash-install-ios-guide b { color: #fde68a; }
 
     /* ── Splash / Login Screen ── */
     .splash-screen {
@@ -4137,8 +4171,56 @@ function SplashScreen(_ref) {
         );
       })
     ),
-    React.createElement('div', { className: 'splash-footer' }, 'TEAM D.D \u00B7 \uB300\uD55C\uBBFC\uAD6D \uAC74\uC124\uAE30\uACC4 \uC815\uBE44 1\uB4F1')
+    React.createElement('div', { className: 'splash-footer' }, 'TEAM D.D \u00B7 \uB300\uD55C\uBBFC\uAD6D \uAC74\uC124\uAE30\uACC4 \uC815\uBE44 1\uB4F1'),
+    React.createElement(InstallPrompt, null)
   );
+}
+
+// ── Install / Add to Home Screen Component ──────────────────────────────────
+function InstallPrompt() {
+  var installEvent = React.useRef(null);
+  var _s = React.useState('idle'); // 'idle' | 'android' | 'ios' | 'installed'
+  var showState = _s[0];
+  var setShowState = _s[1];
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+  var isAndroid = /android/i.test(navigator.userAgent);
+  var isInStandaloneMode = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+
+  React.useEffect(function() {
+    if (isInStandaloneMode) { setShowState('installed'); return; }
+    function handler(e) { e.preventDefault(); installEvent.current = e; setShowState('android'); }
+    window.addEventListener('beforeinstallprompt', handler);
+    if (isIOS) setShowState('ios');
+    return function() { window.removeEventListener('beforeinstallprompt', handler); };
+  }, []);
+
+  if (showState === 'installed') return React.createElement('div', { style: { marginTop: '1.25rem', fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' } }, '\u2705 \uD648 \uD654\uBA74\uC5D0 \uC124\uCE58\uB428');
+
+  if (showState === 'android') return React.createElement('button', {
+    className: 'splash-install-btn',
+    onClick: function() {
+      if (installEvent.current) {
+        installEvent.current.prompt();
+        installEvent.current.userChoice.then(function(r) {
+          if (r.outcome === 'accepted') setShowState('installed');
+          installEvent.current = null;
+        });
+      }
+    }
+  }, '\uD83D\uDCF2 \uD648 \uD654\uBA74\uC5D0 \uCD94\uAC00');
+
+  if (showState === 'ios') return React.createElement('div', { className: 'splash-install-ios-guide' },
+    React.createElement('div', { style: { fontSize: '1.25rem', marginBottom: '0.375rem' } }, '\uD83D\uDCF2'),
+    React.createElement('div', null,
+      '\uD648 \uD654\uBA74\uC5D0 \uCD94\uAC00\uD558\uB824\uBA74: ',
+      React.createElement('b', null, '\uACF5\uC720 \uBC84\uD2BC (\uB0A8\uC5F4\uD654\uC0B4\uD45C)'),
+      ' \uD15C\uD504\uD6C4 ',
+      React.createElement('b', null, '"\uD648 \uD654\uBA74\uC5D0 \uCD94\uAC00"'),
+      ' \uC120\uD0DD'
+    )
+  );
+
+  return null;
 }
 
 function App() {
