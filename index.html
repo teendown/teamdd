@@ -1150,10 +1150,12 @@ alter table documents disable row level security;`;
                       <td>{c.person}</td>
                       <td>{c.phone}</td>
                       <td style={{ fontSize: '11px' }}>{c.addr}</td>
-                      <td style={{ width: '180px' }}>
-                        <button className="btn btn-primary" style={{ fontSize: '10px', padding: '2px 6px', marginRight: '4px' }} onClick={() => onSelectCustomer(c)}>명세서 선택</button>
-                        <button className="btn btn-outline" style={{ fontSize: '10px', padding: '2px 6px', marginRight: '4px' }} onClick={() => handleOpenEdit(c)}>상세/수정</button>
-                        <button className="btn btn-red-outline" style={{ fontSize: '10px', padding: '2px 6px' }} onClick={() => onDeleteCustomer(c.id)}>삭제</button>
+                      <td style={{ width: '190px' }}>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <button className="btn btn-primary" style={{ fontSize: '10px', padding: '4px 6px', flex: 1 }} onClick={() => onSelectCustomer(c)}>명세서 선택</button>
+                          <button className="btn btn-outline" style={{ fontSize: '10px', padding: '4px 6px', flex: 1 }} onClick={() => handleOpenEdit(c)}>상세/수정</button>
+                          <button className="btn btn-red-outline" style={{ fontSize: '10px', padding: '4px 6px', flex: 1 }} onClick={() => onDeleteCustomer(c.id)}>삭제</button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1283,10 +1285,12 @@ alter table documents disable row level security;`;
                         <div style={{ fontSize: '10px', color: '#6b7280' }}>{s.fax}</div>
                       </td>
                       <td style={{ fontSize: '11px' }}>{s.addr}</td>
-                      <td style={{ width: '180px' }}>
-                        <button className="btn btn-primary" style={{ fontSize: '10px', padding: '2px 6px', marginRight: '4px' }} onClick={() => onSelectSupplier(s)}>명세서 선택</button>
-                        <button className="btn btn-outline" style={{ fontSize: '10px', padding: '2px 6px', marginRight: '4px' }} onClick={() => handleOpenEdit(s)}>수정</button>
-                        <button className="btn btn-red-outline" style={{ fontSize: '10px', padding: '2px 6px' }} onClick={() => onDeleteSupplier(s.id)}>삭제</button>
+                      <td style={{ width: '190px' }}>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <button className="btn btn-primary" style={{ fontSize: '10px', padding: '4px 6px', flex: 1 }} onClick={() => onSelectSupplier(s)}>명세서 선택</button>
+                          <button className="btn btn-outline" style={{ fontSize: '10px', padding: '4px 6px', flex: 1 }} onClick={() => handleOpenEdit(s)}>수정</button>
+                          <button className="btn btn-red-outline" style={{ fontSize: '10px', padding: '4px 6px', flex: 1 }} onClick={() => onDeleteSupplier(s.id)}>삭제</button>
+                        </div>
                       </td>
                     </tr>
                   ))}
