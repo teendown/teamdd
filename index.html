@@ -1119,6 +1119,17 @@ alter table documents disable row level security;`;
               </div>
             </div>
 
+            <div style={{ marginBottom: '1.25rem' }}>
+              <button 
+                type="button" 
+                className="btn btn-primary" 
+                style={{ width: '100%', minHeight: '44px', fontSize: '0.9375rem', fontWeight: '800', backgroundColor: '#1d6bf3', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(29,107,243,0.25)', border: 'none', cursor: 'pointer' }} 
+                onClick={onResetForm}
+              >
+                <span>✨ 신규 문서 작성</span>
+              </button>
+            </div>
+
             <div className="form-section">
               <div className="section-title">👥 공급받는자 (거래처)</div>
               <div className="form-group" style={{ position: 'relative' }}>
@@ -1191,7 +1202,6 @@ alter table documents disable row level security;`;
                 <button className="btn btn-primary" onClick={() => window.print()}>🖨️ 인쇄 / PDF</button>
               </div>
               <button className="btn btn-outline" onClick={onSaveDocument}>💾 로컬/DB 저장</button>
-              <button className="btn btn-red-outline" onClick={onResetForm}>🔄 초기화</button>
             </div>
           </div>
 
