@@ -1057,8 +1057,6 @@ alter table documents disable row level security;`;
                     <input type="number" className="form-input" placeholder="단가" value={item.price} onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, price: Number(e.target.value) || 0 } : i))} />
                   </div>
                 </div>
-                  </div>
-                </div>
               ))}
             </div>
 
