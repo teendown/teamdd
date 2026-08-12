@@ -809,7 +809,7 @@ alter table documents disable row level security;`;
     function DocumentCanvas({ docType, docNo, docDate, docTime, supplier, customer, items, vat, vatIncluded, paid, remark }) {
       const ITEMS_PER_PAGE = 24;
       const totalSupply = items.reduce((sum, item) => sum + (Number(item.qty) || 0) * (Number(item.price) || 0), 0);
-      const vatAmount = vat === -1 ? 0 : (vatIncluded ? Math.floor(totalSupply * 0.1) : (vat > 0 ? Number(vat) : Math.floor(totalSupply * 0.1)));
+      const vatAmount = vatIncluded ? Math.floor(totalSupply * 0.1) : 0;
       const grandTotal = totalSupply + vatAmount;
 
       const [scale, setScale] = useState(1);
@@ -1048,7 +1048,7 @@ alter table documents disable row level security;`;
                     <div style={{ flex: 1, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRight: '1px solid #e2e8f0' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1d6bf3" strokeWidth="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                        <span style={{ fontSize: '12px', fontWeight: '800', color: '#1e293b' }}>{vat === -1 ? '부가세 (면세)' : '부가세 (10%)'}</span>
+                        <span style={{ fontSize: '12px', fontWeight: '800', color: '#1e293b' }}>{vatIncluded ? '부가세 (10%)' : '부가세'}</span>
                       </div>
                       <span style={{ fontSize: '14px', fontWeight: '800', fontFamily: 'monospace', color: '#0f172a' }}>{vatAmount.toLocaleString()}</span>
                     </div>
@@ -1153,9 +1153,6 @@ alter table documents disable row level security;`;
         </header>
       );
     }
-
-    function StatementTab({ docType, setDocType, docNo, setDocNo, docDate, setDocDate, docTime, setDocTime, selectedSupplierKey, setSelectedSupplierKey, suppliersList, currentSupplier, setCurrentSupplier, customer, setCustomer, customersList, items, setItems, vat, setVat, vatIncluded, setVatIncluded, paid, setPaid, remark, setRemark, onResetForm, onSaveDocument, onAddNewCustomer, editingDocId }) {
-      const [showAutocomplete, setShowAutocomplete] = useState(false);
       const matchingCustomers = (customer.name || '').trim() ? customersList.filter(c => (c.name || '').toLowerCase().includes((customer.name || '').toLowerCase())) : [];
 
       const handleExportPNG = async () => {
@@ -1312,37 +1309,24 @@ alter table documents disable row level security;`;
 
             <div className="form-section">
               <div className="section-title">💰 부가세 설정</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginBottom: '8px' }}>
-                <button
-                  type="button"
-                  className={`btn ${vatIncluded && vat !== -1 ? 'btn-primary' : 'btn-outline'}`}
-                  style={{ fontSize: '0.75rem', padding: '8px 4px', fontWeight: vatIncluded && vat !== -1 ? '800' : '500' }}
-                  onClick={() => { setVatIncluded(true); setVat(0); }}
-                >
-                  VAT 포함 (10%)
-                </button>
-                <button
-                  type="button"
-                  className={`btn ${!vatIncluded && vat === 0 ? 'btn-primary' : 'btn-outline'}`}
-                  style={{ fontSize: '0.75rem', padding: '8px 4px', fontWeight: (!vatIncluded && vat === 0) ? '800' : '500' }}
-                  onClick={() => { setVatIncluded(false); setVat(0); }}
-                >
-                  VAT 별도 (10%)
-                </button>
-                <button
-                  type="button"
-                  className={`btn ${vat === -1 ? 'btn-primary' : 'btn-outline'}`}
-                  style={{ fontSize: '0.75rem', padding: '8px 4px', fontWeight: vat === -1 ? '800' : '500' }}
-                  onClick={() => { setVatIncluded(false); setVat(-1); }}
-                >
-                  VAT 없음 (면세)
-                </button>
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#475569', padding: '6px 8px', backgroundColor: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                {vatIncluded && vat !== -1 && '✓ 공급가액 10% 부가세가 기본 계산에 포함됩니다.'}
-                {!vatIncluded && vat === 0 && '✓ 공급가액에 부가세 10%가 추가로 합산됩니다.'}
-                {vat === -1 && '✓ 부가세가 0원으로 처리되는 면세 문서입니다.'}
-              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', backgroundColor: vatIncluded ? '#eff6ff' : '#f8fafc', border: `1px solid ${vatIncluded ? '#3b82f6' : '#cbd5e1'}`, borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s ease' }}>
+                <input 
+                  type="checkbox" 
+                  checked={!!vatIncluded} 
+                  onChange={e => setVatIncluded(e.target.checked)} 
+                  style={{ width: '20px', height: '20px', accentColor: '#1d6bf3', cursor: 'pointer' }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.875rem', fontWeight: '800', color: vatIncluded ? '#1d6bf3' : '#334155' }}>
+                    {vatIncluded ? '☑️ 부가세 적용 (10% 계산)' : '☐ 부가세 미적용 (0원)'}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                    {vatIncluded 
+                      ? '체크됨: 부가세 10%가 자동 계산되어 합계표에 표시됩니다.' 
+                      : '체크 해제됨: 부가세가 0원으로 표시되고 공급가액만 청구됩니다.'}
+                  </div>
+                </div>
+              </label>
             </div>
 
             <div className="form-section">
