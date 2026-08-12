@@ -573,6 +573,7 @@
   </style>
 </head>
 <body>
+  <div id="loading-indicator" style="padding:2rem;text-align:center;font-family:sans-serif;color:#6b7280;font-size:0.9rem;">⏳ 앱 로딩 중...</div>
   <div id="root"></div>
 
   <!-- Global Error Handler -->
@@ -581,33 +582,39 @@
     function showError(msg, detail) {
       window.__appErrors.push({msg: msg, detail: detail, time: new Date().toISOString()});
       console.error('[AppError]', msg, detail);
+      var loading = document.getElementById('loading-indicator');
+      if (loading) loading.style.display = 'none';
       var root = document.getElementById('root');
       if (!root) return;
-      root.innerHTML =
-        '<div style="padding:1.5rem;text-align:center;font-family:sans-serif;max-width:520px;margin:0 auto;">' +
-        '<div style="font-size:2rem;margin-bottom:0.5rem;">⚠️</div>' +
-        '<h2 style="color:#dc2626;font-size:1.1rem;font-weight:800;margin-bottom:0.5rem;">앱 로딩 오류</h2>' +
+      var btn = document.createElement('button');
+      btn.textContent = '\uD83D\uDD04 \uC0C8\uB85C\uACE0\uCE68';
+      btn.style.cssText = 'padding:0.6rem 1.25rem;background:#1d4ed8;color:white;border:none;border-radius:8px;font-weight:700;font-size:0.875rem;cursor:pointer;margin-top:1rem;';
+      btn.onclick = function() { location.href = location.pathname + '?v=' + Date.now(); };
+      var wrap = document.createElement('div');
+      wrap.style.cssText = 'padding:1.5rem;text-align:center;font-family:sans-serif;max-width:520px;margin:0 auto;';
+      wrap.innerHTML = '<div style="font-size:2rem;margin-bottom:0.5rem;">\u26A0\uFE0F</div>' +
+        '<h2 style="color:#dc2626;font-size:1.1rem;font-weight:800;margin-bottom:0.5rem;">' + '\uC571 \uB85C\uB529 \uC624\uB958' + '</h2>' +
         '<p style="color:#374151;font-size:0.85rem;margin-bottom:0.75rem;">' + msg + '</p>' +
-        '<div style="font-size:0.7rem;color:#6b7280;background:#f9fafb;border:1px solid #e5e7eb;padding:8px 10px;border-radius:6px;text-align:left;word-break:break-all;margin-bottom:1rem;">' + (detail||'') + '</div>' +
-        '<button onclick="location.href=location.pathname+'?v='+Date.now()" style="padding:0.6rem 1.25rem;background:#1d4ed8;color:white;border:none;border-radius:8px;font-weight:700;font-size:0.875rem;cursor:pointer;">🔄 새로고침</button>' +
-        '</div>';
+        '<div style="font-size:0.7rem;color:#6b7280;background:#f9fafb;border:1px solid #e5e7eb;padding:8px 10px;border-radius:6px;text-align:left;word-break:break-all;margin-bottom:1rem;">' + (detail || '') + '</div>';
+      wrap.appendChild(btn);
+      root.innerHTML = '';
+      root.appendChild(wrap);
     }
     window.onerror = function(msg, src, line, col, err) {
-      var detail = '오류: ' + msg + ' | 위치: ' + (src||'') + ':' + (line||0) + ':' + (col||0) + (err && err.stack ? ' | 스택: ' + err.stack.substring(0,300) : '');
-      showError('스크립트 오류가 발생했습니다.', detail);
+      var detail = 'msg: ' + msg + ' | src: ' + (src || '') + ':' + (line || 0) + ':' + (col || 0) + (err && err.stack ? ' | stack: ' + String(err.stack).substring(0, 400) : '');
+      showError('\uC2A4\uD06C\uB9BD\uD2B8 \uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4.', detail);
       return false;
     };
     window.addEventListener('unhandledrejection', function(e) {
       var reason = e.reason ? (e.reason.message || String(e.reason)) : String(e);
-      showError('비동기 오류가 발생했습니다.', '원인: ' + reason);
+      showError('\uBE44\uB3D9\uAE30 \uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4.', '\uC6D0\uC778: ' + reason);
     });
-    // Diagnostic: check each CDN dependency loaded correctly
     window.addEventListener('load', function() {
       var missing = [];
       if (!window.React) missing.push('React');
       if (!window.ReactDOM) missing.push('ReactDOM');
       if (missing.length > 0) {
-        showError('필수 라이브러리를 불러오지 못했습니다.', '로드 실패: ' + missing.join(', ') + ' | 네트워크를 확인하고 새로고침해 주세요.');
+        showError('\uD544\uC218 \uB77C\uC774\uBE0C\uB7EC\uB9AC\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.', '\uB85C\uB4DC \uC2E4\uD328: ' + missing.join(', '));
       }
     });
   </script>
@@ -4443,16 +4450,19 @@ function App() {
 var _initRetry = 0;
 function initApp() {
   if (window.React && window.ReactDOM && document.getElementById('root')) {
+    var loading = document.getElementById('loading-indicator');
     try {
       ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App, null));
+      if (loading) loading.style.display = 'none';
     } catch (e) {
       console.error("Render Error:", e);
-      if (window.showError) window.showError('앱 초기화 오류', e.message || String(e));
+      if (loading) loading.style.display = 'none';
+      if (window.showError) window.showError('\uC571 \uCD08\uAE30\uD654 \uC624\uB958', e.message || String(e));
     }
   } else {
     _initRetry++;
     if (_initRetry > 100) {
-      if (window.showError) window.showError('라이브러리 로드 시간 초과', 'React: ' + (!!window.React) + ', ReactDOM: ' + (!!window.ReactDOM));
+      if (window.showError) window.showError('\uB77C\uC774\uBE0C\uB7EC\uB9AC \uB85C\uB4DC \uC2DC\uAC04 \uCD08\uACFC', 'React: ' + (!!window.React) + ', ReactDOM: ' + (!!window.ReactDOM));
       return;
     }
     setTimeout(initApp, 50);
