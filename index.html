@@ -531,12 +531,55 @@
       padding: 1rem;
     }
 
+    @page {
+      size: A4 portrait;
+      margin: 0mm;
+    }
+
     @media print {
-      body { background-color: #ffffff !important; }
-      .top-header, .tab-bar-container, .form-panel, .modal-overlay { display: none !important; }
-      .preview-panel { padding: 0 !important; background: transparent !important; }
-      .document-page-wrapper { box-shadow: none !important; margin: 0 !important; }
-      .document-page { width: 100% !important; height: 100vh !important; padding: 20px !important; }
+      html, body {
+        width: 210mm !important;
+        height: 297mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background-color: #ffffff !important;
+        overflow: visible !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .top-header, .tab-bar-container, .form-panel, .modal-overlay, button, .status-badge {
+        display: none !important;
+      }
+      .preview-panel {
+        padding: 0 !important;
+        margin: 0 !important;
+        background: transparent !important;
+        overflow: visible !important;
+        display: block !important;
+        width: 210mm !important;
+      }
+      .document-page-wrapper {
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 210mm !important;
+        height: 297mm !important;
+        transform: none !important;
+        page-break-after: always;
+        page-break-inside: avoid;
+      }
+      .document-page {
+        width: 210mm !important;
+        min-height: 297mm !important;
+        height: 297mm !important;
+        padding: 10mm 12mm !important;
+        box-sizing: border-box !important;
+        transform: none !important;
+        box-shadow: none !important;
+        border: none !important;
+        page-break-after: always;
+        page-break-inside: avoid;
+      }
     }
   </style>
 </head>
@@ -827,7 +870,7 @@ create table if not exists documents (
 alter table documents disable row level security;`;
 
     function DocumentCanvas({ docType, docNo, docDate, docTime, supplier, customer, items, vat, vatIncluded, paid, remark }) {
-      const ITEMS_PER_PAGE = 21;
+      const ITEMS_PER_PAGE = 20;
       const totalSupply = items.reduce((sum, item) => sum + (Number(item.qty) || 0) * (Number(item.price) || 0), 0);
       const vatAmount = vatIncluded ? Math.floor(totalSupply * 0.1) : 0;
       const grandTotal = totalSupply + vatAmount;
