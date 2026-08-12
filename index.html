@@ -2105,8 +2105,7 @@ alter table documents disable row level security;`;
 
       const [docType, setDocType] = useState('거래명세서');
       const [items, setItems] = useState([
-        { id: '1', code: 'P0001', name: '엔진오일 필터', unit: 'EA', qty: 2, price: 25000 },
-        { id: '2', code: 'P0002', name: '유압유 20L', unit: 'CAN', qty: 1, price: 85000 }
+        { id: '1', code: '', name: '', unit: 'EA', qty: 1, price: 0 }
       ]);
       const [vatIncluded, setVatIncluded] = useState(true);
       const [vat, setVat] = useState(0);
@@ -2114,7 +2113,7 @@ alter table documents disable row level security;`;
       const [remark, setRemark] = useState('');
 
       // 미저장 변경사항 상태 관리
-      const [isSavedThisSession, setIsSavedThisSession] = useState(false);
+      const [isSavedThisSession, setIsSavedThisSession] = useState(true);
       const [pendingTab, setPendingTab] = useState(null);
       const [pendingReset, setPendingReset] = useState(false);
 
