@@ -110,33 +110,43 @@ export default function Header({
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
               <button
+                className="btn btn-green"
+                style={{ fontSize: '0.6875rem', padding: '0.25rem 0.875rem', fontWeight: '700' }}
+                onClick={() => copyToClipboard(SQL_SCHEMAS.ALL, 'all')}
+              >
+                {copiedKey === 'all' ? '✓ 전체 SQL 복사됨!' : '⚡ 전체 SQL 한번에 복사 (권장)'}
+              </button>
+              <button
                 className="btn btn-outline"
                 style={{ fontSize: '0.6875rem', padding: '0.25rem 0.625rem' }}
                 onClick={() => copyToClipboard(SQL_SCHEMAS.CUSTOMERS, 'cust')}
               >
-                {copiedKey === 'cust' ? '✓ 복사됨!' : '고객(customers) SQL 복사'}
+                {copiedKey === 'cust' ? '✓ 복사됨!' : '고객 SQL'}
               </button>
               <button
                 className="btn btn-outline"
                 style={{ fontSize: '0.6875rem', padding: '0.25rem 0.625rem' }}
                 onClick={() => copyToClipboard(SQL_SCHEMAS.SUPPLIERS, 'supp')}
               >
-                {copiedKey === 'supp' ? '✓ 복사됨!' : '공급자(suppliers) SQL 복사'}
+                {copiedKey === 'supp' ? '✓ 복사됨!' : '공급자 SQL'}
               </button>
               <button
                 className="btn btn-outline"
                 style={{ fontSize: '0.6875rem', padding: '0.25rem 0.625rem' }}
                 onClick={() => copyToClipboard(SQL_SCHEMAS.PARTS, 'part')}
               >
-                {copiedKey === 'part' ? '✓ 복사됨!' : '부품(parts) SQL 복사'}
+                {copiedKey === 'part' ? '✓ 복사됨!' : '부품 SQL'}
               </button>
               <button
                 className="btn btn-outline"
                 style={{ fontSize: '0.6875rem', padding: '0.25rem 0.625rem' }}
                 onClick={() => copyToClipboard(SQL_SCHEMAS.DOCUMENTS, 'doc')}
               >
-                {copiedKey === 'doc' ? '✓ 복사됨!' : '문서(documents) SQL 복사'}
+                {copiedKey === 'doc' ? '✓ 복사됨!' : '문서 SQL'}
               </button>
+            </div>
+            <div style={{ fontSize: '0.6875rem', color: '#6b7280', marginTop: '0.5rem', lineHeight: 1.5 }}>
+              💡 Supabase 대시보드 → <strong>SQL Editor</strong> → New query → 붙여넣기 → <strong>Run</strong>
             </div>
           </div>
         </div>

@@ -1,34 +1,23 @@
+import { getAutoClient } from './supabase.js';
 import { INITIAL_SUPPLIERS_LIST, DEMO_CUSTOMERS, DEMO_PARTS } from './defaults.js';
 
-const STORAGE_KEYS = {
+// ─── LocalStorage 유틸 ────────────────────────────────────────────────────────
+
+const KEYS = {
   SUPABASE_URL: 'supabase_url',
   SUPABASE_KEY: 'supabase_anon_key',
-  DOC_TYPE: 'doc_type',
-  SELECTED_SUPPLIER_KEY: 'selected_supplier_key',
-  SUPPLIERS_CUSTOM: 'suppliers_data_v1',
-  SUPPLIERS_LIST: 'dd_suppliers_list_v1',
-  CUSTOMERS_LIST: 'dd_customers_list_v1',
-  PARTS_LIST: 'dd_parts_list_v1',
-  DOCUMENTS_LIST: 'dd_documents_history_v1'
+  SUPPLIERS: 'dd_suppliers_list_v1',
+  CUSTOMERS: 'dd_customers_list_v1',
+  PARTS: 'dd_parts_list_v1',
+  DOCUMENTS: 'dd_documents_history_v1',
+  SUPPLIER_KEY: 'selected_supplier_key'
 };
-
-export function getStoredCredentials() {
-  return {
-    url: localStorage.getItem(STORAGE_KEYS.SUPABASE_URL) || '',
-    key: localStorage.getItem(STORAGE_KEYS.SUPABASE_KEY) || ''
-  };
-}
-
-export function saveStoredCredentials(url, key) {
-  localStorage.setItem(STORAGE_KEYS.SUPABASE_URL, url || '');
-  localStorage.setItem(STORAGE_KEYS.SUPABASE_KEY, key || '');
-}
 
 export function getLocalItem(key, fallback = null) {
   try {
     const data = localStorage.getItem(key);
     return data ? JSON.parse(data) : fallback;
-  } catch (e) {
+  } catch {
     return fallback;
   }
 }
@@ -37,136 +26,358 @@ export function setLocalItem(key, value) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch (e) {
-    console.warn('LocalStorage save error:', e);
+    console.warn('LocalStorage error:', e);
   }
 }
 
-export function getHeaders(anonKey) {
+export function getStoredCredentials() {
   return {
-    apikey: anonKey,
-    Authorization: `Bearer ${anonKey}`,
-    'Content-Type': 'application/json'
+    url: localStorage.getItem(KEYS.SUPABASE_URL) || '',
+    key: localStorage.getItem(KEYS.SUPABASE_KEY) || ''
   };
 }
 
-// Test Supabase REST connection
-export async function testSupabaseConnection(url, anonKey) {
-  if (!url || !anonKey) {
-    return { ok: false, message: 'Supabase URL과 Anon Key가 입력되지 않았습니다.' };
-  }
-
-  // Check if running on file:// scheme
-  if (typeof window !== 'undefined' && window.location.protocol === 'file:') {
-    return {
-      ok: false,
-      message: 'file:// 프로토콜에서는 브라우저 보안 정책(CORS)으로 인해 Supabase 연결이 차단됩니다. (http://localhost 또는 Netlify 배포 환경 추천)'
-    };
-  }
-
-  try {
-    const endpoint = `${url.replace(/\/$/, '')}/rest/v1/suppliers?select=id&limit=1`;
-    const res = await fetch(endpoint, { headers: getHeaders(anonKey) });
-
-    if (!res.ok) {
-      const text = await res.text();
-      if (text.includes('does not exist') || text.includes('PGRST205') || text.toLowerCase().includes('relation')) {
-        return { ok: true, isTableMissing: true, message: '✓ Supabase 연결됨 (suppliers 테이블 미생성 - SQL 실행 필요)' };
-      }
-      return { ok: false, message: `연결 오류 (${res.status}): ${text.slice(0, 150)}` };
-    }
-
-    return { ok: true, isTableMissing: false, message: '✓ Supabase cloud 데이터베이스 연결 성공' };
-  } catch (err) {
-    return {
-      ok: false,
-      message: `연결 실패: ${err.message || '네트워크 오류 (로컬저장 모드로 작동합니다)'}`
-    };
-  }
+export function saveStoredCredentials(url, key) {
+  localStorage.setItem(KEYS.SUPABASE_URL, url?.trim() || '');
+  localStorage.setItem(KEYS.SUPABASE_KEY, key?.trim() || '');
 }
 
-// Customer Storage Adapter
-export async function fetchCustomers(url, anonKey) {
-  const localData = getLocalItem(STORAGE_KEYS.CUSTOMERS_LIST, null);
-  
-  if (!url || !anonKey || (typeof window !== 'undefined' && window.location.protocol === 'file:')) {
-    if (localData && Array.isArray(localData)) return localData;
-    setLocalItem(STORAGE_KEYS.CUSTOMERS_LIST, DEMO_CUSTOMERS);
-    return DEMO_CUSTOMERS;
-  }
+// ─── Supabase 연결 테스트 (re-export) ─────────────────────────────────────────
+export { testConnection as testSupabaseConnection } from './supabase.js';
 
-  try {
-    const endpoint = `${url.replace(/\/$/, '')}/rest/v1/customers?select=*&order=code.asc,name.asc`;
-    const res = await fetch(endpoint, { headers: getHeaders(anonKey) });
-    if (!res.ok) throw new Error(await res.text());
-    const data = await res.json();
-    if (Array.isArray(data) && data.length > 0) {
-      setLocalItem(STORAGE_KEYS.CUSTOMERS_LIST, data);
-      return data;
-    }
-    return localData || DEMO_CUSTOMERS;
-  } catch (err) {
-    return localData || DEMO_CUSTOMERS;
-  }
-}
+// ─── CUSTOMERS ─────────────────────────────────────────────────────────────────
 
-export async function saveCustomer(url, anonKey, customer, isEdit = false) {
-  const localList = getLocalItem(STORAGE_KEYS.CUSTOMERS_LIST, DEMO_CUSTOMERS);
-  let updatedList;
-
-  if (isEdit && customer.id) {
-    updatedList = localList.map(c => c.id === customer.id ? { ...c, ...customer } : c);
-  } else {
-    const newId = customer.id || `cust_${Date.now()}`;
-    updatedList = [{ ...customer, id: newId }, ...localList];
-  }
-  setLocalItem(STORAGE_KEYS.CUSTOMERS_LIST, updatedList);
-
-  if (url && anonKey && typeof window !== 'undefined' && window.location.protocol !== 'file:') {
+export async function fetchCustomers() {
+  const sb = getAutoClient();
+  if (sb) {
     try {
-      const isLocalId = String(customer.id).startsWith('cust_') || String(customer.id).startsWith('demo');
-      if (isEdit && customer.id && !isLocalId) {
-        await fetch(`${url.replace(/\/$/, '')}/rest/v1/customers?id=eq.${customer.id}`, {
-          method: 'PATCH',
-          headers: getHeaders(anonKey),
-          body: JSON.stringify(customer)
-        });
+      const { data, error } = await sb.from('customers').select('*').order('code', { ascending: true });
+      if (!error && Array.isArray(data)) {
+        setLocalItem(KEYS.CUSTOMERS, data);
+        return data;
+      }
+    } catch (e) {
+      console.warn('Supabase fetch customers fallback:', e);
+    }
+  }
+  return getLocalItem(KEYS.CUSTOMERS, DEMO_CUSTOMERS);
+}
+
+export async function saveCustomer(customerData, isEdit = false) {
+  const sb = getAutoClient();
+  let result;
+
+  if (sb) {
+    try {
+      if (isEdit && customerData.id) {
+        const { id, created_at, ...payload } = customerData;
+        const { data, error } = await sb.from('customers').update(payload).eq('id', id).select().single();
+        if (!error) result = data;
       } else {
-        const { id, ...payload } = customer;
-        await fetch(`${url.replace(/\/$/, '')}/rest/v1/customers`, {
-          method: 'POST',
-          headers: { ...getHeaders(anonKey), Prefer: 'return=representation' },
-          body: JSON.stringify(payload)
-        });
+        const { id, ...payload } = customerData;
+        const { data, error } = await sb.from('customers').insert(payload).select().single();
+        if (!error) result = data;
       }
     } catch (e) {
-      console.warn('Supabase customer sync fallback to local:', e);
+      console.warn('Supabase save customer fallback:', e);
     }
   }
 
-  return updatedList;
+  // 로컬 동기화
+  const local = getLocalItem(KEYS.CUSTOMERS, []);
+  let updated;
+  if (isEdit && customerData.id) {
+    updated = local.map(c => c.id === customerData.id ? { ...c, ...(result || customerData) } : c);
+  } else {
+    const saved = result || { ...customerData, id: `cust_${Date.now()}` };
+    updated = [saved, ...local.filter(c => c.id !== saved.id)];
+  }
+  setLocalItem(KEYS.CUSTOMERS, updated);
+  return updated;
 }
 
-export async function deleteCustomer(url, anonKey, customerId) {
-  const localList = getLocalItem(STORAGE_KEYS.CUSTOMERS_LIST, []);
-  const updatedList = localList.filter(c => c.id !== customerId);
-  setLocalItem(STORAGE_KEYS.CUSTOMERS_LIST, updatedList);
-
-  if (url && anonKey && typeof window !== 'undefined' && window.location.protocol !== 'file:') {
+export async function deleteCustomer(customerId) {
+  const sb = getAutoClient();
+  if (sb) {
     try {
-      await fetch(`${url.replace(/\/$/, '')}/rest/v1/customers?id=eq.${customerId}`, {
-        method: 'DELETE',
-        headers: getHeaders(anonKey)
-      });
+      await sb.from('customers').delete().eq('id', customerId);
     } catch (e) {
-      console.warn('Supabase customer delete error:', e);
+      console.warn('Supabase delete customer fallback:', e);
+    }
+  }
+  const updated = getLocalItem(KEYS.CUSTOMERS, []).filter(c => c.id !== customerId);
+  setLocalItem(KEYS.CUSTOMERS, updated);
+  return updated;
+}
+
+// ─── SUPPLIERS ─────────────────────────────────────────────────────────────────
+
+export async function fetchSuppliers() {
+  const sb = getAutoClient();
+  if (sb) {
+    try {
+      const { data, error } = await sb.from('suppliers').select('*').order('code', { ascending: true });
+      if (!error && Array.isArray(data) && data.length > 0) {
+        setLocalItem(KEYS.SUPPLIERS, data);
+        return data;
+      }
+    } catch (e) {
+      console.warn('Supabase fetch suppliers fallback:', e);
+    }
+  }
+  return getLocalItem(KEYS.SUPPLIERS, INITIAL_SUPPLIERS_LIST);
+}
+
+export async function saveSupplier(supplierData, isEdit = false) {
+  const sb = getAutoClient();
+  let result;
+
+  if (sb) {
+    try {
+      if (isEdit && supplierData.id) {
+        const { id, created_at, ...payload } = supplierData;
+        const { data, error } = await sb.from('suppliers').update(payload).eq('id', id).select().single();
+        if (!error) result = data;
+      } else {
+        const { id, ...payload } = supplierData;
+        const { data, error } = await sb.from('suppliers').insert(payload).select().single();
+        if (!error) result = data;
+      }
+    } catch (e) {
+      console.warn('Supabase save supplier fallback:', e);
     }
   }
 
-  return updatedList;
+  const local = getLocalItem(KEYS.SUPPLIERS, []);
+  let updated;
+  if (isEdit && supplierData.id) {
+    updated = local.map(s => s.id === supplierData.id ? { ...s, ...(result || supplierData) } : s);
+  } else {
+    const saved = result || { ...supplierData, id: `supp_${Date.now()}` };
+    updated = [saved, ...local.filter(s => s.id !== saved.id)];
+  }
+  setLocalItem(KEYS.SUPPLIERS, updated);
+  return updated;
 }
 
-// SQL Schema code generators
+export async function deleteSupplier(supplierId) {
+  const sb = getAutoClient();
+  if (sb) {
+    try {
+      await sb.from('suppliers').delete().eq('id', supplierId);
+    } catch (e) {
+      console.warn('Supabase delete supplier fallback:', e);
+    }
+  }
+  const updated = getLocalItem(KEYS.SUPPLIERS, []).filter(s => s.id !== supplierId);
+  setLocalItem(KEYS.SUPPLIERS, updated);
+  return updated;
+}
+
+// ─── PARTS ─────────────────────────────────────────────────────────────────────
+
+export async function fetchParts() {
+  const sb = getAutoClient();
+  if (sb) {
+    try {
+      const { data, error } = await sb.from('parts').select('*').order('code', { ascending: true });
+      if (!error && Array.isArray(data) && data.length > 0) {
+        setLocalItem(KEYS.PARTS, data);
+        return data;
+      }
+    } catch (e) {
+      console.warn('Supabase fetch parts fallback:', e);
+    }
+  }
+  return getLocalItem(KEYS.PARTS, DEMO_PARTS);
+}
+
+export async function savePart(partData, isEdit = false) {
+  const sb = getAutoClient();
+  let result;
+
+  if (sb) {
+    try {
+      if (isEdit && partData.id) {
+        const { id, created_at, ...payload } = partData;
+        const { data, error } = await sb.from('parts').update(payload).eq('id', id).select().single();
+        if (!error) result = data;
+      } else {
+        const { id, ...payload } = partData;
+        const { data, error } = await sb.from('parts').insert(payload).select().single();
+        if (!error) result = data;
+      }
+    } catch (e) {
+      console.warn('Supabase save part fallback:', e);
+    }
+  }
+
+  const local = getLocalItem(KEYS.PARTS, []);
+  let updated;
+  if (isEdit && partData.id) {
+    updated = local.map(p => p.id === partData.id ? { ...p, ...(result || partData) } : p);
+  } else {
+    const saved = result || { ...partData, id: `part_${Date.now()}` };
+    updated = [saved, ...local.filter(p => p.id !== saved.id)];
+  }
+  setLocalItem(KEYS.PARTS, updated);
+  return updated;
+}
+
+export async function deletePart(partId) {
+  const sb = getAutoClient();
+  if (sb) {
+    try {
+      await sb.from('parts').delete().eq('id', partId);
+    } catch (e) {
+      console.warn('Supabase delete part fallback:', e);
+    }
+  }
+  const updated = getLocalItem(KEYS.PARTS, []).filter(p => p.id !== partId);
+  setLocalItem(KEYS.PARTS, updated);
+  return updated;
+}
+
+// ─── DOCUMENTS ─────────────────────────────────────────────────────────────────
+
+export async function fetchDocuments(limit = 50) {
+  const sb = getAutoClient();
+  if (sb) {
+    try {
+      const { data, error } = await sb
+        .from('documents')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      if (!error && Array.isArray(data)) {
+        setLocalItem(KEYS.DOCUMENTS, data);
+        return data;
+      }
+    } catch (e) {
+      console.warn('Supabase fetch documents fallback:', e);
+    }
+  }
+  return getLocalItem(KEYS.DOCUMENTS, []);
+}
+
+export async function saveDocument(docData) {
+  const sb = getAutoClient();
+  const payload = {
+    doc_type: docData.docType,
+    doc_no: docData.docNo,
+    doc_date: docData.docDate,
+    doc_time: docData.docTime,
+    customer_name: docData.customer?.name || '',
+    customer_data: docData.customer || {},
+    supplier_key: docData.supplierKey || '',
+    supplier_data: docData.supplier || {},
+    items: docData.items || [],
+    vat: docData.vat || 0,
+    vat_included: docData.vatIncluded !== false,
+    paid: docData.paid || 0,
+    remark: docData.remark || ''
+  };
+
+  let savedId = `doc_${Date.now()}`;
+  if (sb) {
+    try {
+      const { data, error } = await sb.from('documents').insert(payload).select('id').single();
+      if (!error && data?.id) savedId = data.id;
+    } catch (e) {
+      console.warn('Supabase save document fallback:', e);
+    }
+  }
+
+  const local = getLocalItem(KEYS.DOCUMENTS, []);
+  const newDoc = { ...payload, id: savedId, created_at: new Date().toISOString() };
+  setLocalItem(KEYS.DOCUMENTS, [newDoc, ...local]);
+  return newDoc;
+}
+
+export async function deleteDocument(docId) {
+  const sb = getAutoClient();
+  if (sb) {
+    try {
+      await sb.from('documents').delete().eq('id', docId);
+    } catch (e) {
+      console.warn('Supabase delete document fallback:', e);
+    }
+  }
+  const updated = getLocalItem(KEYS.DOCUMENTS, []).filter(d => d.id !== docId);
+  setLocalItem(KEYS.DOCUMENTS, updated);
+  return updated;
+}
+
+// ─── SQL 스키마 (앱에서 복사해 Supabase SQL Editor에 붙여넣기) ────────────────
+
 export const SQL_SCHEMAS = {
+  ALL: `-- TEAM D.D 전체 스키마 (한번에 실행)
+-- Supabase SQL Editor에 붙여넣고 Run을 누르세요
+
+create table if not exists customers (
+  id uuid primary key default gen_random_uuid(),
+  code text,
+  name text not null,
+  bizno text,
+  person text,
+  phone text,
+  addr text,
+  memo text,
+  created_at timestamptz default now()
+);
+alter table customers disable row level security;
+
+create table if not exists suppliers (
+  id uuid primary key default gen_random_uuid(),
+  code text,
+  name text not null,
+  bizno text,
+  person text,
+  phone text,
+  fax text,
+  addr text,
+  email text,
+  bank text,
+  memo text,
+  is_default boolean default false,
+  created_at timestamptz default now()
+);
+alter table suppliers disable row level security;
+
+create table if not exists parts (
+  id uuid primary key default gen_random_uuid(),
+  code text unique,
+  name text not null,
+  category text,
+  unit text default 'EA',
+  price integer default 0,
+  stock integer default 0,
+  min_stock integer default 5,
+  location text,
+  memo text,
+  created_at timestamptz default now()
+);
+alter table parts disable row level security;
+
+create table if not exists documents (
+  id uuid primary key default gen_random_uuid(),
+  doc_type text not null,
+  doc_no text,
+  doc_date text,
+  doc_time text,
+  customer_name text,
+  customer_data jsonb,
+  supplier_key text,
+  supplier_data jsonb,
+  items jsonb,
+  vat integer default 0,
+  vat_included boolean default true,
+  paid integer default 0,
+  remark text,
+  created_at timestamptz default now()
+);
+alter table documents disable row level security;`,
+
   CUSTOMERS: `create table if not exists customers (
   id uuid primary key default gen_random_uuid(),
   code text,
@@ -187,11 +398,12 @@ alter table customers disable row level security;`,
   bizno text,
   person text,
   phone text,
+  fax text,
   addr text,
   email text,
   bank text,
-  fax text,
   memo text,
+  is_default boolean default false,
   created_at timestamptz default now()
 );
 alter table suppliers disable row level security;`,
@@ -218,8 +430,14 @@ alter table parts disable row level security;`,
   doc_date text,
   doc_time text,
   customer_name text,
+  customer_data jsonb,
   supplier_key text,
-  data jsonb,
+  supplier_data jsonb,
+  items jsonb,
+  vat integer default 0,
+  vat_included boolean default true,
+  paid integer default 0,
+  remark text,
   created_at timestamptz default now()
 );
 alter table documents disable row level security;`

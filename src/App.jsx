@@ -20,7 +20,15 @@ import {
   testSupabaseConnection,
   fetchCustomers,
   saveCustomer,
-  deleteCustomer
+  deleteCustomer,
+  fetchSuppliers,
+  saveSupplier,
+  deleteSupplier,
+  fetchParts,
+  savePart,
+  deletePart,
+  saveDocument,
+  fetchDocuments
 } from './services/storage.js';
 
 export default function App() {
@@ -86,38 +94,58 @@ export default function App() {
     }
   }, [selectedSupplierKey, suppliersList]);
 
-  // Test connection helper
+  // ── 연결 테스트 & 클라우드 데이터 로드 ─────────────────────────────────────
   const handleTestConnection = useCallback(async () => {
     setIsTesting(true);
     saveStoredCredentials(supabaseUrl, supabaseKey);
+
     const result = await testSupabaseConnection(supabaseUrl, supabaseKey);
     setIsConnected(result.ok);
     setConnectionMessage(result.message);
     setIsTesting(false);
 
-    if (result.ok) {
-      // Refresh customers list from cloud
-      const cloudCusts = await fetchCustomers(supabaseUrl, supabaseKey);
+    if (result.ok && !result.isTableMissing) {
+      // 클라우드에서 모든 데이터 새로고침
+      const [cloudCusts, cloudSupps, cloudParts] = await Promise.all([
+        fetchCustomers(),
+        fetchSuppliers(),
+        fetchParts()
+      ]);
       setCustomersList(cloudCusts);
+      setSuppliersList(cloudSupps.length > 0 ? cloudSupps : suppliersList);
+      setPartsList(cloudParts.length > 0 ? cloudParts : partsList);
     }
   }, [supabaseUrl, supabaseKey]);
 
-  // Auto test connection on initial load if credentials exist
+  // 초기 로드 시 저장된 크리덴셜로 자동 연결 시도
   useEffect(() => {
     if (supabaseUrl && supabaseKey) {
       handleTestConnection();
     }
   }, []);
 
-  // Customer Management Handlers
+  // 탭 전환 시 해당 탭 데이터 새로고침
+  useEffect(() => {
+    if (!isConnected) return;
+    if (activeTab === 'customers') {
+      fetchCustomers().then(data => setCustomersList(data));
+    } else if (activeTab === 'suppliers') {
+      fetchSuppliers().then(data => { if (data.length > 0) setSuppliersList(data); });
+    } else if (activeTab === 'parts') {
+      fetchParts().then(data => { if (data.length > 0) setPartsList(data); });
+    }
+  }, [activeTab, isConnected]);
+
+  // ── Customer Management Handlers ────────────────────────────────────────────
   const handleSaveCustomer = async (custData, isEdit) => {
-    const updated = await saveCustomer(supabaseUrl, supabaseKey, custData, isEdit);
+    const updated = await saveCustomer(custData, isEdit);
     setCustomersList(updated);
     alert('✓ 거래처 정보가 저장되었습니다.');
   };
 
   const handleDeleteCustomer = async (id) => {
-    const updated = await deleteCustomer(supabaseUrl, supabaseKey, id);
+    if (!window.confirm('거래처를 삭제하시겠습니까?')) return;
+    const updated = await deleteCustomer(id);
     setCustomersList(updated);
   };
 
@@ -131,23 +159,17 @@ export default function App() {
     setActiveTab('doc');
   };
 
-  // Supplier Management Handlers
-  const handleSaveSupplier = (supplierData, isEdit) => {
-    let updated;
-    if (isEdit) {
-      updated = suppliersList.map(s => s.id === supplierData.id ? { ...s, ...supplierData } : s);
-    } else {
-      updated = [{ ...supplierData, id: supplierData.id || `supp_${Date.now()}` }, ...suppliersList];
-    }
+  // ── Supplier Management Handlers ────────────────────────────────────────────
+  const handleSaveSupplier = async (supplierData, isEdit) => {
+    const updated = await saveSupplier(supplierData, isEdit);
     setSuppliersList(updated);
-    setLocalItem('dd_suppliers_list_v1', updated);
     alert('✓ 공급자 정보가 저장되었습니다.');
   };
 
-  const handleDeleteSupplier = (id) => {
-    const updated = suppliersList.filter(s => s.id !== id);
+  const handleDeleteSupplier = async (id) => {
+    if (!window.confirm('공급자를 삭제하시겠습니까?')) return;
+    const updated = await deleteSupplier(id);
     setSuppliersList(updated);
-    setLocalItem('dd_suppliers_list_v1', updated);
   };
 
   const handleSelectSupplier = (supplier) => {
@@ -155,23 +177,17 @@ export default function App() {
     setActiveTab('doc');
   };
 
-  // Parts Management Handlers
-  const handleSavePart = (partData, isEdit) => {
-    let updated;
-    if (isEdit) {
-      updated = partsList.map(p => p.id === partData.id ? { ...p, ...partData } : p);
-    } else {
-      updated = [{ ...partData, id: partData.id || `part_${Date.now()}` }, ...partsList];
-    }
+  // ── Parts Management Handlers ────────────────────────────────────────────────
+  const handleSavePart = async (partData, isEdit) => {
+    const updated = await savePart(partData, isEdit);
     setPartsList(updated);
-    setLocalItem('dd_parts_list_v1', updated);
     alert('✓ 부품 정보가 저장되었습니다.');
   };
 
-  const handleDeletePart = (id) => {
-    const updated = partsList.filter(p => p.id !== id);
+  const handleDeletePart = async (id) => {
+    if (!window.confirm('부품을 삭제하시겠습니까?')) return;
+    const updated = await deletePart(id);
     setPartsList(updated);
-    setLocalItem('dd_parts_list_v1', updated);
   };
 
   const handleSelectPart = (part) => {
@@ -183,7 +199,6 @@ export default function App() {
       qty: 1,
       price: Number(part.price) || 0
     };
-    // Replace first empty item or append
     if (items.length === 1 && !items[0].name.trim()) {
       setItems([newItem]);
     } else {
@@ -192,7 +207,7 @@ export default function App() {
     setActiveTab('doc');
   };
 
-  // Reset form
+  // ── Document Handlers ────────────────────────────────────────────────────────
   const handleResetForm = () => {
     if (window.confirm('명세서 내용을 초기화하시겠습니까?')) {
       const now = new Date();
@@ -205,22 +220,23 @@ export default function App() {
     }
   };
 
-  // Save document state locally / cloud
-  const handleSaveDocument = () => {
-    const docs = getLocalItem('dd_documents_history_v1', []);
-    const newDoc = {
-      id: `doc_${Date.now()}`,
+  const handleSaveDocument = async () => {
+    const docData = {
       docType,
       docNo,
       docDate,
       docTime,
-      supplier: currentSupplier,
       customer,
+      supplier: currentSupplier,
+      supplierKey: selectedSupplierKey,
       items,
-      createdAt: new Date().toISOString()
+      vat,
+      vatIncluded,
+      paid,
+      remark
     };
-    setLocalItem('dd_documents_history_v1', [newDoc, ...docs]);
-    alert(`✓ ${docType} (번호: ${docNo}) 문서가 성공적으로 저장되었습니다!`);
+    await saveDocument(docData);
+    alert(`✓ ${docType} (번호: ${docNo}) 문서가 저장되었습니다!`);
   };
 
   return (

@@ -21,6 +21,9 @@
   <!-- html2canvas for A4 export -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
+  <!-- Supabase JS v2 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
   <style>
     /* Mobile-first responsive styling for Team D.D System */
     :root {
@@ -125,6 +128,9 @@
       border: 1px solid transparent;
       cursor: pointer;
       white-space: nowrap;
+      flex-shrink: 0;
+      touch-action: manipulation;
+      z-index: 50;
     }
 
     .status-badge.connected {
@@ -594,6 +600,165 @@
       try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
     };
 
+    // ── Supabase Client ────────────────────────────────────────────────────────
+    let _sbClient = null;
+    let _sbUrl = '';
+    let _sbKey = '';
+
+    function getSupabaseClient() {
+      const url = (localStorage.getItem('supabase_url') || '').trim();
+      const key = (localStorage.getItem('supabase_anon_key') || '').trim();
+      if (!url || !key) return null;
+      if (_sbClient && url === _sbUrl && key === _sbKey) return _sbClient;
+      try {
+        _sbClient = window.supabase.createClient(url, key, {
+          auth: { persistSession: false, autoRefreshToken: false }
+        });
+        _sbUrl = url;
+        _sbKey = key;
+        return _sbClient;
+      } catch(e) { return null; }
+    }
+
+    async function sbTestConnection(url, key) {
+      if (!url || !key) return { ok: false, message: 'URL과 Anon Key를 입력해 주세요.' };
+      try {
+        const client = window.supabase.createClient(url.trim(), key.trim(), { auth: { persistSession: false } });
+        const { error } = await client.from('customers').select('id').limit(1);
+        if (error) {
+          if (error.code === '42P01' || (error.message && error.message.includes('does not exist'))) {
+            return { ok: true, isTableMissing: true, message: '✓ Supabase 연결 성공! (테이블 미생성 - 아래 SQL 복사 후 SQL Editor에서 실행하세요)' };
+          }
+          return { ok: false, message: '연결 오류: ' + error.message };
+        }
+        return { ok: true, isTableMissing: false, message: '✓ Supabase 클라우드 DB 연결 성공!' };
+      } catch(e) {
+        return { ok: false, message: '연결 실패: ' + e.message };
+      }
+    }
+
+    // ── DB CRUD helpers ────────────────────────────────────────────────────────
+    async function dbFetch(table, fallback, orderCol = 'code') {
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          const { data, error } = await sb.from(table).select('*').order(orderCol, { ascending: true });
+          if (!error && Array.isArray(data) && data.length > 0) {
+            setLocalItem('dd_' + table + '_list_v1', data);
+            return data;
+          }
+        } catch(e) { /* fallback */ }
+      }
+      return getLocalItem('dd_' + table + '_list_v1', fallback);
+    }
+
+    async function dbSave(table, rowData, isEdit = false) {
+      const sb = getSupabaseClient();
+      let serverRow = null;
+      if (sb) {
+        try {
+          if (isEdit && rowData.id) {
+            const { id, created_at, ...payload } = rowData;
+            const { data, error } = await sb.from(table).update(payload).eq('id', id).select().single();
+            if (!error) serverRow = data;
+          } else {
+            const { id, ...payload } = rowData;
+            const { data, error } = await sb.from(table).insert(payload).select().single();
+            if (!error) serverRow = data;
+          }
+        } catch(e) { /* fallback */ }
+      }
+      const local = getLocalItem('dd_' + table + '_list_v1', []);
+      let updated;
+      if (isEdit && rowData.id) {
+        updated = local.map(r => r.id === rowData.id ? { ...r, ...(serverRow || rowData) } : r);
+      } else {
+        const saved = serverRow || { ...rowData, id: table + '_' + Date.now() };
+        updated = [saved, ...local.filter(r => r.id !== saved.id)];
+      }
+      setLocalItem('dd_' + table + '_list_v1', updated);
+      return updated;
+    }
+
+    async function dbDelete(table, rowId) {
+      const sb = getSupabaseClient();
+      if (sb) {
+        try { await sb.from(table).delete().eq('id', rowId); } catch(e) {}
+      }
+      const updated = (getLocalItem('dd_' + table + '_list_v1', [])).filter(r => r.id !== rowId);
+      setLocalItem('dd_' + table + '_list_v1', updated);
+      return updated;
+    }
+
+    async function dbSaveDocument(docData) {
+      const sb = getSupabaseClient();
+      const payload = {
+        doc_type: docData.docType,
+        doc_no: docData.docNo,
+        doc_date: docData.docDate,
+        doc_time: docData.docTime,
+        customer_name: docData.customer?.name || '',
+        customer_data: docData.customer || {},
+        supplier_key: docData.supplierKey || '',
+        supplier_data: docData.supplier || {},
+        items: docData.items || [],
+        vat: docData.vat || 0,
+        vat_included: docData.vatIncluded !== false,
+        paid: docData.paid || 0,
+        remark: docData.remark || ''
+      };
+      if (sb) {
+        try { await sb.from('documents').insert(payload); } catch(e) {}
+      }
+      const local = getLocalItem('dd_documents_history_v1', []);
+      setLocalItem('dd_documents_history_v1', [{ ...payload, id: 'doc_' + Date.now(), created_at: new Date().toISOString() }, ...local]);
+    }
+
+    const SQL_ALL = `-- TEAM D.D 전체 스키마 (한번에 실행)
+-- Supabase SQL Editor에 붙여넣기 후 Run 클릭
+
+create table if not exists customers (
+  id uuid primary key default gen_random_uuid(),
+  code text, name text not null,
+  bizno text, person text, phone text, addr text, memo text,
+  created_at timestamptz default now()
+);
+alter table customers disable row level security;
+
+create table if not exists suppliers (
+  id uuid primary key default gen_random_uuid(),
+  code text, name text not null,
+  bizno text, person text, phone text, fax text, addr text,
+  email text, bank text, memo text,
+  is_default boolean default false,
+  created_at timestamptz default now()
+);
+alter table suppliers disable row level security;
+
+create table if not exists parts (
+  id uuid primary key default gen_random_uuid(),
+  code text unique, name text not null,
+  category text, unit text default 'EA',
+  price integer default 0,
+  stock integer default 0,
+  min_stock integer default 5,
+  location text, memo text,
+  created_at timestamptz default now()
+);
+alter table parts disable row level security;
+
+create table if not exists documents (
+  id uuid primary key default gen_random_uuid(),
+  doc_type text not null, doc_no text, doc_date text, doc_time text,
+  customer_name text, customer_data jsonb,
+  supplier_key text, supplier_data jsonb,
+  items jsonb, vat integer default 0,
+  vat_included boolean default true,
+  paid integer default 0, remark text,
+  created_at timestamptz default now()
+);
+alter table documents disable row level security;`;
+
     function DocumentCanvas({ docType, docNo, docDate, docTime, supplier, customer, items, vat, vatIncluded, paid, remark }) {
       const ITEMS_PER_PAGE = 15;
       const totalSupply = items.reduce((sum, item) => sum + (Number(item.qty) || 0) * (Number(item.price) || 0), 0);
@@ -712,7 +877,17 @@
       );
     }
 
-    function Header({ activeTab, setActiveTab, isConnected }) {
+    function Header({ activeTab, setActiveTab, isConnected, isTesting, connectionMessage, supabaseUrl, setSupabaseUrl, supabaseKey, setSupabaseKey, onTestConnection }) {
+      const [showConfig, setShowConfig] = React.useState(false);
+      const [copiedSQL, setCopiedSQL] = React.useState(false);
+
+      const copySQL = () => {
+        navigator.clipboard.writeText(SQL_ALL).then(() => {
+          setCopiedSQL(true);
+          setTimeout(() => setCopiedSQL(false), 2500);
+        });
+      };
+
       return (
         <header className="top-header">
           <div className="header-card">
@@ -720,10 +895,47 @@
               <h1 className="brand-title">TEAM D.D</h1>
               <span className="brand-sub">세진 568-23-00015 (허강) • 디에스김제 213-17-24815 (경아름)</span>
             </div>
-            <div className={`status-badge ${isConnected ? 'connected' : 'disconnected'}`}>
+            <button type="button" onClick={() => setShowConfig(prev => !prev)} className={`status-badge ${isConnected ? 'connected' : 'disconnected'}`}>
               <span>{isConnected ? '🟢 DB 연결됨' : '🔴 로컬저장 모드'}</span>
-            </div>
+              <span style={{ fontSize: '10px' }}>{showConfig ? '▲' : '▼'}</span>
+            </button>
           </div>
+
+          {showConfig && (
+            <div style={{ marginTop: '0.75rem', backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                <div>
+                  <label className="form-label">Supabase Project URL</label>
+                  <input type="text" className="form-input" placeholder="https://xxxxxxxxxxx.supabase.co" value={supabaseUrl} onChange={e => setSupabaseUrl(e.target.value)} />
+                </div>
+                <div>
+                  <label className="form-label">Supabase Anon Key</label>
+                  <input type="password" className="form-input" placeholder="eyJhbGciOi..." value={supabaseKey} onChange={e => setSupabaseKey(e.target.value)} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                  <button className="btn btn-green" style={{ flex: 1 }} onClick={onTestConnection} disabled={isTesting}>
+                    {isTesting ? '테스트 중...' : '🔗 연결 테스트'}
+                  </button>
+                </div>
+              </div>
+
+              {connectionMessage && (
+                <div style={{ fontSize: '0.75rem', padding: '0.625rem 0.875rem', borderRadius: '8px', backgroundColor: isConnected ? '#ecfdf5' : '#fef9c3', color: isConnected ? '#065f46' : '#854d0e', border: `1px solid ${isConnected ? '#a7f3d0' : '#fde68a'}`, marginBottom: '0.75rem' }}>
+                  {connectionMessage}
+                </div>
+              )}
+
+              <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '0.75rem' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: '700', marginBottom: '0.5rem', color: '#374151' }}>📋 Supabase DB 테이블 생성 SQL</div>
+                <button className="btn btn-green" style={{ fontSize: '0.75rem', padding: '0.375rem 1rem', fontWeight: '700' }} onClick={copySQL}>
+                  {copiedSQL ? '✓ SQL 복사됨! SQL Editor에 붙여넣기 후 Run 클릭' : '⚡ 전체 테이블 SQL 한번에 복사 (권장)'}
+                </button>
+                <div style={{ fontSize: '0.6875rem', color: '#6b7280', marginTop: '0.5rem' }}>
+                  💡 Supabase 대시보드 → <strong>SQL Editor</strong> → New query → 붙여넣기 → <strong>Run</strong> 클릭
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="tab-bar-container">
             <div className="tab-nav">
@@ -1045,8 +1257,16 @@
 
     function App() {
       const [activeTab, setActiveTab] = useState('doc');
+
+      // Supabase 연결 상태
+      const [supabaseUrl, setSupabaseUrl] = useState(() => localStorage.getItem('supabase_url') || 'https://wmrfwrsaacolkpjyrffy.supabase.co');
+      const [supabaseKey, setSupabaseKey] = useState(() => localStorage.getItem('supabase_anon_key') || 'sb_publishable_nWgVPKLg5hHZqvCrOL9oUQ_GfuAGe9Y');
+      const [isConnected, setIsConnected] = useState(false);
+      const [isTesting, setIsTesting] = useState(false);
+      const [connectionMessage, setConnectionMessage] = useState('');
+
       const [suppliersList, setSuppliersList] = useState(() => getLocalItem('dd_suppliers_list_v1', INITIAL_SUPPLIERS_LIST));
-      const [selectedSupplierKey, setSelectedSupplierKey] = useState('sejin');
+      const [selectedSupplierKey, setSelectedSupplierKey] = useState(() => localStorage.getItem('selected_supplier_key') || 'sejin');
       const [currentSupplier, setCurrentSupplier] = useState(DEFAULT_SUPPLIERS.sejin);
 
       const [customersList, setCustomersList] = useState(() => getLocalItem('dd_customers_list_v1', DEMO_CUSTOMERS));
@@ -1055,27 +1275,134 @@
       const [partsList, setPartsList] = useState(() => getLocalItem('dd_parts_list_v1', DEMO_PARTS));
 
       const [docType, setDocType] = useState('거래명세서');
-      const [docNo, setDocNo] = useState('20260812-001');
-      const [docDate, setDocDate] = useState('2026-08-12');
-      const [docTime, setDocTime] = useState('16:15');
       const [items, setItems] = useState([
         { id: '1', code: 'P0001', name: '엔진오일 필터', unit: 'EA', qty: 2, price: 25000 },
         { id: '2', code: 'P0002', name: '유압유 20L', unit: 'CAN', qty: 1, price: 85000 }
       ]);
       const [vatIncluded, setVatIncluded] = useState(true);
+      const [vat, setVat] = useState(0);
+      const [paid, setPaid] = useState(0);
+      const [remark, setRemark] = useState('');
+
+      // 날짜/시간/문서번호 초기화
+      const [docDate, setDocDate] = useState(() => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+      });
+      const [docTime, setDocTime] = useState(() => {
+        const now = new Date();
+        return `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+      });
+      const [docNo, setDocNo] = useState(() => {
+        const now = new Date();
+        return `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-001`;
+      });
 
       useEffect(() => {
         const found = suppliersList.find(s => s.id === selectedSupplierKey);
         if (found) {
-          setCurrentSupplier({ ...found, company: found.name, tel: found.phone || found.tel });
+          setCurrentSupplier({ ...found, company: found.name, tel: found.phone || found.tel, hasStamp: selectedSupplierKey === 'sejin' });
         } else if (DEFAULT_SUPPLIERS[selectedSupplierKey]) {
           setCurrentSupplier(DEFAULT_SUPPLIERS[selectedSupplierKey]);
         }
+        localStorage.setItem('selected_supplier_key', selectedSupplierKey);
       }, [selectedSupplierKey, suppliersList]);
+
+      // Supabase 연결 테스트
+      const handleTestConnection = async () => {
+        setIsTesting(true);
+        localStorage.setItem('supabase_url', supabaseUrl.trim());
+        localStorage.setItem('supabase_anon_key', supabaseKey.trim());
+        _sbClient = null; // 클라이언트 재생성 강제
+        const result = await sbTestConnection(supabaseUrl, supabaseKey);
+        setIsConnected(result.ok);
+        setConnectionMessage(result.message);
+        setIsTesting(false);
+        if (result.ok && !result.isTableMissing) {
+          // 모든 데이터 새로고침
+          const [custs, supps, parts] = await Promise.all([
+            dbFetch('customers', DEMO_CUSTOMERS),
+            dbFetch('suppliers', INITIAL_SUPPLIERS_LIST),
+            dbFetch('parts', DEMO_PARTS)
+          ]);
+          setCustomersList(custs);
+          if (supps.length > 0) setSuppliersList(supps);
+          if (parts.length > 0) setPartsList(parts);
+        }
+      };
+
+      // 초기 자동 연결 시도
+      useEffect(() => {
+        if (supabaseUrl && supabaseKey) handleTestConnection();
+      }, []);
+
+      // 탭 전환 시 데이터 새로고침
+      useEffect(() => {
+        if (!isConnected) return;
+        if (activeTab === 'customers') dbFetch('customers', DEMO_CUSTOMERS).then(setCustomersList);
+        else if (activeTab === 'suppliers') dbFetch('suppliers', INITIAL_SUPPLIERS_LIST).then(d => { if(d.length>0) setSuppliersList(d); });
+        else if (activeTab === 'parts') dbFetch('parts', DEMO_PARTS).then(d => { if(d.length>0) setPartsList(d); });
+      }, [activeTab, isConnected]);
+
+      // 고객 CRUD
+      const handleSaveCustomer = async (c, isEdit) => {
+        const updated = await dbSave('customers', c, isEdit);
+        setCustomersList(updated);
+        alert('✓ 거래처 정보가 저장되었습니다.');
+      };
+      const handleDeleteCustomer = async (id) => {
+        if (!confirm('거래처를 삭제하시겠습니까?')) return;
+        setCustomersList(await dbDelete('customers', id));
+      };
+
+      // 공급자 CRUD
+      const handleSaveSupplier = async (s, isEdit) => {
+        const updated = await dbSave('suppliers', s, isEdit);
+        setSuppliersList(updated);
+        alert('✓ 공급자 정보가 저장되었습니다.');
+      };
+      const handleDeleteSupplier = async (id) => {
+        if (!confirm('공급자를 삭제하시겠습니까?')) return;
+        setSuppliersList(await dbDelete('suppliers', id));
+      };
+
+      // 부품 CRUD
+      const handleSavePart = async (p, isEdit) => {
+        const updated = await dbSave('parts', p, isEdit);
+        setPartsList(updated);
+        alert('✓ 부품 정보가 저장되었습니다.');
+      };
+      const handleDeletePart = async (id) => {
+        if (!confirm('부품을 삭제하시겠습니까?')) return;
+        setPartsList(await dbDelete('parts', id));
+      };
+
+      // 문서 저장
+      const handleSaveDocument = async () => {
+        await dbSaveDocument({ docType, docNo, docDate, docTime, customer, supplier: currentSupplier, supplierKey: selectedSupplierKey, items, vat, vatIncluded, paid, remark });
+        alert(`✓ ${docType} (번호: ${docNo}) 저장 완료!`);
+      };
+
+      const handleResetForm = () => {
+        if (confirm('명세서 내용을 초기화하시겠습니까?')) {
+          const now = new Date();
+          setDocNo(`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${String(Math.floor(Math.random()*100)).padStart(3,'0')}`);
+          setCustomer({ name: '', person: '', phone: '', addr: '' });
+          setItems([{ id: Date.now().toString(), code: '', name: '', unit: 'EA', qty: 1, price: 0 }]);
+          setPaid(0); setRemark('');
+        }
+      };
 
       return (
         <div className="app-container">
-          <Header activeTab={activeTab} setActiveTab={setActiveTab} isConnected={false} />
+          <Header
+            activeTab={activeTab} setActiveTab={setActiveTab}
+            isConnected={isConnected} isTesting={isTesting}
+            connectionMessage={connectionMessage}
+            supabaseUrl={supabaseUrl} setSupabaseUrl={setSupabaseUrl}
+            supabaseKey={supabaseKey} setSupabaseKey={setSupabaseKey}
+            onTestConnection={handleTestConnection}
+          />
           <main className="main-content">
             {activeTab === 'doc' && (
               <StatementTab
@@ -1087,28 +1414,35 @@
                 suppliersList={suppliersList} currentSupplier={currentSupplier} setCurrentSupplier={setCurrentSupplier}
                 customer={customer} setCustomer={setCustomer} customersList={customersList}
                 items={items} setItems={setItems}
+                vat={vat} setVat={setVat}
                 vatIncluded={vatIncluded} setVatIncluded={setVatIncluded}
-                onResetForm={() => setCustomer({ name: '', person: '', phone: '', addr: '' })}
-                onSaveDocument={() => alert('✓ 명세서가 성공적으로 저장되었습니다.')}
+                paid={paid} setPaid={setPaid}
+                remark={remark} setRemark={setRemark}
+                onResetForm={handleResetForm}
+                onSaveDocument={handleSaveDocument}
               />
             )}
             {activeTab === 'customers' && (
               <CustomerTab
                 customers={customersList}
-                onSaveCustomer={(c) => setCustomersList([...customersList, { ...c, id: Date.now() }])}
-                onDeleteCustomer={(id) => setCustomersList(customersList.filter(c => c.id !== id))}
+                onSaveCustomer={handleSaveCustomer}
+                onDeleteCustomer={handleDeleteCustomer}
                 onSelectCustomer={(c) => { setCustomer(c); setActiveTab('doc'); }}
               />
             )}
             {activeTab === 'suppliers' && (
               <SupplierTab
                 suppliers={suppliersList}
+                onSaveSupplier={handleSaveSupplier}
+                onDeleteSupplier={handleDeleteSupplier}
                 onSelectSupplier={(s) => { setSelectedSupplierKey(s.id); setActiveTab('doc'); }}
               />
             )}
             {activeTab === 'parts' && (
               <PartsTab
                 parts={partsList}
+                onSavePart={handleSavePart}
+                onDeletePart={handleDeletePart}
                 onSelectPart={(p) => { setItems([...items, { id: Date.now().toString(), code: p.code, name: p.name, unit: p.unit || 'EA', qty: 1, price: p.price }]); setActiveTab('doc'); }}
               />
             )}
