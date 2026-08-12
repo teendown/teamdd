@@ -548,7 +548,8 @@
         id: "sejin",
         company: "세진건설기계",
         bizno: "568-23-00015",
-        name: "허강",
+        name: "세진건설기계",
+        person: "허강",
         addr: "전북특별자치도 전주시 덕진구 추천로 269(팔복동1가)",
         tel: "010-2644-2921",
         email: "lkjhg-2921@naver.com",
@@ -559,7 +560,8 @@
         id: "ds_gimje",
         company: "디에스건설기계 김제점",
         bizno: "213-17-24815",
-        name: "경아름",
+        name: "디에스건설기계 김제점",
+        person: "경아름",
         addr: "전북특별자치도 김제시 용지면 황도로 919,1동",
         tel: "010-4908-4703",
         fax: "063-900-3553",
@@ -570,8 +572,8 @@
     };
 
     const INITIAL_SUPPLIERS_LIST = [
-      { id: "sejin", code: "S0001", name: "세진건설기계", bizno: "568-23-00015", person: "허강", phone: "010-2644-2921", addr: "전북특별자치도 전주시 덕진구 추천로 269(팔복동1가)", bank: "우리은행 1002-753-378007 허강", hasStamp: true },
-      { id: "ds_gimje", code: "S0002", name: "디에스건설기계 김제점", bizno: "213-17-24815", person: "경아름", phone: "010-4908-4703", addr: "전북특별자치도 김제시 용지면 황도로 919,1동", bank: "하나은행 716-910596-07807 경아름", hasStamp: false }
+      { id: "sejin", code: "S0001", name: "세진건설기계", bizno: "568-23-00015", person: "허강", phone: "010-2644-2921", email: "lkjhg-2921@naver.com", addr: "전북특별자치도 전주시 덕진구 추천로 269(팔복동1가)", bank: "우리은행 1002-753-378007 허강", hasStamp: true },
+      { id: "ds_gimje", code: "S0002", name: "디에스건설기계 김제점", bizno: "213-17-24815", person: "경아름", phone: "010-4908-4703", email: "areum1438@naver.com", addr: "전북특별자치도 김제시 용지면 황도로 919,1동", bank: "하나은행 716-910596-07807 경아름", hasStamp: false }
     ];
 
     const DEMO_CUSTOMERS = [
@@ -786,38 +788,46 @@ alter table documents disable row level security;`;
                   </div>
 
                   <table className="parties-table">
+                    <colgroup>
+                      <col style={{ width: '4%' }} />
+                      <col style={{ width: '13%' }} />
+                      <col style={{ width: '33%' }} />
+                      <col style={{ width: '4%' }} />
+                      <col style={{ width: '13%' }} />
+                      <col style={{ width: '33%' }} />
+                    </colgroup>
                     <tbody>
                       <tr>
-                        <th style={{ width: '40px', fontSize: '11px' }} rowSpan="5">공<br/>급<br/>받<br/>는<br/>자</th>
-                        <th style={{ width: '70px', fontSize: '12px' }}>성명/상호</th>
-                        <td style={{ fontSize: '13px' }}>{customer.name || '-'}</td>
-                        <th style={{ width: '40px', fontSize: '11px' }} rowSpan="5">공<br/>급<br/>자</th>
-                        <th style={{ width: '70px', fontSize: '12px' }}>등록번호</th>
-                        <td style={{ fontWeight: '800', fontSize: '13px' }}>{supplier.bizno || '-'}</td>
+                        <th style={{ fontSize: '11px', verticalAlign: 'middle', textAlign: 'center' }} rowSpan="5">공<br/>급<br/>받<br/>는<br/>자</th>
+                        <th style={{ fontSize: '11px', textAlign: 'center', verticalAlign: 'middle' }}>성명/상호</th>
+                        <td style={{ fontSize: '12px', verticalAlign: 'middle' }}>{customer.name || '-'}</td>
+                        <th style={{ fontSize: '11px', verticalAlign: 'middle', textAlign: 'center' }} rowSpan="5">공<br/>급<br/>자</th>
+                        <th style={{ fontSize: '11px', textAlign: 'center', verticalAlign: 'middle' }}>등록번호</th>
+                        <td style={{ fontWeight: '800', fontSize: '12px', verticalAlign: 'middle' }}>{supplier.bizno || '-'}</td>
                       </tr>
                       <tr>
-                        <th style={{ fontSize: '12px' }}>담당자</th>
-                        <td style={{ fontSize: '12px' }}>{customer.person || '-'}</td>
-                        <th style={{ fontSize: '12px' }}>상호명</th>
-                        <td style={{ fontWeight: '800', fontSize: '14px' }}>{supplier.company || supplier.name || '-'}</td>
+                        <th style={{ fontSize: '11px', textAlign: 'center', verticalAlign: 'middle' }}>담당자</th>
+                        <td style={{ fontSize: '12px', verticalAlign: 'middle' }}>{customer.person || '-'}</td>
+                        <th style={{ fontSize: '11px', textAlign: 'center', verticalAlign: 'middle' }}>상호명</th>
+                        <td style={{ fontWeight: '800', fontSize: '13px', verticalAlign: 'middle' }}>{supplier.company || supplier.name || '-'}</td>
                       </tr>
                       <tr>
-                        <th style={{ fontSize: '12px' }}>연락처</th>
-                        <td style={{ fontSize: '12px' }}>{customer.phone || '-'}</td>
-                        <th style={{ fontSize: '12px' }}>대표자</th>
-                        <td style={{ fontSize: '12px' }}>{supplier.name || '-'}</td>
+                        <th style={{ fontSize: '11px', textAlign: 'center', verticalAlign: 'middle' }}>연락처</th>
+                        <td style={{ fontSize: '12px', verticalAlign: 'middle' }}>{customer.phone || '-'}</td>
+                        <th style={{ fontSize: '11px', textAlign: 'center', verticalAlign: 'middle' }}>대표자</th>
+                        <td style={{ fontSize: '12px', verticalAlign: 'middle' }}>{supplier.person || supplier.owner || (supplier.name !== supplier.company ? supplier.name : '-') || '-'}</td>
                       </tr>
                       <tr>
-                        <th style={{ fontSize: '12px' }}>기종</th>
-                        <td style={{ fontSize: '12px', fontWeight: 'bold' }}>{customer.selectedMachine || '-'}</td>
-                        <th style={{ fontSize: '12px' }}>연락처/메일</th>
-                        <td style={{ fontSize: '11px' }}>{supplier.tel || supplier.phone || '-'} {supplier.email ? `/ ${supplier.email}` : ''}</td>
+                        <th style={{ fontSize: '11px', textAlign: 'center', verticalAlign: 'middle' }}>기종</th>
+                        <td style={{ fontSize: '12px', fontWeight: 'bold', verticalAlign: 'middle' }}>{customer.selectedMachine || '-'}</td>
+                        <th style={{ fontSize: '11px', textAlign: 'center', verticalAlign: 'middle' }}>연락처/메일</th>
+                        <td style={{ fontSize: '11px', verticalAlign: 'middle' }}>{(supplier.tel || supplier.phone || '-') + (supplier.email ? ` / ${supplier.email}` : '')}</td>
                       </tr>
                       <tr>
-                        <th style={{ fontSize: '12px' }}>주소</th>
-                        <td style={{ fontSize: '11px' }}>{customer.addr || '-'}</td>
-                        <th style={{ fontSize: '12px' }}>사업장주소</th>
-                        <td style={{ fontSize: '11px' }}>{supplier.addr || '-'}</td>
+                        <th style={{ fontSize: '11px', textAlign: 'center', verticalAlign: 'middle' }}>주소</th>
+                        <td style={{ fontSize: '10.5px', verticalAlign: 'middle' }}>{customer.addr || '-'}</td>
+                        <th style={{ fontSize: '11px', textAlign: 'center', verticalAlign: 'middle' }}>사업장주소</th>
+                        <td style={{ fontSize: '10.5px', verticalAlign: 'middle' }}>{supplier.addr || '-'}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -1542,9 +1552,17 @@ alter table documents disable row level security;`;
       useEffect(() => {
         const found = suppliersList.find(s => s.id === selectedSupplierKey);
         if (found) {
-          setCurrentSupplier({ ...found, company: found.name, tel: found.phone || found.tel, hasStamp: selectedSupplierKey === 'sejin' });
+          setCurrentSupplier({
+            ...found,
+            company: found.name || found.company,
+            person: found.person || found.owner || '',
+            tel: found.phone || found.tel,
+            email: found.email || '',
+            hasStamp: selectedSupplierKey === 'sejin'
+          });
         } else if (DEFAULT_SUPPLIERS[selectedSupplierKey]) {
-          setCurrentSupplier(DEFAULT_SUPPLIERS[selectedSupplierKey]);
+          const def = DEFAULT_SUPPLIERS[selectedSupplierKey];
+          setCurrentSupplier({ ...def, person: def.person || def.name });
         }
         localStorage.setItem('selected_supplier_key', selectedSupplierKey);
       }, [selectedSupplierKey, suppliersList]);
