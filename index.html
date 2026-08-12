@@ -956,7 +956,7 @@ alter table documents disable row level security;`;
 
     function StatementTab({ docType, setDocType, docNo, setDocNo, docDate, setDocDate, docTime, setDocTime, selectedSupplierKey, setSelectedSupplierKey, suppliersList, currentSupplier, setCurrentSupplier, customer, setCustomer, customersList, items, setItems, vat, setVat, vatIncluded, setVatIncluded, paid, setPaid, remark, setRemark, onResetForm, onSaveDocument, onAddNewCustomer }) {
       const [showAutocomplete, setShowAutocomplete] = useState(false);
-      const matchingCustomers = (customer.name || '').trim() ? customersList.filter(c => (c.name || '').toLowerCase().includes(customer.name.toLowerCase())) : [];
+      const matchingCustomers = (customer.name || '').trim() ? customersList.filter(c => (c.name || '').toLowerCase().includes((customer.name || '').toLowerCase())) : [];
 
       const handleExportPNG = async () => {
         const pages = document.querySelectorAll('.document-page');
@@ -1009,7 +1009,7 @@ alter table documents disable row level security;`;
                   type="text"
                   className="form-input"
                   placeholder="거래처 검색 (자동완성)"
-                  value={customer.name}
+                  value={customer.name || ''}
                   onChange={e => { setCustomer({ ...customer, name: e.target.value }); setShowAutocomplete(true); }}
                   onFocus={() => setShowAutocomplete(true)}
                 />
@@ -1023,7 +1023,7 @@ alter table documents disable row level security;`;
                     ))}
                   </div>
                 )}
-                {showAutocomplete && matchingCustomers.length === 0 && customer.name.trim() !== '' && (
+                {showAutocomplete && matchingCustomers.length === 0 && (customer.name || '').trim() !== '' && (
                   <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: '#ffffff', border: '1px solid #d1d5db', borderRadius: '8px', zIndex: 20, padding: '1rem', textAlign: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
                     <div style={{ marginBottom: '0.5rem', color: '#4b5563', fontSize: '0.875rem' }}>"{customer.name}" 거래처가 없습니다.</div>
                     <button type="button" className="btn btn-primary" style={{ width: '100%' }} onClick={() => onAddNewCustomer(customer.name)}>+ 새 거래처 등록하기</button>
