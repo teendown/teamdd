@@ -1327,6 +1327,17 @@ alter table documents disable row level security;`;
                   <input type="text" className="form-input" placeholder="품목 비고 / 메모 (선택사항)" value={item.memo || item.remark || ''} onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, memo: e.target.value, remark: e.target.value } : i))} style={{ marginTop: '4px', fontSize: '0.75rem' }} />
                 </div>
               ))}
+              
+              <div style={{ marginTop: '0.5rem' }}>
+                <button 
+                  type="button" 
+                  className="btn btn-outline" 
+                  style={{ width: '100%', minHeight: '44px', fontSize: '0.875rem', fontWeight: '800', color: '#1d6bf3', borderColor: '#3b82f6', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 2px 4px rgba(29,107,243,0.1)' }}
+                  onClick={() => setItems([...items, { id: Date.now().toString(), code: '', name: '', unit: 'EA', qty: 1, price: 0 }])}
+                >
+                  <span>➕ 품목 행 추가 (새 품목 입력)</span>
+                </button>
+              </div>
             </div>
 
             <div className="form-section">
@@ -1349,17 +1360,6 @@ alter table documents disable row level security;`;
                   </div>
                 </div>
               </label>
-            </div>
-
-            <div style={{ marginBottom: '1rem' }}>
-              <button 
-                type="button" 
-                className="btn btn-outline" 
-                style={{ width: '100%', minHeight: '44px', fontSize: '0.875rem', fontWeight: '800', color: '#1d6bf3', borderColor: '#3b82f6', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 2px 4px rgba(29,107,243,0.1)' }}
-                onClick={() => setItems([...items, { id: Date.now().toString(), code: '', name: '', unit: 'EA', qty: 1, price: 0 }])}
-              >
-                <span>➕ 품목 행 추가 (새 품목 입력)</span>
-              </button>
             </div>
 
             <div className="form-section">
