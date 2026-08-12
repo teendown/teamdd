@@ -4047,7 +4047,19 @@ function App() {
     addr: ''
   });
   const [partsList, setPartsList] = useState(() => getLocalItem('dd_parts_list_v1', DEMO_PARTS));
-  const [docType, setDocType] = useState('거래명세서');
+  const [docType, setDocType] = useState('\uAC70\uB798\uBA85\uC138\uC11C');
+  const [docNo, setDocNo] = useState(function() {
+    var now = new Date();
+    return '' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '-001';
+  });
+  const [docDate, setDocDate] = useState(function() {
+    var now = new Date();
+    return now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+  });
+  const [docTime, setDocTime] = useState(function() {
+    var now = new Date();
+    return String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  });
   const [items, setItems] = useState([{
     id: '1',
     code: '',
