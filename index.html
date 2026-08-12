@@ -1080,6 +1080,7 @@ alter table documents disable row level security;`;
       const [isEditMode, setIsEditMode] = useState(false);
       const [form, setForm] = useState({ id: null, code: '', name: '', person: '', phone: '', addr: '', bizno: '', machine: '', memo: '' });
       const [machineInput, setMachineInput] = useState('');
+      const [machineNoInput, setMachineNoInput] = useState('');
       const [machineList, setMachineList] = useState([]);
       const [selectMachineCustomer, setSelectMachineCustomer] = useState(null);
 
@@ -1090,6 +1091,7 @@ alter table documents disable row level security;`;
         setForm({ id: null, code: `C${String(customers.length + 1).padStart(4, '0')}`, name: '', person: '', phone: '', addr: '', bizno: '', machine: '', memo: '' });
         setMachineList([]);
         setMachineInput('');
+        setMachineNoInput('');
         setShowModal(true);
       };
 
@@ -1108,13 +1110,19 @@ alter table documents disable row level security;`;
         });
         setMachineList(c.machine ? c.machine.split(',').map(s => s.trim()).filter(s => s) : []);
         setMachineInput('');
+        setMachineNoInput('');
         setShowModal(true);
       };
 
       const handleAddMachine = () => {
-        if (!machineInput.trim()) return;
-        setMachineList([...machineList, machineInput.trim()]);
+        if (!machineInput.trim() && !machineNoInput.trim()) return;
+        let combined = machineInput.trim();
+        if (machineNoInput.trim()) {
+          combined = combined ? `${combined} / ${machineNoInput.trim()}` : machineNoInput.trim();
+        }
+        setMachineList([...machineList, combined]);
         setMachineInput('');
+        setMachineNoInput('');
       };
 
       const handleRemoveMachine = (idx) => {
@@ -1225,7 +1233,8 @@ alter table documents disable row level security;`;
                     {machineList.length === 0 && <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>등록된 기종이 없습니다.</span>}
                   </div>
                   <div style={{ display: 'flex', gap: '4px' }}>
-                    <input type="text" className="form-input" placeholder="기종명 입력 (예: 굴삭기 DX140W)" value={machineInput} onChange={e => setMachineInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddMachine()} />
+                    <input type="text" className="form-input" style={{ flex: 1 }} placeholder="기종명 (예: DX140W)" value={machineInput} onChange={e => setMachineInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddMachine()} />
+                    <input type="text" className="form-input" style={{ flex: 1 }} placeholder="호기수 (예: 1호기)" value={machineNoInput} onChange={e => setMachineNoInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddMachine()} />
                     <button className="btn btn-outline" onClick={handleAddMachine}>추가</button>
                   </div>
                 </div>
