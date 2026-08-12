@@ -1221,6 +1221,15 @@ alter table documents disable row level security;`;
               <div className="modal-content" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
                 <h3 style={{ marginBottom: '1rem', fontWeight: '900' }}>{isEditMode ? '✏️ 고객(거래처) 정보 상세/수정' : '➕ 새 거래처 등록'}</h3>
                 
+                <div className="grid-2">
+                  <div className="form-group"><label className="form-label">상호명 *</label><input type="text" className="form-input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
+                  <div className="form-group"><label className="form-label">사업자등록번호</label><input type="text" className="form-input" value={form.bizno} onChange={e => setForm({ ...form, bizno: e.target.value })} /></div>
+                </div>
+                <div className="grid-2">
+                  <div className="form-group"><label className="form-label">담당자</label><input type="text" className="form-input" value={form.person} onChange={e => setForm({ ...form, person: e.target.value })} /></div>
+                  <div className="form-group"><label className="form-label">연락처</label><input type="text" className="form-input" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
+                </div>
+
                 <div className="form-group">
                   <label className="form-label">기종 (장비 목록)</label>
                   <div style={{ display: 'flex', gap: '4px', marginBottom: '8px', flexWrap: 'wrap' }}>
@@ -1237,15 +1246,6 @@ alter table documents disable row level security;`;
                     <input type="text" className="form-input" style={{ flex: 1 }} placeholder="호기수 (예: 1호기)" value={machineNoInput} onChange={e => setMachineNoInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddMachine()} />
                     <button className="btn btn-outline" onClick={handleAddMachine}>추가</button>
                   </div>
-                </div>
-
-                <div className="grid-2">
-                  <div className="form-group"><label className="form-label">상호명 *</label><input type="text" className="form-input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
-                  <div className="form-group"><label className="form-label">사업자등록번호</label><input type="text" className="form-input" value={form.bizno} onChange={e => setForm({ ...form, bizno: e.target.value })} /></div>
-                </div>
-                <div className="grid-2">
-                  <div className="form-group"><label className="form-label">담당자</label><input type="text" className="form-input" value={form.person} onChange={e => setForm({ ...form, person: e.target.value })} /></div>
-                  <div className="form-group"><label className="form-label">연락처</label><input type="text" className="form-input" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
                 </div>
                 <div className="form-group">
                   <label className="form-label">주소</label>
