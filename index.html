@@ -598,7 +598,10 @@
 
   <!-- React Application Logic Script -->
   <script type="text/babel">
-    const { useState, useEffect, useRef, useCallback } = React;
+    const useState = (...args) => React.useState(...args);
+    const useEffect = (...args) => React.useEffect(...args);
+    const useRef = (...args) => React.useRef(...args);
+    const useCallback = (...args) => React.useCallback(...args);
 
     const DEFAULT_SUPPLIERS = {
       sejin: {
@@ -2429,7 +2432,18 @@ alter table documents disable row level security;`;
       );
     }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    function initApp() {
+      if (window.React && window.ReactDOM && document.getElementById('root')) {
+        try {
+          ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+        } catch(e) {
+          console.error("Render Error:", e);
+        }
+      } else {
+        setTimeout(initApp, 50);
+      }
+    }
+    initApp();
   </script>
 </body>
 </html>
