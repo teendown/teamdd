@@ -2977,6 +2977,7 @@ function CustomerTab({
     bizType: '',
     bizItem: '',
     email: '',
+    fax: '',
     machine: '',
     memo: ''
   });
@@ -3000,6 +3001,7 @@ function CustomerTab({
       bizType: '',
       bizItem: '',
       email: '',
+    fax: '',
       machine: '',
       memo: ''
     });
@@ -3037,6 +3039,7 @@ function CustomerTab({
       bizType: c.bizType || '',
       bizItem: c.bizItem || '',
       email: c.email || '',
+      fax: c.fax || '',
       machine: c.machine || '',
       memo: c.memo || ''
     });
@@ -3250,9 +3253,15 @@ function CustomerTab({
         modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value" }, form.person || '-') : /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: form.person, onChange: e => setForm({ ...form, person: e.target.value }) })
       )
     ),
-    /*#__PURE__*/React.createElement("div", { className: "form-group" },
-      /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC5F0\uB77D\uCC98"),
-      modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value" }, form.phone || '-') : /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: form.phone, onChange: e => setForm({ ...form, phone: e.target.value }) })
+    /*#__PURE__*/React.createElement("div", { className: "grid-2" },
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC5F0\uB77D\uCC98"),
+        modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value" }, form.phone || '-') : /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: form.phone, onChange: e => setForm({ ...form, phone: e.target.value }) })
+      ),
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uD329\uC2A4\uBC88\uD638"),
+        modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value" }, form.fax || '-') : /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: form.fax, onChange: e => setForm({ ...form, fax: e.target.value }) })
+      )
     ),
     /*#__PURE__*/React.createElement("div", { className: "form-group" },
       /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uAE30\uC885 (\uC7A5\uBE44 \uBAA9\uB85D)"),
@@ -3422,6 +3431,7 @@ function SupplierTab({
     phone: '',
     fax: '',
     email: '',
+    fax: '',
     bank: '',
     addr: '',
     memo: ''
@@ -3438,6 +3448,7 @@ function SupplierTab({
       phone: '',
       fax: '',
       email: '',
+    fax: '',
       bank: '',
       addr: '',
       memo: ''
