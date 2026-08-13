@@ -1104,7 +1104,15 @@ async function dbSaveDocument(docData) {
     remark: docData.remark || '',
     paymentStatus: docData.paymentStatus,
     paymentMethod: docData.paymentMethod,
-    paymentDate: docData.paymentDate
+    paymentDate: docData.paymentDate,
+    validityPeriod: docData.validityPeriod,
+    deliveryDate: docData.deliveryDate,
+    deliveryLocation: docData.deliveryLocation,
+    paymentTerms: docData.paymentTerms,
+    bankAccount: docData.bankAccount,
+    dueDate: docData.dueDate,
+    receiverName: docData.receiverName,
+    receiveDate: docData.receiveDate
   };
   const payload = packRow(rawPayload, 'documents');
   if (sb) {
@@ -1845,7 +1853,35 @@ function DocumentCanvas({
       color: '#0f172a',
       fontSize: '10.5px'
     }
-  }, supplier.addr || '-')))))), /*#__PURE__*/React.createElement("div", {
+  }, supplier.addr || '-')))))), 
+  
+  pageIdx === 0 && docType === '견적서' && /*#__PURE__*/React.createElement("div", {
+    style: { display: 'flex', gap: '24px', marginBottom: '12px', fontSize: '11px', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 16px', backgroundColor: '#f8fafc' }
+  }, 
+    /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "견적 유효기간: "), validityPeriod),
+    /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "납기일자: "), deliveryDate),
+    /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "인도장소: "), deliveryLocation),
+    /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "결제 조건: "), paymentTerms)
+  ),
+  pageIdx === 0 && docType === '청구서' && /*#__PURE__*/React.createElement("div", {
+    style: { display: 'flex', gap: '24px', marginBottom: '12px', fontSize: '11px', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 16px', backgroundColor: '#f8fafc' }
+  },
+    /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "입금 계좌번호: "), bankAccount),
+    /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "입금 기한: "), dueDate)
+  ),
+  (pageIdx === pages.length - 1) && docType === '거래명세서' && /*#__PURE__*/React.createElement("div", {
+    style: { display: 'flex', gap: '16px', marginBottom: '12px', fontSize: '11px', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 16px', backgroundColor: '#f8fafc', justifyContent: 'space-between', alignItems: 'center' }
+  },
+    /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '16px' } }, 
+      /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "인수 일시: "), receiveDate)
+    ),
+    /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '8px', alignItems: 'center' } },
+      /*#__PURE__*/React.createElement("strong", null, "인수자 성명 (서명): "), receiverName,
+      /*#__PURE__*/React.createElement("div", { style: { width: '120px', borderBottom: '1px solid #cbd5e1' } })
+    )
+  ),
+
+  /*#__PURE__*/React.createElement("div", {
     style: {
       borderRadius: '8px',
       overflow: 'hidden',
@@ -2405,6 +2441,14 @@ function StatementTab({
   paymentMethod,
   setPaymentMethod,
   paymentDate,
+      validityPeriod,
+      deliveryDate,
+      deliveryLocation,
+      paymentTerms,
+      bankAccount,
+      dueDate,
+      receiverName,
+      receiveDate,
   setPaymentDate,
   remark,
   setRemark,
@@ -2495,24 +2539,25 @@ function StatementTab({
       fontSize: '0.75rem'
     },
     onClick: onResetForm
-  }, "\uC2E0\uADDC \uC791\uC131 \uC804\uD658")), /*#__PURE__*/React.createElement("div", {
+  }, "\uC2E0\uADDC \uC791\uC131 \uC804\uD658")), 
+  /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '8px', marginBottom: '16px' } },
+    ["견적서", "청구서", "거래명세서"].map(t =>
+      /*#__PURE__*/React.createElement("button", {
+        key: t,
+        className: `tab-btn ${docType === t ? 'active' : ''}`,
+        style: { flex: 1, padding: '12px', fontSize: '1.1rem', fontWeight: 'bold', borderRadius: '8px', border: docType === t ? '2px solid #1d6bf3' : '1px solid #e2e8f0', backgroundColor: docType === t ? '#eff6ff' : '#f8fafc', color: docType === t ? '#1d6bf3' : '#64748b' },
+        onClick: () => setDocType(t)
+      }, t)
+    )
+  ),
+  /*#__PURE__*/React.createElement("div", {
     className: "form-section"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "section-title"
-  }, "\uD83D\uDCC4 \uBB38\uC11C \uAE30\uBCF8 \uC124\uC815"), /*#__PURE__*/React.createElement("div", {
+    className: "section-title",
+    style: { display: 'flex', justifyContent: 'space-between' }
+  }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCC4 " + docType + " \uAE30\uBCF8 \uC124\uC815")), /*#__PURE__*/React.createElement("div", {
     className: "grid-2"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "form-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label"
-  }, "\uBB38\uC11C \uC885\uB958"), /*#__PURE__*/React.createElement("select", {
-    className: "form-select",
-    value: docType,
-    onChange: e => setDocType(e.target.value)
-  }, DOC_TYPES.map(t => /*#__PURE__*/React.createElement("option", {
-    key: t,
-    value: t
-  }, t)))), /*#__PURE__*/React.createElement("div", {
     className: "form-group"
   }, /*#__PURE__*/React.createElement("label", {
     className: "form-label"
@@ -2668,7 +2713,55 @@ function StatementTab({
       fontSize: '0.875rem',
       color: '#4b5563'
     }
-  }, customer.person && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "\uB2F4\uB2F9\uC790:"), " ", customer.person), customer.phone && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "\uC5F0\uB77D\uCC98:"), " ", customer.phone), customer.addr && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "\uC8FC\uC18C:"), " ", customer.addr)) : null), /*#__PURE__*/React.createElement("div", {
+  }, customer.person && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "\uB2F4\uB2F9\uC790:"), " ", customer.person), customer.phone && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "\uC5F0\uB77D\uCC98:"), " ", customer.phone), customer.addr && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "\uC8FC\uC18C:"), " ", customer.addr)) : null), 
+  docType === '견적서' && /*#__PURE__*/React.createElement("div", { className: "form-section" },
+    /*#__PURE__*/React.createElement("div", { className: "section-title" }, "견적서 상세 정보"),
+    /*#__PURE__*/React.createElement("div", { className: "grid-2" },
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "견적 유효기간"),
+        /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: validityPeriod, onChange: e => setValidityPeriod(e.target.value) })
+      ),
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "납기일자"),
+        /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: deliveryDate, onChange: e => setDeliveryDate(e.target.value) })
+      ),
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "인도장소"),
+        /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: deliveryLocation, onChange: e => setDeliveryLocation(e.target.value) })
+      ),
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "결제 조건"),
+        /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: paymentTerms, onChange: e => setPaymentTerms(e.target.value) })
+      )
+    )
+  ),
+  docType === '청구서' && /*#__PURE__*/React.createElement("div", { className: "form-section" },
+    /*#__PURE__*/React.createElement("div", { className: "section-title" }, "청구서 상세 정보"),
+    /*#__PURE__*/React.createElement("div", { className: "grid-2" },
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "입금 계좌번호"),
+        /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", placeholder: "예: 신한 110-xxx 홍길동", value: bankAccount, onChange: e => setBankAccount(e.target.value) })
+      ),
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "입금 기한"),
+        /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: dueDate, onChange: e => setDueDate(e.target.value) })
+      )
+    )
+  ),
+  docType === '거래명세서' && /*#__PURE__*/React.createElement("div", { className: "form-section" },
+    /*#__PURE__*/React.createElement("div", { className: "section-title" }, "거래명세서 상세 정보"),
+    /*#__PURE__*/React.createElement("div", { className: "grid-2" },
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "인수자 성명"),
+        /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: receiverName, onChange: e => setReceiverName(e.target.value) })
+      ),
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "인수 일시"),
+        /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: receiveDate, onChange: e => setReceiveDate(e.target.value) })
+      )
+    )
+  ),
+  /*#__PURE__*/React.createElement("div", {
     className: "form-section"
   }, /*#__PURE__*/React.createElement("div", {
     className: "section-title"
@@ -2900,6 +2993,14 @@ function StatementTab({
         /*#__PURE__*/React.createElement("input", {
           type: "date", className: "form-input",
           value: paymentDate,
+      validityPeriod,
+      deliveryDate,
+      deliveryLocation,
+      paymentTerms,
+      bankAccount,
+      dueDate,
+      receiverName,
+      receiveDate,
           onChange: function(e) { setPaymentDate(e.target.value); }
         })
       )
@@ -3890,6 +3991,7 @@ function PartsTab({
 }
 function DocHistoryTab({
   onLoadDocument,
+  onCopyDocument,
   isConnected
 }) {
   function getEffectivePaymentStatus(doc) {
@@ -4285,6 +4387,15 @@ function DocHistoryTab({
       },
       onClick: () => onLoadDocument(doc)
     }, "\uD83D\uDCE5 \uBD88\uB7EC\uC624\uAE30/\uC218\uC815"), /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-primary",
+      style: {
+        padding: '3px 8px',
+        fontSize: '11px',
+        backgroundColor: '#10b981',
+        borderColor: '#10b981'
+      },
+      onClick: () => onCopyDocument(doc)
+    }, "\uD83D\uDCCB \uC0C8 \uBB38\uC11C\uB85C \uBCF5\uC0AC"), /*#__PURE__*/React.createElement("button", {
       className: "btn btn-red-outline",
       style: {
         padding: '3px 8px',
@@ -4364,6 +4475,15 @@ function DocHistoryTab({
       },
       onClick: () => onLoadDocument(doc)
     }, "\uD83D\uDCE5 \uBD88\uB7EC\uC624\uAE30/\uC218\uC815"), /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-primary",
+      style: {
+        padding: '3px 8px',
+        fontSize: '11px',
+        backgroundColor: '#10b981',
+        borderColor: '#10b981'
+      },
+      onClick: () => onCopyDocument(doc)
+    }, "\uD83D\uDCCB \uC0C8 \uBB38\uC11C\uB85C \uBCF5\uC0AC"), /*#__PURE__*/React.createElement("button", {
       className: "btn btn-red-outline",
       style: {
         flex: 1,
@@ -4517,7 +4637,23 @@ function App() {
   const [paid, setPaid] = useState(0);
   const [paymentStatus, setPaymentStatus] = useState('미수금');
   const [paymentMethod, setPaymentMethod] = useState('계좌이체');
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [paymentDate,
+      validityPeriod,
+      deliveryDate,
+      deliveryLocation,
+      paymentTerms,
+      bankAccount,
+      dueDate,
+      receiverName,
+      receiveDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [validityPeriod, setValidityPeriod] = useState('');
+  const [deliveryDate, setDeliveryDate] = useState('');
+  const [deliveryLocation, setDeliveryLocation] = useState('');
+  const [paymentTerms, setPaymentTerms] = useState('');
+  const [bankAccount, setBankAccount] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [receiverName, setReceiverName] = useState('');
+  const [receiveDate, setReceiveDate] = useState('');
   const [remark, setRemark] = useState('');
 
   // 미저장 변경사항 상태 관리
@@ -4673,11 +4809,28 @@ function App() {
       paymentStatus,
       paymentMethod,
       paymentDate,
+      validityPeriod,
+      deliveryDate,
+      deliveryLocation,
+      paymentTerms,
+      bankAccount,
+      dueDate,
+      receiverName,
+      receiveDate,
       remark
     });
     setIsSavedThisSession(true);
     alert(`✓ ${docType} (번호: ${docNo}) 저장/수정 완료!`);
   };
+  const handleCopyDocument = doc => {
+    handleLoadDocument(doc);
+    setEditingDocId(null);
+    setDocNo('');
+    const d = new Date();
+    setDocDate(d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'));
+    setDocTime(String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'));
+  };
+
   const handleLoadDocument = doc => {
     setDocType(doc.doc_type || doc.docType || '거래명세서');
     setDocNo(doc.doc_no || doc.docNo || '');
@@ -4697,6 +4850,14 @@ function App() {
     setPaymentStatus(doc.paymentStatus || doc.payment_status || '미수금');
     setPaymentMethod(doc.paymentMethod || doc.payment_method || '계좌이체');
     setPaymentDate(doc.paymentDate || doc.payment_date || '');
+    setValidityPeriod(doc.validityPeriod || doc.validity_period || '');
+    setDeliveryDate(doc.deliveryDate || doc.delivery_date || '');
+    setDeliveryLocation(doc.deliveryLocation || doc.delivery_location || '');
+    setPaymentTerms(doc.paymentTerms || doc.payment_terms || '');
+    setBankAccount(doc.bankAccount || doc.bank_account || '');
+    setDueDate(doc.dueDate || doc.due_date || '');
+    setReceiverName(doc.receiverName || doc.receiver_name || '');
+    setReceiveDate(doc.receiveDate || doc.receive_date || '');
     setRemark(doc.remark || '');
     setEditingDocId(doc.id || null);
     setIsSavedThisSession(true);
@@ -4724,6 +4885,14 @@ function App() {
     setPaymentStatus('미수금');
     setPaymentMethod('계좌이체');
     setPaymentDate(new Date().toISOString().split('T')[0]);
+    setValidityPeriod('');
+    setDeliveryDate('');
+    setDeliveryLocation('');
+    setPaymentTerms('');
+    setBankAccount('');
+    setDueDate('');
+    setReceiverName('');
+    setReceiveDate('');
     setRemark('');
     setEditingDocId(null);
     setIsSavedThisSession(false);
@@ -4777,7 +4946,23 @@ function App() {
     paymentMethod: paymentMethod,
     setPaymentMethod: setPaymentMethod,
     paymentDate: paymentDate,
+      validityPeriod,
+      deliveryDate,
+      deliveryLocation,
+      paymentTerms,
+      bankAccount,
+      dueDate,
+      receiverName,
+      receiveDate,
     setPaymentDate: setPaymentDate,
+    validityPeriod: validityPeriod, setValidityPeriod: setValidityPeriod,
+    deliveryDate: deliveryDate, setDeliveryDate: setDeliveryDate,
+    deliveryLocation: deliveryLocation, setDeliveryLocation: setDeliveryLocation,
+    paymentTerms: paymentTerms, setPaymentTerms: setPaymentTerms,
+    bankAccount: bankAccount, setBankAccount: setBankAccount,
+    dueDate: dueDate, setDueDate: setDueDate,
+    receiverName: receiverName, setReceiverName: setReceiverName,
+    receiveDate: receiveDate, setReceiveDate: setReceiveDate,
     remark: remark,
     setRemark: setRemark,
     onResetForm: handleRequestResetForm,
@@ -4789,6 +4974,7 @@ function App() {
     editingDocId: editingDocId
   }), activeTab === 'history' && /*#__PURE__*/React.createElement(DocHistoryTab, {
     onLoadDocument: handleLoadDocument,
+    onCopyDocument: handleCopyDocument,
     isConnected: isConnected
   }), activeTab === 'customers' && /*#__PURE__*/React.createElement(CustomerTab, {
     customers: customersList,
