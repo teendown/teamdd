@@ -2287,7 +2287,9 @@ function Header({
   setSupabaseUrl,
   supabaseKey,
   setSupabaseKey,
-  onTestConnection
+  onTestConnection,
+  docType,
+  setDocType
 }) {
   const [showConfig, setShowConfig] = React.useState(false);
   const [copiedSQL, setCopiedSQL] = React.useState(false);
@@ -2400,9 +2402,15 @@ function Header({
   }, /*#__PURE__*/React.createElement("div", {
     className: "tab-nav"
   }, /*#__PURE__*/React.createElement("button", {
-    className: `tab-btn ${activeTab === 'doc' ? 'active' : ''}`,
-    onClick: () => setActiveTab('doc')
-  }, "\uD83D\uDCC4 \uBA85\uC138\uC11C"), /*#__PURE__*/React.createElement("button", {
+    className: `tab-btn ${activeTab === 'doc' && docType === '견적서' ? 'active' : ''}`,
+    onClick: () => { setActiveTab('doc'); setDocType('견적서'); }
+  }, "\uD83D\uDCC4 \uACAC\uC801\uC11C"), /*#__PURE__*/React.createElement("button", {
+    className: `tab-btn ${activeTab === 'doc' && docType === '청구서' ? 'active' : ''}`,
+    onClick: () => { setActiveTab('doc'); setDocType('청구서'); }
+  }, "\uD83D\uDCC4 \uCCAD\uAD6C\uC11C"), /*#__PURE__*/React.createElement("button", {
+    className: `tab-btn ${activeTab === 'doc' && docType === '거래명세서' ? 'active' : ''}`,
+    onClick: () => { setActiveTab('doc'); setDocType('거래명세서'); }
+  }, "\uD83D\uDCC4 \uAC70\uB798\uBA85\uC138\uC11C"), /*#__PURE__*/React.createElement("button", {
     className: `tab-btn ${activeTab === 'history' ? 'active' : ''}`,
     onClick: () => setActiveTab('history')
   }, "\uD83D\uDCC1 \uBB38\uC11C\uC870\uD68C"), /*#__PURE__*/React.createElement("button", {
@@ -2546,16 +2554,6 @@ function StatementTab({
     },
     onClick: onResetForm
   }, "\uC2E0\uADDC \uC791\uC131 \uC804\uD658")), 
-  /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '8px', marginBottom: '16px' } },
-    ["견적서", "청구서", "거래명세서"].map(t =>
-      /*#__PURE__*/React.createElement("button", {
-        key: t,
-        className: `tab-btn ${docType === t ? 'active' : ''}`,
-        style: { flex: 1, padding: '12px', fontSize: '1.1rem', fontWeight: 'bold', borderRadius: '8px', border: docType === t ? '2px solid #1d6bf3' : '1px solid #e2e8f0', backgroundColor: docType === t ? '#eff6ff' : '#f8fafc', color: docType === t ? '#1d6bf3' : '#64748b' },
-        onClick: () => setDocType(t)
-      }, t)
-    )
-  ),
   /*#__PURE__*/React.createElement("div", {
     className: "form-section"
   }, /*#__PURE__*/React.createElement("div", {
@@ -5002,7 +5000,9 @@ function App() {
     setSupabaseUrl: setSupabaseUrl,
     supabaseKey: supabaseKey,
     setSupabaseKey: setSupabaseKey,
-    onTestConnection: handleTestConnection
+    onTestConnection: handleTestConnection,
+    docType: docType,
+    setDocType: setDocType
   }), /*#__PURE__*/React.createElement(StatementAggregationModal, {
     isOpen: isAggregationModalOpen,
     onClose: () => setIsAggregationModalOpen(false),
