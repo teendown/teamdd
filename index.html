@@ -983,7 +983,12 @@ async function sbTestConnection(url, key) {
 // ── DB CRUD helpers ────────────────────────────────────────────────────────
 function packRow(r, table) {
   if (table !== 'customers' && table !== 'suppliers') return { ...r };
-  const standardCols = ['id', 'created_at', 'code', 'name', 'bizno', 'person', 'phone', 'tel', 'bank', 'addr', 'machine', 'memo'];
+  let standardCols = [];
+  if (table === 'customers') {
+    standardCols = ['id', 'created_at', 'code', 'name', 'bizno', 'person', 'phone', 'addr', 'machine', 'memo'];
+  } else if (table === 'suppliers') {
+    standardCols = ['id', 'created_at', 'code', 'name', 'bizno', 'person', 'phone', 'tel', 'bank', 'addr', 'memo'];
+  }
   const payload = { ...r };
   const extraFields = {};
   for (const key of Object.keys(payload)) {
