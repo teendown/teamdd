@@ -2806,7 +2806,21 @@ function StatementTab({
         return /*#__PURE__*/React.createElement("button", {
           key: s,
           className: "pay-status-btn " + (paymentStatus === s ? clsMap[s] : "inactive"),
-          onClick: function() { setPaymentStatus(s); }
+          onClick: function() {
+            setPaymentStatus(s);
+            var total = items.reduce(function(sum, i) { return sum + (Number(i.qty) || 0) * (Number(i.price) || 0); }, 0);
+            var v = vatIncluded !== false ? Math.floor(total * 0.1) : Number(vat) || 0;
+            var finalTotal = total + v;
+            if (s === '\uC785\uAE08\uC644\uB8CC') {
+              setPaid(finalTotal);
+              if (!paymentDate) {
+                 var d = new Date();
+                 setPaymentDate(d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'));
+              }
+            } else if (s === '\uBBF8\uC218\uAE08') {
+              setPaid(0);
+            }
+          }
         }, s);
       })
     )
@@ -2839,7 +2853,24 @@ function StatementTab({
       type: "number", className: "form-input",
       placeholder: "0",
       value: paid || '',
-      onChange: function(e) { setPaid(Number(e.target.value) || 0); }
+      onChange: function(e) {
+        var val = Number(e.target.value) || 0;
+        setPaid(val);
+        var total = items.reduce(function(sum, i) { return sum + (Number(i.qty) || 0) * (Number(i.price) || 0); }, 0);
+        var v = vatIncluded !== false ? Math.floor(total * 0.1) : Number(vat) || 0;
+        var finalTotal = total + v;
+        if (val >= finalTotal && finalTotal > 0) {
+          setPaymentStatus('\uC785\uAE08\uC644\uB8CC');
+          if (!paymentDate) {
+             var d = new Date();
+             setPaymentDate(d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'));
+          }
+        } else if (val > 0) {
+          setPaymentStatus('\uBD80\uBD84\uC785\uAE08');
+        } else {
+          setPaymentStatus('\uBBF8\uC218\uAE08');
+        }
+      }
     })
   )
   ), /*#__PURE__*/React.createElement("div", {
