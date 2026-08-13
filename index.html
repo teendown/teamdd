@@ -2852,79 +2852,58 @@ function StatementTab({
     className: "section-title"
   }, "\uD83D\uDCB3 \uC785\uAE08 \u00B7 \uC218\uAE08 \uAD00\uB9AC"),
   /*#__PURE__*/React.createElement("div", { style: { marginBottom: '10px' } },
-    /*#__PURE__*/React.createElement("div", { style: { fontSize: '0.75rem', fontWeight: '700', color: '#475569', marginBottom: '6px' } }, "\uC785\uAE08 \uC0C1\uD0DC"),
-    /*#__PURE__*/React.createElement("div", { className: "payment-status-btns" },
-      ["\uBBF8\uC218\uAE08", "\uBD80\uBD84\uC785\uAE08", "\uC785\uAE08\uC644\uB8CC"].map(function(s) {
-        var clsMap = {"\uBBF8\uC218\uAE08": "active-unpaid", "\uBD80\uBD84\uC785\uAE08": "active-partial", "\uC785\uAE08\uC644\uB8CC": "active-paid"};
-        return /*#__PURE__*/React.createElement("button", {
-          key: s,
-          className: "pay-status-btn " + (paymentStatus === s ? clsMap[s] : "inactive"),
-          onClick: function() {
-            setPaymentStatus(s);
-            var total = items.reduce(function(sum, i) { return sum + (Number(i.qty) || 0) * (Number(i.price) || 0); }, 0);
-            var v = vatIncluded !== false ? Math.floor(total * 0.1) : Number(vat) || 0;
-            var finalTotal = total + v;
-            if (s === '\uC785\uAE08\uC644\uB8CC') {
-              setPaid(finalTotal);
-              if (!paymentDate) {
-                 var d = new Date();
-                 setPaymentDate(d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'));
-              }
-            } else if (s === '\uBBF8\uC218\uAE08') {
-              setPaid(0);
+    /*#__PURE__*/React.createElement("div", { className: "form-group", style: { marginTop: '8px' } },
+      /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC785\uAE08\uAE08\uC561 (\uBBF8\uC218\uAE08\uC740 0)"),
+      /*#__PURE__*/React.createElement("input", {
+        type: "number", className: "form-input",
+        placeholder: "0",
+        value: paid === 0 ? '' : paid,
+        onChange: function(e) {
+          var val = Number(e.target.value) || 0;
+          setPaid(val);
+          var total = items.reduce(function(sum, i) { return sum + (Number(i.qty) || 0) * (Number(i.price) || 0); }, 0);
+          var v = vatIncluded !== false ? Math.floor(total * 0.1) : Number(vat) || 0;
+          var finalTotal = total + v;
+          if (val >= finalTotal && finalTotal > 0) {
+            setPaymentStatus('\uC785\uAE08\uC644\uB8CC');
+            if (!paymentDate) {
+               var d = new Date();
+               setPaymentDate(d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'));
             }
+          } else if (val > 0) {
+            setPaymentStatus('\uBD80\uBD84\uC785\uAE08');
+            if (!paymentDate) {
+               var d = new Date();
+               setPaymentDate(d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'));
+            }
+          } else {
+            setPaymentStatus('\uBBF8\uC218\uAE08');
           }
-        }, s);
+        }
       })
-    )
-  ),
-  /*#__PURE__*/React.createElement("div", { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' } },
-    /*#__PURE__*/React.createElement("div", { className: "form-group" },
-      /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC785\uAE08\uBC29\uBC95"),
-      /*#__PURE__*/React.createElement("select", {
-        className: "form-select",
-        value: paymentMethod,
-        onChange: function(e) { setPaymentMethod(e.target.value); }
-      },
-        ["\uACC4\uC88C\uC774\uCCB4", "\uD604\uAE08", "\uCE74\uB4DC", "\uC5B4\uC74C", "\uAE30\uD0C0"].map(function(m) {
-          return /*#__PURE__*/React.createElement("option", { key: m, value: m }, m);
+    ),
+    (paid > 0) && /*#__PURE__*/React.createElement("div", { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' } },
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC785\uAE08\uBC29\uBC95"),
+        /*#__PURE__*/React.createElement("select", {
+          className: "form-select",
+          value: paymentMethod,
+          onChange: function(e) { setPaymentMethod(e.target.value); }
+        },
+          ["\uACC4\uC88C\uC774\uCCB4", "\uD604\uAE08", "\uCE74\uB4DC", "\uC5B4\uC74C", "\uAE30\uD0C0"].map(function(m) {
+            return /*#__PURE__*/React.createElement("option", { key: m, value: m }, m);
+          })
+        )
+      ),
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC785\uAE08\uC77C\uC790"),
+        /*#__PURE__*/React.createElement("input", {
+          type: "date", className: "form-input",
+          value: paymentDate,
+          onChange: function(e) { setPaymentDate(e.target.value); }
         })
       )
-    ),
-    /*#__PURE__*/React.createElement("div", { className: "form-group" },
-      /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC785\uAE08\uC77C\uC790"),
-      /*#__PURE__*/React.createElement("input", {
-        type: "date", className: "form-input",
-        value: paymentDate,
-        onChange: function(e) { setPaymentDate(e.target.value); }
-      })
     )
-  ),
-  paymentStatus !== "\uC785\uAE08\uC644\uB8CC" && /*#__PURE__*/React.createElement("div", { className: "form-group", style: { marginTop: '8px' } },
-    /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC785\uAE08\uAE08\uC561 (\uBD80\uBD84\uC785\uAE08\uC2DC \uC785\uB825)"),
-    /*#__PURE__*/React.createElement("input", {
-      type: "number", className: "form-input",
-      placeholder: "0",
-      value: paid || '',
-      onChange: function(e) {
-        var val = Number(e.target.value) || 0;
-        setPaid(val);
-        var total = items.reduce(function(sum, i) { return sum + (Number(i.qty) || 0) * (Number(i.price) || 0); }, 0);
-        var v = vatIncluded !== false ? Math.floor(total * 0.1) : Number(vat) || 0;
-        var finalTotal = total + v;
-        if (val >= finalTotal && finalTotal > 0) {
-          setPaymentStatus('\uC785\uAE08\uC644\uB8CC');
-          if (!paymentDate) {
-             var d = new Date();
-             setPaymentDate(d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'));
-          }
-        } else if (val > 0) {
-          setPaymentStatus('\uBD80\uBD84\uC785\uAE08');
-        } else {
-          setPaymentStatus('\uBBF8\uC218\uAE08');
-        }
-      }
-    })
   )
   ), /*#__PURE__*/React.createElement("div", {
     className: "form-section"
@@ -4538,7 +4517,7 @@ function App() {
   const [paid, setPaid] = useState(0);
   const [paymentStatus, setPaymentStatus] = useState('미수금');
   const [paymentMethod, setPaymentMethod] = useState('계좌이체');
-  const [paymentDate, setPaymentDate] = useState('');
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [remark, setRemark] = useState('');
 
   // 미저장 변경사항 상태 관리
@@ -4740,7 +4719,7 @@ function App() {
     setPaid(0);
     setPaymentStatus('미수금');
     setPaymentMethod('계좌이체');
-    setPaymentDate('');
+    setPaymentDate(new Date().toISOString().split('T')[0]);
     setRemark('');
     setEditingDocId(null);
     setIsSavedThisSession(false);
