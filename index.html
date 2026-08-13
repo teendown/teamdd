@@ -1222,6 +1222,15 @@ function unpackRow(r) {
   return r;
 }
 
+function areSupplierKeysEquivalent(key1, key2) {
+  if (key1 === key2) return true;
+  const sejinKeys = ['sejin', 'cc76e46a-935a-455b-9070-0a4465035c19'];
+  const gimjeKeys = ['ds_gimje', '767fd9c8-d5e9-46b0-a7c4-713dac601ae4'];
+  if (sejinKeys.includes(key1) && sejinKeys.includes(key2)) return true;
+  if (gimjeKeys.includes(key1) && gimjeKeys.includes(key2)) return true;
+  return false;
+}
+
 async function dbFetch(table, fallback, orderCol = 'code') {
   const sb = getSupabaseClient();
   const userRole = sessionStorage.getItem('dd_user_role') || 'supplier';
@@ -1241,9 +1250,9 @@ async function dbFetch(table, fallback, orderCol = 'code') {
         // 공급자별 격리 필터
         if (userRole === 'supplier') {
           if (table === 'suppliers') {
-            unpacked = unpacked.filter(s => s.id === selectedSupplierKey);
+            unpacked = unpacked.filter(s => areSupplierKeysEquivalent(s.id, selectedSupplierKey));
           } else if (table === 'customers' || table === 'parts') {
-            unpacked = unpacked.filter(item => !item.supplier_key || item.supplier_key === selectedSupplierKey);
+            unpacked = unpacked.filter(item => !item.supplier_key || areSupplierKeysEquivalent(item.supplier_key, selectedSupplierKey));
           }
         }
         return unpacked;
@@ -1254,9 +1263,9 @@ async function dbFetch(table, fallback, orderCol = 'code') {
   let list = getLocalItem('dd_' + table + '_list_v1', fallback).map(unpackRow);
   if (userRole === 'supplier') {
     if (table === 'suppliers') {
-      list = list.filter(s => s.id === selectedSupplierKey);
+      list = list.filter(s => areSupplierKeysEquivalent(s.id, selectedSupplierKey));
     } else if (table === 'customers' || table === 'parts') {
-      list = list.filter(item => !item.supplier_key || item.supplier_key === selectedSupplierKey);
+      list = list.filter(item => !item.supplier_key || areSupplierKeysEquivalent(item.supplier_key, selectedSupplierKey));
     }
   }
   return list;
@@ -1270,7 +1279,7 @@ async function dbSave(table, rowData, isEdit = false, currentList = []) {
   // 공급자별 수정 권한 체크 및 바인딩
   if (userRole === 'supplier') {
     if (table === 'suppliers') {
-      if (rowData.id !== selectedSupplierKey) {
+      if (!areSupplierKeysEquivalent(rowData.id, selectedSupplierKey)) {
         alert('본인의 공급자 정보만 수정할 수 있습니다.');
         return currentList;
       }
@@ -1278,7 +1287,7 @@ async function dbSave(table, rowData, isEdit = false, currentList = []) {
       rowData.supplier_key = selectedSupplierKey;
       if (isEdit && rowData.id) {
         const found = currentList.find(r => r.id === rowData.id);
-        if (found && found.supplier_key && found.supplier_key !== selectedSupplierKey) {
+        if (found && found.supplier_key && !areSupplierKeysEquivalent(found.supplier_key, selectedSupplierKey)) {
           alert('해당 데이터를 수정할 권한이 없습니다.');
           return currentList;
         }
@@ -1327,7 +1336,7 @@ async function dbDelete(table, rowId, currentList = []) {
       return currentList;
     }
     const found = currentList.find(r => r.id === rowId);
-    if (found && found.supplier_key && found.supplier_key !== selectedSupplierKey) {
+    if (found && found.supplier_key && !areSupplierKeysEquivalent(found.supplier_key, selectedSupplierKey)) {
       alert('해당 데이터를 삭제할 권한이 없습니다.');
       return currentList;
     }
@@ -1353,7 +1362,7 @@ async function dbSaveDocument(docData) {
     if (docData.id) {
       const local = getLocalItem('dd_documents_history_v1', []);
       const found = local.find(d => d.id === docData.id);
-      if (found && found.supplier_key && found.supplier_key !== selectedSupplierKey) {
+      if (found && found.supplier_key && !areSupplierKeysEquivalent(found.supplier_key, selectedSupplierKey)) {
         alert('해당 문서를 수정할 권한이 없습니다.');
         return local;
       }
@@ -1448,7 +1457,7 @@ async function dbFetchDocuments() {
   
   // 공급자별 격리 필터
   if (userRole === 'supplier') {
-    list = list.filter(d => d.supplier_key === selectedSupplierKey);
+    list = list.filter(d => areSupplierKeysEquivalent(d.supplier_key, selectedSupplierKey));
   }
   return list;
 }
@@ -1462,7 +1471,7 @@ async function dbDeleteDocument(docId) {
   // 공급자별 권한 체크
   if (userRole === 'supplier') {
     const found = local.find(d => d.id === docId || d.doc_no === docId);
-    if (found && found.supplier_key && found.supplier_key !== selectedSupplierKey) {
+    if (found && found.supplier_key && !areSupplierKeysEquivalent(found.supplier_key, selectedSupplierKey)) {
       alert('해당 문서를 삭제할 권한이 없습니다.');
       return local.filter(unpackRow);
     }
@@ -1488,7 +1497,7 @@ async function dbUpdateDocumentPaid(docId, paidAmount, remark) {
   // 공급자별 권한 체크
   if (userRole === 'supplier') {
     const found = local.find(d => d.id === docId || d.doc_no === docId);
-    if (found && found.supplier_key && found.supplier_key !== selectedSupplierKey) {
+    if (found && found.supplier_key && !areSupplierKeysEquivalent(found.supplier_key, selectedSupplierKey)) {
       alert('해당 문서의 수금을 변경할 권한이 없습니다.');
       return local.filter(unpackRow);
     }
@@ -5831,7 +5840,7 @@ function App() {
     }
   };
   useEffect(() => {
-    const found = suppliersList.find(s => s.id === selectedSupplierKey);
+    const found = suppliersList.find(s => areSupplierKeysEquivalent(s.id, selectedSupplierKey));
     if (found) {
       setCurrentSupplier({
         ...found,
@@ -5839,7 +5848,7 @@ function App() {
         person: found.person || found.owner || '',
         tel: found.phone || found.tel,
         email: found.email || '',
-        hasStamp: selectedSupplierKey === 'sejin'
+        hasStamp: areSupplierKeysEquivalent(selectedSupplierKey, 'sejin')
       });
     } else if (DEFAULT_SUPPLIERS[selectedSupplierKey]) {
       const def = DEFAULT_SUPPLIERS[selectedSupplierKey];
