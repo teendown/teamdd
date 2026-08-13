@@ -1863,14 +1863,7 @@ function DocumentCanvas({
     }
   }, supplier.addr || '-')))))), 
   
-  pageIdx === 0 && docType === '견적서' && /*#__PURE__*/React.createElement("div", {
-    style: { display: 'flex', gap: '24px', marginBottom: '12px', fontSize: '11px', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 16px', backgroundColor: '#f8fafc' }
-  }, 
-    /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "견적 유효기간: "), validityPeriod),
-    /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "납기일자: "), deliveryDate),
-    /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "인도장소: "), deliveryLocation),
-    /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "결제 조건: "), paymentTerms)
-  ),
+
   pageIdx === 0 && docType === '청구서' && /*#__PURE__*/React.createElement("div", {
     style: { display: 'flex', gap: '24px', marginBottom: '12px', fontSize: '11px', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 16px', backgroundColor: '#f8fafc' }
   },
@@ -2712,27 +2705,7 @@ function StatementTab({
       color: '#4b5563'
     }
   }, customer.person && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "\uB2F4\uB2F9\uC790:"), " ", customer.person), customer.phone && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "\uC5F0\uB77D\uCC98:"), " ", customer.phone), customer.addr && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "\uC8FC\uC18C:"), " ", customer.addr)) : null), 
-  docType === '견적서' && /*#__PURE__*/React.createElement("div", { className: "form-section" },
-    /*#__PURE__*/React.createElement("div", { className: "section-title" }, "견적서 상세 정보"),
-    /*#__PURE__*/React.createElement("div", { className: "grid-2" },
-      /*#__PURE__*/React.createElement("div", { className: "form-group" },
-        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "견적 유효기간"),
-        /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: validityPeriod, onChange: e => setValidityPeriod(e.target.value) })
-      ),
-      /*#__PURE__*/React.createElement("div", { className: "form-group" },
-        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "납기일자"),
-        /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: deliveryDate, onChange: e => setDeliveryDate(e.target.value) })
-      ),
-      /*#__PURE__*/React.createElement("div", { className: "form-group" },
-        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "인도장소"),
-        /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: deliveryLocation, onChange: e => setDeliveryLocation(e.target.value) })
-      ),
-      /*#__PURE__*/React.createElement("div", { className: "form-group" },
-        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "결제 조건"),
-        /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: paymentTerms, onChange: e => setPaymentTerms(e.target.value) })
-      )
-    )
-  ),
+
   docType === '청구서' && /*#__PURE__*/React.createElement("div", { className: "form-section" },
     /*#__PURE__*/React.createElement("div", { className: "section-title" }, "청구서 상세 정보"),
     /*#__PURE__*/React.createElement("div", { className: "grid-2" },
