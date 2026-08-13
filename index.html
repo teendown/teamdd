@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -2582,15 +2582,15 @@ function Header({
   }, /*#__PURE__*/React.createElement("div", {
     className: "tab-nav"
   }, /*#__PURE__*/React.createElement("button", {
+    className: `tab-btn ${activeTab === 'doc' && docType === '거래명세서' ? 'active' : ''}`,
+    onClick: () => { setActiveTab('doc'); setDocType('거래명세서'); }
+  }, "\uD83D\uDCC4 \uAC70\uB798\uBA85\uC138\uC11C"), /*#__PURE__*/React.createElement("button", {
     className: `tab-btn ${activeTab === 'doc' && docType === '견적서' ? 'active' : ''}`,
     onClick: () => { setActiveTab('doc'); setDocType('견적서'); }
   }, "\uD83D\uDCC4 \uACAC\uC801\uC11C"), /*#__PURE__*/React.createElement("button", {
     className: `tab-btn ${activeTab === 'doc' && docType === '청구서' ? 'active' : ''}`,
     onClick: () => { setActiveTab('doc'); setDocType('청구서'); }
   }, "\uD83D\uDCC4 \uCCAD\uAD6C\uC11C"), /*#__PURE__*/React.createElement("button", {
-    className: `tab-btn ${activeTab === 'doc' && docType === '거래명세서' ? 'active' : ''}`,
-    onClick: () => { setActiveTab('doc'); setDocType('거래명세서'); }
-  }, "\uD83D\uDCC4 \uAC70\uB798\uBA85\uC138\uC11C"), /*#__PURE__*/React.createElement("button", {
     className: `tab-btn ${activeTab === 'history' ? 'active' : ''}`,
     onClick: () => setActiveTab('history')
   }, "\uD83D\uDCC1 \uBB38\uC11C\uC870\uD68C"), /*#__PURE__*/React.createElement("button", {
