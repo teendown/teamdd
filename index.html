@@ -4637,15 +4637,7 @@ function App() {
   const [paid, setPaid] = useState(0);
   const [paymentStatus, setPaymentStatus] = useState('미수금');
   const [paymentMethod, setPaymentMethod] = useState('계좌이체');
-  const [paymentDate,
-      validityPeriod,
-      deliveryDate,
-      deliveryLocation,
-      paymentTerms,
-      bankAccount,
-      dueDate,
-      receiverName,
-      receiveDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [validityPeriod, setValidityPeriod] = useState('');
   const [deliveryDate, setDeliveryDate] = useState('');
   const [deliveryLocation, setDeliveryLocation] = useState('');
