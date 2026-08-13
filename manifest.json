@@ -2,7 +2,7 @@
   "name": "TEAM D.D 거래명세서",
   "short_name": "TEAM D.D",
   "description": "TEAM D.D 건설기계 거래명세서 관리 시스템",
-  "start_url": "/teamdd/?v=800",
+  "start_url": "/teamdd/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#1d4ed8",
