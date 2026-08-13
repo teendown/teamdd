@@ -3122,47 +3122,36 @@ function StatementTab({
     }])
   }, /*#__PURE__*/React.createElement("span", null, "\u2795 \uD488\uBAA9 \uD589 \uCD94\uAC00 (\uC0C8 \uD488\uBAA9 \uC785\uB825)")))), /*#__PURE__*/React.createElement("div", {
     className: "form-section"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "section-title"
-  }, "\uD83D\uDCB0 \uBD80\uAC00\uC138 \uC124\uC815"), /*#__PURE__*/React.createElement("label", {
+  }, /*#__PURE__*/React.createElement("label", {
     style: {
       display: 'flex',
       alignItems: 'center',
-      gap: '10px',
-      padding: '10px 12px',
+      gap: '8px',
+      padding: '7px 10px',
       backgroundColor: vatIncluded ? '#eff6ff' : '#f8fafc',
       border: `1px solid ${vatIncluded ? '#3b82f6' : '#cbd5e1'}`,
       borderRadius: '8px',
       cursor: 'pointer',
-      transition: 'all 0.2s ease'
+      transition: 'all 0.2s ease',
+      userSelect: 'none'
     }
   }, /*#__PURE__*/React.createElement("input", {
     type: "checkbox",
     checked: !!vatIncluded,
     onChange: e => setVatIncluded(e.target.checked),
     style: {
-      width: '20px',
-      height: '20px',
+      width: '16px',
+      height: '16px',
       accentColor: '#1d6bf3',
       cursor: 'pointer'
     }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: '0.875rem',
-      fontWeight: '800',
-      color: vatIncluded ? '#1d6bf3' : '#334155'
+      fontWeight: '700',
+      color: vatIncluded ? '#1d6bf3' : '#64748b'
     }
-  }, vatIncluded ? '☑️ 부가세 적용 (10% 계산)' : '☐ 부가세 미적용 (0원)'), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: '0.75rem',
-      color: '#64748b',
-      marginTop: '2px'
-    }
-  }, vatIncluded ? '체크됨: 부가세 10%가 자동 계산되어 합계표에 표시됩니다.' : '체크 해제됨: 부가세가 0원으로 표시되고 공급가액만 청구됩니다.')))), /*#__PURE__*/React.createElement("div", {
+  }, "\uBD80\uAC00\uC138 \uC801\uC6A9 (10%)"))), /*#__PURE__*/React.createElement("div", {
     className: "form-section"
   }, /*#__PURE__*/React.createElement("div", {
     className: "section-title"

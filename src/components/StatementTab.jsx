@@ -515,13 +515,25 @@ export default function StatementTab({
           <div className="section-title">💰 세액 및 비고</div>
           <div className="grid-2">
             <div className="form-group">
-              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <label style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '7px 10px',
+                backgroundColor: vatIncluded ? '#eff6ff' : '#f8fafc',
+                border: `1px solid ${vatIncluded ? '#3b82f6' : '#cbd5e1'}`,
+                borderRadius: '8px',
+                cursor: 'pointer',
+                userSelect: 'none',
+                transition: 'all 0.2s ease'
+              }}>
                 <input
                   type="checkbox"
                   checked={vatIncluded}
                   onChange={(e) => setVatIncluded(e.target.checked)}
+                  style={{ width: '16px', height: '16px', accentColor: '#1d6bf3', cursor: 'pointer' }}
                 />
-                부가세 10% 자동입력
+                <span style={{ fontSize: '0.875rem', fontWeight: '700', color: vatIncluded ? '#1d6bf3' : '#64748b' }}>
+                  부가세 적용 (10%)
+                </span>
               </label>
             </div>
             <div className="form-group">
