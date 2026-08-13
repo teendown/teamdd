@@ -23,6 +23,7 @@
   <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
 
   <style>
@@ -2487,6 +2488,29 @@ function StatementTab({
       link.click();
     }
   };
+  const handleExportPDF = async () => {
+    const pages = document.querySelectorAll('.document-page');
+    if (!pages || pages.length === 0) return;
+    try {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      for (let i = 0; i < pages.length; i++) {
+        if (i > 0) pdf.addPage();
+        const canvas = await window.html2canvas(pages[i], {
+          scale: 2,
+          backgroundColor: '#ffffff'
+        });
+        const imgData = canvas.toDataURL('image/png');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      }
+      pdf.save(`${docType}_${docNo || '명세서'}.pdf`);
+    } catch (e) {
+      console.error(e);
+      alert('PDF 저장 중 오류가 발생했습니다.');
+    }
+  };
   const handleShare = async () => {
     const page = document.querySelector('.document-page');
     if (!page) return;
@@ -3031,14 +3055,20 @@ function StatementTab({
     },
     onClick: onSaveDocument
   }, "\uD83D\uDCBE \uB85C\uCEEC / DB \uC800\uC7A5"), /*#__PURE__*/React.createElement("div", {
-    className: "grid-2"
+    style: { display: 'flex', gap: '0.5rem' }
   }, /*#__PURE__*/React.createElement("button", {
     className: "btn btn-green",
+    style: { flex: 1, padding: '0.5rem', fontSize: '0.875rem' },
     onClick: handleExportPNG
-  }, "\uD83D\uDCF8 \uC774\uBBF8\uC9C0 \uC800\uC7A5"), /*#__PURE__*/React.createElement("button", {
+  }, "\uD83D\uDCF8 \uC774\uBBF8\uC9C0"), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-primary",
+    style: { flex: 1, padding: '0.5rem', fontSize: '0.875rem' },
     onClick: () => window.print()
-  }, "\uD83D\uDDA8\uFE0F \uC778\uC1C4 / PDF")), /*#__PURE__*/React.createElement("button", {
+  }, "\uD83D\uDDA8\uFE0F \uC778\uC1C4"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-primary",
+    style: { flex: 1, padding: '0.5rem', fontSize: '0.875rem', backgroundColor: '#dc2626', borderColor: '#dc2626' },
+    onClick: handleExportPDF
+  }, "\uD83D\uDCC4 PDF")), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-outline",
     style: {
       minHeight: '40px',
