@@ -3287,7 +3287,10 @@ function AccountingTab({
     });
 
     documents.forEach(doc => {
-      const custName = doc.customer_name || doc.customer_data?.name || '미지정';
+      const rawName = (doc.customer_name || doc.customer_data?.name || '').trim();
+      if (!rawName || rawName === '미지정') return;
+
+      const custName = rawName;
       if (!map.has(custName)) {
         map.set(custName, {
           name: custName,
@@ -3317,7 +3320,7 @@ function AccountingTab({
       }
     });
 
-    let list = Array.from(map.values());
+    let list = Array.from(map.values()).filter(c => c.name && c.name !== '미지정');
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       list = list.filter(c => c.name.toLowerCase().includes(q) || c.phone.includes(q) || c.person.toLowerCase().includes(q));
@@ -3516,7 +3519,8 @@ function AccountingTab({
             filteredDocuments.length === 0 ? React.createElement("tr", null, React.createElement("td", { colSpan: 12, style: { textAlign: 'center', padding: '3rem', color: '#9ca3af' } }, "조건에 맞는 상세 거래명세/회계 내역이 없습니다.")) :
             filteredDocuments.map(doc => {
               const { totalSupply, vatAmount, grandTotal, paid, balance } = getDocTotals(doc);
-              const custName = doc.customer_name || doc.customer_data?.name || '-';
+              const rawCustName = (doc.customer_name || doc.customer_data?.name || '').trim();
+              const custName = (!rawCustName || rawCustName === '미지정') ? '-' : rawCustName;
               const itemsSummary = (doc.items || []).map(i => `${i.name || '품목'}(${i.qty || 1})`).join(', ');
               let statusBadge = balance <= 0 ? React.createElement("span", { style: { backgroundColor: '#d1fae5', color: '#065f46', fontSize: '0.6875rem', fontWeight: '700', padding: '0.15rem 0.4rem', borderRadius: '8px' } }, "완납")
                               : (paid > 0 ? React.createElement("span", { style: { backgroundColor: '#fef3c7', color: '#92400e', fontSize: '0.6875rem', fontWeight: '700', padding: '0.15rem 0.4rem', borderRadius: '8px' } }, "부분납")

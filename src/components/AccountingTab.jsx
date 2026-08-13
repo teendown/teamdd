@@ -121,7 +121,10 @@ export default function AccountingTab({
 
     // Aggregate from ALL documents for all-time unpaid & filtered docs for monthly
     documents.forEach(doc => {
-      const custName = doc.customer_name || doc.customer_data?.name || '미지정';
+      const rawName = (doc.customer_name || doc.customer_data?.name || '').trim();
+      if (!rawName || rawName === '미지정') return; // Skip unassigned or empty customer entries
+
+      const custName = rawName;
       if (!map.has(custName)) {
         map.set(custName, {
           name: custName,
@@ -159,7 +162,7 @@ export default function AccountingTab({
       }
     });
 
-    let list = Array.from(map.values());
+    let list = Array.from(map.values()).filter(c => c.name && c.name !== '미지정');
     
     // Search query filter for customer summary tab
     if (searchQuery.trim()) {
@@ -625,7 +628,8 @@ export default function AccountingTab({
                 ) : (
                   filteredDocuments.map(doc => {
                     const { totalSupply, vatAmount, grandTotal, paid, balance } = getDocTotals(doc);
-                    const custName = doc.customer_name || doc.customer_data?.name || '-';
+                    const rawCustName = (doc.customer_name || doc.customer_data?.name || '').trim();
+                    const custName = (!rawCustName || rawCustName === '미지정') ? '-' : rawCustName;
                     const itemsSummary = (doc.items || []).map(i => `${i.name || '품목'}(${i.qty || 1})`).join(', ');
 
                     let statusBadge;
