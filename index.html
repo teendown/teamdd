@@ -1327,7 +1327,7 @@ function DocumentCanvas({
       letterSpacing: '1px',
       marginTop: '2px'
     }
-  }, "TRANSACTION STATEMENT")), /*#__PURE__*/React.createElement("div", {
+  }, docType === '견적서' ? 'ESTIMATE' : docType === '청구서' ? 'INVOICE' : 'TRANSACTION STATEMENT')), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'center',
