@@ -2736,7 +2736,7 @@ function StatementTab({
     type: "number",
     className: "form-input",
     placeholder: "\uC218\uB7C9",
-    value: item.qty,
+    value: item.qty === 0 ? '' : item.qty,
     onChange: e => setItems(items.map(i => i.id === item.id ? {
       ...i,
       qty: Number(e.target.value) || 0
@@ -2749,7 +2749,7 @@ function StatementTab({
     type: "number",
     className: "form-input",
     placeholder: "\uB2E8\uAC00 (\uAE08\uC561)",
-    value: item.price,
+    value: item.price === 0 ? '' : item.price,
     onChange: e => setItems(items.map(i => i.id === item.id ? {
       ...i,
       price: Number(e.target.value) || 0
