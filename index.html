@@ -3070,20 +3070,39 @@ function CustomerTab({
       return;
     }
     try {
-      const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: false });
+      const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: true });
       if (contacts && contacts.length > 0) {
-        const contact = contacts[0];
-        const name = contact.name && contact.name.length > 0 ? contact.name[0] : '';
-        const tel = contact.tel && contact.tel.length > 0 ? contact.tel[0] : '';
-        setForm(prev => ({
-          ...prev,
-          name: name || prev.name,
-          phone: tel || prev.phone
-        }));
+        if (contacts.length === 1) {
+          const contact = contacts[0];
+          const name = contact.name && contact.name.length > 0 ? contact.name[0] : '';
+          const tel = contact.tel && contact.tel.length > 0 ? contact.tel[0] : '';
+          setForm(prev => ({
+            ...prev,
+            name: name || prev.name,
+            phone: tel || prev.phone
+          }));
+        } else {
+          if (!confirm(`총 ${contacts.length}명의 연락처를 고객(거래처)으로 일괄 등록하시겠습니까?`)) return;
+          for (let i = 0; i < contacts.length; i++) {
+            const contact = contacts[i];
+            const name = contact.name && contact.name.length > 0 ? contact.name[0] : '';
+            const tel = contact.tel && contact.tel.length > 0 ? contact.tel[0] : '';
+            if (name) {
+              await onSaveCustomer({
+                id: null,
+                code: `C${String(customers.length + i + 1).padStart(4, '0')}`,
+                name: name,
+                phone: tel,
+                bizno: '', person: '', fax: '', email: '', bank: '', addr: '', bizType: '', bizItem: '', memo: ''
+              }, false, true);
+            }
+          }
+          alert(`✓ 총 ${contacts.length}명의 연락처가 성공적으로 일괄 등록되었습니다.`);
+          setShowModal(false);
+        }
       }
     } catch (err) {
       console.error(err);
-      // user canceled or error
     }
   };
 
@@ -4580,10 +4599,10 @@ function App() {
   }, [activeTab, isConnected]);
 
   // 고객 CRUD
-  const handleSaveCustomer = async (c, isEdit) => {
+  const handleSaveCustomer = async (c, isEdit, silent = false) => {
     const updated = await dbSave('customers', c, isEdit, customersList);
     setCustomersList(updated);
-    alert('✓ 거래처 정보가 저장되었습니다.');
+    if (!silent) alert('✓ 거래처 정보가 저장되었습니다.');
   };
   const handleDeleteCustomer = async id => {
     if (!confirm('거래처를 삭제하시겠습니까?')) return;
