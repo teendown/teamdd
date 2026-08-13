@@ -4653,6 +4653,10 @@ function App() {
 
   // 문서 저장 및 수정
   const handleSaveDocument = async () => {
+    if (!customer || !customer.name || customer.name.trim() === '') {
+      alert('공급받는자(거래처)를 반드시 선택하거나 입력해 주세요.');
+      return;
+    }
     await dbSaveDocument({
       id: editingDocId,
       docType,
