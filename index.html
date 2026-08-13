@@ -295,6 +295,42 @@
       border-color: var(--primary);
     }
 
+    /* Canvas Direct Cell Editing Inputs */
+    .canvas-input {
+      width: 100%;
+      height: 100%;
+      min-height: 20px;
+      border: none;
+      background: transparent;
+      font-family: inherit;
+      font-size: inherit;
+      font-weight: inherit;
+      color: inherit;
+      text-align: inherit;
+      outline: none;
+      padding: 1px 2px;
+      margin: 0;
+      box-sizing: border-box;
+      cursor: text;
+      display: block;
+    }
+    .canvas-input:hover {
+      background-color: #f0f9ff !important;
+      box-shadow: inset 0 0 0 1px #3b82f6 !important;
+      border-radius: 2px;
+    }
+    .canvas-input:focus {
+      background-color: #ffffff !important;
+      box-shadow: inset 0 0 0 2px #2563eb !important;
+      border-radius: 2px;
+    }
+    @media print {
+      .canvas-input {
+        background-color: transparent !important;
+        box-shadow: none !important;
+      }
+    }
+
     .grid-2 {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -1718,11 +1754,17 @@ function DocumentCanvas({
     }
   }, "\uC131\uBA85/\uC0C1\uD638"), /*#__PURE__*/React.createElement("td", {
     style: {
-      padding: '5px 8px',
+      padding: '2px 4px',
       color: '#0f172a',
       fontWeight: '600'
     }
-  }, customer.name || '-')), /*#__PURE__*/React.createElement("tr", {
+  }, setCustomer ? React.createElement("input", {
+    className: "canvas-input",
+    style: { fontWeight: '700', color: '#0f172a' },
+    value: customer.name || '',
+    onChange: function(e) { setCustomer(Object.assign({}, customer, { name: e.target.value })); },
+    placeholder: "\uAC70\uB798\uCC98 \uC0C1\uD638\uBA85"
+  }) : (customer.name || '-'))), /*#__PURE__*/React.createElement("tr", {
     style: {
       borderBottom: '1px solid #f1f5f9'
     }
@@ -1737,10 +1779,15 @@ function DocumentCanvas({
     }
   }, "\uB2F4\uB2F9\uC790"), /*#__PURE__*/React.createElement("td", {
     style: {
-      padding: '5px 8px',
+      padding: '2px 4px',
       color: '#0f172a'
     }
-  }, customer.person || '-')), /*#__PURE__*/React.createElement("tr", {
+  }, setCustomer ? React.createElement("input", {
+    className: "canvas-input",
+    value: customer.person || '',
+    onChange: function(e) { setCustomer(Object.assign({}, customer, { person: e.target.value })); },
+    placeholder: "\uB2F4\uB2F9\uC790"
+  }) : (customer.person || '-'))), /*#__PURE__*/React.createElement("tr", {
     style: {
       borderBottom: '1px solid #f1f5f9'
     }
@@ -1755,10 +1802,15 @@ function DocumentCanvas({
     }
   }, "\uC5F0\uB77D\uCC98"), /*#__PURE__*/React.createElement("td", {
     style: {
-      padding: '5px 8px',
+      padding: '2px 4px',
       color: '#0f172a'
     }
-  }, customer.phone || '-')), /*#__PURE__*/React.createElement("tr", {
+  }, setCustomer ? React.createElement("input", {
+    className: "canvas-input",
+    value: customer.phone || '',
+    onChange: function(e) { setCustomer(Object.assign({}, customer, { phone: e.target.value })); },
+    placeholder: "\uC5F0\uB77D\uCC98"
+  }) : (customer.phone || '-'))), /*#__PURE__*/React.createElement("tr", {
     style: {
       borderBottom: '1px solid #f1f5f9'
     }
@@ -1788,11 +1840,17 @@ function DocumentCanvas({
     }
   }, "\uC8FC\uC18C"), /*#__PURE__*/React.createElement("td", {
     style: {
-      padding: '5px 8px',
+      padding: '2px 4px',
       color: '#0f172a',
       fontSize: '10.5px'
     }
-  }, customer.addr || '-'))))), /*#__PURE__*/React.createElement("div", {
+  }, setCustomer ? React.createElement("input", {
+    className: "canvas-input",
+    style: { fontSize: '10.5px' },
+    value: customer.addr || '',
+    onChange: function(e) { setCustomer(Object.assign({}, customer, { addr: e.target.value })); },
+    placeholder: "\uC8FC\uC18C"
+  }) : (customer.addr || '-')))))), /*#__PURE__*/React.createElement("div", {
     style: {
       border: '1px solid #cbd5e1',
       borderRadius: '10px',
@@ -2043,7 +2101,8 @@ function DocumentCanvas({
   }, "\uBE44\uACE0"))), /*#__PURE__*/React.createElement("tbody", null, Array.from({
     length: ITEMS_PER_PAGE
   }).map((_, idx) => {
-    const item = pageItems[idx];
+    const realIdx = pageIdx * ITEMS_PER_PAGE + idx;
+    const item = items[realIdx];
     const amount = item ? (Number(item.qty) || 0) * (Number(item.price) || 0) : 0;
     return /*#__PURE__*/React.createElement("tr", {
       key: idx,
@@ -2059,7 +2118,7 @@ function DocumentCanvas({
         fontSize: '11px',
         borderRight: '1px solid #e2e8f0'
       }
-    }, item ? pageIdx * ITEMS_PER_PAGE + idx + 1 : ''), docType === '청구서' && /*#__PURE__*/React.createElement("td", {
+    }, item ? realIdx + 1 : ''), docType === '\uCCAD\uAD6C\uC11C' && /*#__PURE__*/React.createElement("td", {
       style: {
         textAlign: 'center',
         color: '#64748b',
@@ -2068,43 +2127,65 @@ function DocumentCanvas({
       }
     }, item && item.date ? item.date.substring(5).replace('-', '/') : ''), /*#__PURE__*/React.createElement("td", {
       style: {
-        padding: '0 8px',
+        padding: '0 2px',
         fontWeight: item ? '700' : 'normal',
         fontSize: '12px',
         color: '#0f172a',
-        borderRight: '1px solid #e2e8f0',
-        textOverflow: 'ellipsis',
-        overflow: 'hidden',
-        whiteSpace: 'nowrap'
+        borderRight: '1px solid #e2e8f0'
       }
-    }, (item == null ? undefined : item.name) || ''), /*#__PURE__*/React.createElement("td", {
+    }, setItems ? React.createElement("input", {
+      className: "canvas-input",
+      style: { fontWeight: item ? '700' : 'normal', fontSize: '12px' },
+      value: (item && item.name) || '',
+      onChange: function(e) { updateItem(realIdx, 'name', e.target.value); },
+      placeholder: realIdx === 0 && !(item && item.name) ? "\uD488\uBA85 \uC785\uB825..." : ''
+    }) : ((item && item.name) || '')), /*#__PURE__*/React.createElement("td", {
       style: {
         textAlign: 'center',
         fontSize: '11px',
         color: '#475569',
         borderRight: '1px solid #e2e8f0'
       }
-    }, (item == null ? undefined : item.unit) || ''), /*#__PURE__*/React.createElement("td", {
+    }, setItems ? React.createElement("input", {
+      className: "canvas-input",
+      style: { textAlign: 'center', fontSize: '11px' },
+      value: (item && item.unit) || '',
+      onChange: function(e) { updateItem(realIdx, 'unit', e.target.value); },
+      placeholder: (item && item.name) ? 'EA' : ''
+    }) : ((item && item.unit) || '')), /*#__PURE__*/React.createElement("td", {
       style: {
-        padding: '0 8px',
+        padding: '0 4px',
         textAlign: 'right',
         fontFamily: 'monospace',
         fontSize: '12px',
         color: '#0f172a',
         borderRight: '1px solid #e2e8f0'
       }
-    }, (item == null ? undefined : item.qty) ? Number(item.qty).toLocaleString() : ''), /*#__PURE__*/React.createElement("td", {
+    }, setItems ? React.createElement("input", {
+      className: "canvas-input",
+      style: { textAlign: 'right', fontFamily: 'monospace', fontSize: '12px' },
+      type: 'number',
+      value: (item && item.qty) ? item.qty : '',
+      onChange: function(e) { updateItem(realIdx, 'qty', Number(e.target.value) || 0); }
+    }) : ((item && item.qty) ? Number(item.qty).toLocaleString() : '')), /*#__PURE__*/React.createElement("td", {
       style: {
-        padding: '0 8px',
+        padding: '0 4px',
         textAlign: 'right',
         fontFamily: 'monospace',
         fontSize: '12px',
         color: '#0f172a',
         borderRight: '1px solid #e2e8f0'
       }
-    }, (item == null ? undefined : item.price) ? Number(item.price).toLocaleString() : ''), /*#__PURE__*/React.createElement("td", {
+    }, setItems ? React.createElement("input", {
+      className: "canvas-input",
+      style: { textAlign: 'right', fontFamily: 'monospace', fontSize: '12px' },
+      type: 'number',
+      value: (item && item.price) ? item.price : '',
+      onChange: function(e) { updateItem(realIdx, 'price', Number(e.target.value) || 0); },
+      placeholder: (item && item.name) ? '0' : ''
+    }) : ((item && item.price) ? Number(item.price).toLocaleString() : '')), /*#__PURE__*/React.createElement("td", {
       style: {
-        padding: '0 8px',
+        padding: '0 4px',
         textAlign: 'right',
         fontWeight: '700',
         fontFamily: 'monospace',
@@ -2114,11 +2195,16 @@ function DocumentCanvas({
       }
     }, item && amount > 0 ? amount.toLocaleString() : ''), /*#__PURE__*/React.createElement("td", {
       style: {
-        padding: '0 8px',
+        padding: '0 4px',
         fontSize: '10.5px',
         color: '#64748b'
       }
-    }, (item == null ? undefined : item.memo) || (item == null ? undefined : item.remark) || ''));
+    }, setItems ? React.createElement("input", {
+      className: "canvas-input",
+      style: { fontSize: '10.5px' },
+      value: (item && (item.memo || item.remark)) || '',
+      onChange: function(e) { updateItem(realIdx, 'memo', e.target.value); }
+    }) : ((item && (item.memo || item.remark)) || '')));
   }))))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       border: '1px solid #cbd5e1',
@@ -2304,12 +2390,18 @@ function DocumentCanvas({
       color: '#475569',
       minWidth: '40px'
     }
-  }, "\uBE44\uACE0"), /*#__PURE__*/React.createElement("span", {
+  }, "\uBE44\uACE0"), setRemark ? React.createElement("input", {
+    className: "canvas-input",
+    style: { fontWeight: '700', color: '#0f172a', flex: 1 },
+    value: remark || '',
+    onChange: function(e) { setRemark(e.target.value); },
+    placeholder: "\uD2B9\uC774\uC0AC\uD56D \uC785\uB825"
+  }) : React.createElement("span", {
     style: {
       fontWeight: '700',
       color: '#0f172a'
     }
-  }, remark || '특이사항 없음'))), /*#__PURE__*/React.createElement("div", {
+  }, remark || '\uD2B9\uC774\uC0AC\uD56D \uC5C6\uC74C'))), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '7px 14px',
       backgroundColor: '#eff6ff',
