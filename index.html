@@ -1224,6 +1224,8 @@ function unpackRow(r) {
 
 async function dbFetch(table, fallback, orderCol = 'code') {
   const sb = getSupabaseClient();
+  const userRole = sessionStorage.getItem('dd_user_role') || 'supplier';
+  const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || 'sejin';
   if (sb) {
     try {
       const {
@@ -1233,17 +1235,57 @@ async function dbFetch(table, fallback, orderCol = 'code') {
         ascending: true
       });
       if (!error && Array.isArray(data) && data.length > 0) {
-        const unpacked = data.map(unpackRow);
+        let unpacked = data.map(unpackRow);
         setLocalItem('dd_' + table + '_list_v1', unpacked);
+        
+        // 공급자별 격리 필터
+        if (userRole === 'supplier') {
+          if (table === 'suppliers') {
+            unpacked = unpacked.filter(s => s.id === selectedSupplierKey);
+          } else if (table === 'customers' || table === 'parts') {
+            unpacked = unpacked.filter(item => !item.supplier_key || item.supplier_key === selectedSupplierKey);
+          }
+        }
         return unpacked;
       }
     } catch (e) { console.error(e); }
   }
-  return getLocalItem('dd_' + table + '_list_v1', fallback).map(unpackRow);
+  
+  let list = getLocalItem('dd_' + table + '_list_v1', fallback).map(unpackRow);
+  if (userRole === 'supplier') {
+    if (table === 'suppliers') {
+      list = list.filter(s => s.id === selectedSupplierKey);
+    } else if (table === 'customers' || table === 'parts') {
+      list = list.filter(item => !item.supplier_key || item.supplier_key === selectedSupplierKey);
+    }
+  }
+  return list;
 }
 
 async function dbSave(table, rowData, isEdit = false, currentList = []) {
   const sb = getSupabaseClient();
+  const userRole = sessionStorage.getItem('dd_user_role') || 'supplier';
+  const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || 'sejin';
+  
+  // 공급자별 수정 권한 체크 및 바인딩
+  if (userRole === 'supplier') {
+    if (table === 'suppliers') {
+      if (rowData.id !== selectedSupplierKey) {
+        alert('본인의 공급자 정보만 수정할 수 있습니다.');
+        return currentList;
+      }
+    } else if (table === 'customers' || table === 'parts') {
+      rowData.supplier_key = selectedSupplierKey;
+      if (isEdit && rowData.id) {
+        const found = currentList.find(r => r.id === rowData.id);
+        if (found && found.supplier_key && found.supplier_key !== selectedSupplierKey) {
+          alert('해당 데이터를 수정할 권한이 없습니다.');
+          return currentList;
+        }
+      }
+    }
+  }
+
   let serverRow = null;
   if (sb) {
     try {
@@ -1272,8 +1314,25 @@ async function dbSave(table, rowData, isEdit = false, currentList = []) {
   setLocalItem('dd_' + table + '_list_v1', updated);
   return updated;
 }
+
 async function dbDelete(table, rowId, currentList = []) {
   const sb = getSupabaseClient();
+  const userRole = sessionStorage.getItem('dd_user_role') || 'supplier';
+  const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || 'sejin';
+  
+  // 공급자별 삭제 권한 체크
+  if (userRole === 'supplier') {
+    if (table === 'suppliers') {
+      alert('공급자 정보는 삭제할 수 없습니다.');
+      return currentList;
+    }
+    const found = currentList.find(r => r.id === rowId);
+    if (found && found.supplier_key && found.supplier_key !== selectedSupplierKey) {
+      alert('해당 데이터를 삭제할 권한이 없습니다.');
+      return currentList;
+    }
+  }
+
   if (sb) {
     try {
       await sb.from(table).delete().eq('id', rowId);
@@ -1283,8 +1342,25 @@ async function dbDelete(table, rowId, currentList = []) {
   setLocalItem('dd_' + table + '_list_v1', updated);
   return updated;
 }
+
 async function dbSaveDocument(docData) {
   const sb = getSupabaseClient();
+  const userRole = sessionStorage.getItem('dd_user_role') || 'supplier';
+  const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || 'sejin';
+  
+  // 공급자별 권한 체크 및 바인딩
+  if (userRole === 'supplier') {
+    if (docData.id) {
+      const local = getLocalItem('dd_documents_history_v1', []);
+      const found = local.find(d => d.id === docData.id);
+      if (found && found.supplier_key && found.supplier_key !== selectedSupplierKey) {
+        alert('해당 문서를 수정할 권한이 없습니다.');
+        return local;
+      }
+    }
+    docData.supplierKey = selectedSupplierKey;
+  }
+
   const docId = docData.id || 'doc_' + Date.now();
   const rawPayload = {
     doc_type: docData.docType,
@@ -1327,7 +1403,6 @@ async function dbSaveDocument(docData) {
   const local = getLocalItem('dd_documents_history_v1', []);
   const existingIdx = local.findIndex(d => d.id === docId || d.doc_no === docData.docNo && d.doc_date === docData.docDate);
   let updated;
-  // Always save unpacked payload locally so UI works
   const localPayload = unpackRow(payload);
   if (existingIdx >= 0) {
     updated = [...local];
@@ -1346,8 +1421,12 @@ async function dbSaveDocument(docData) {
   setLocalItem('dd_documents_history_v1', updated);
   return updated;
 }
+
 async function dbFetchDocuments() {
   const sb = getSupabaseClient();
+  const userRole = sessionStorage.getItem('dd_user_role') || 'supplier';
+  const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || 'sejin';
+  
   let list = [];
   if (sb) {
     try {
@@ -1366,23 +1445,55 @@ async function dbFetchDocuments() {
   if (list.length === 0) {
     list = getLocalItem('dd_documents_history_v1', DEMO_DOCUMENTS).map(unpackRow);
   }
+  
+  // 공급자별 격리 필터
+  if (userRole === 'supplier') {
+    list = list.filter(d => d.supplier_key === selectedSupplierKey);
+  }
   return list;
 }
+
 async function dbDeleteDocument(docId) {
   const sb = getSupabaseClient();
+  const userRole = sessionStorage.getItem('dd_user_role') || 'supplier';
+  const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || 'sejin';
+  const local = getLocalItem('dd_documents_history_v1', DEMO_DOCUMENTS);
+  
+  // 공급자별 권한 체크
+  if (userRole === 'supplier') {
+    const found = local.find(d => d.id === docId || d.doc_no === docId);
+    if (found && found.supplier_key && found.supplier_key !== selectedSupplierKey) {
+      alert('해당 문서를 삭제할 권한이 없습니다.');
+      return local.filter(unpackRow);
+    }
+  }
+
   if (sb && docId && !String(docId).startsWith('doc_')) {
     try {
       await sb.from('documents').delete().eq('id', docId);
     } catch (e) {}
   }
-  const local = getLocalItem('dd_documents_history_v1', DEMO_DOCUMENTS);
   const updated = local.filter(d => d.id !== docId && d.doc_no !== docId);
   setLocalItem('dd_documents_history_v1', updated);
   return updated;
 }
+
 async function dbUpdateDocumentPaid(docId, paidAmount, remark) {
   const sb = getSupabaseClient();
+  const userRole = sessionStorage.getItem('dd_user_role') || 'supplier';
+  const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || 'sejin';
   const paidNum = Number(paidAmount) || 0;
+  const local = getLocalItem('dd_documents_history_v1', DEMO_DOCUMENTS);
+  
+  // 공급자별 권한 체크
+  if (userRole === 'supplier') {
+    const found = local.find(d => d.id === docId || d.doc_no === docId);
+    if (found && found.supplier_key && found.supplier_key !== selectedSupplierKey) {
+      alert('해당 문서의 수금을 변경할 권한이 없습니다.');
+      return local.filter(unpackRow);
+    }
+  }
+
   if (sb && docId && !String(docId).startsWith('doc_')) {
     try {
       const updateObj = { paid: paidNum };
@@ -1390,7 +1501,6 @@ async function dbUpdateDocumentPaid(docId, paidAmount, remark) {
       await sb.from('documents').update(updateObj).eq('id', docId);
     } catch (e) { console.error(e); }
   }
-  const local = getLocalItem('dd_documents_history_v1', DEMO_DOCUMENTS);
   const updated = local.map(d => {
     if (d.id === docId || d.doc_no === docId) {
       return { ...d, paid: paidNum, ...(remark !== undefined ? { remark } : {}) };
@@ -2709,7 +2819,7 @@ function Header({
   }, "\uD83D\uDCA1 거래처별 회계"), /*#__PURE__*/React.createElement("button", {
     className: `tab-btn ${activeTab === 'customers' ? 'active' : ''}`,
     onClick: () => setActiveTab('customers')
-  }, "\uD83D\uDC65 \uACE0\uAC1D\uAD00\uB9AC"), /*#__PURE__*/React.createElement("button", {
+  }, "\uD83D\uDC65 \uACE0\uAC1D\uAD00\uB9AC"), userRole === 'admin' && /*#__PURE__*/React.createElement("button", {
     className: `tab-btn ${activeTab === 'suppliers' ? 'active' : ''}`,
     onClick: () => setActiveTab('suppliers')
   }, "\uD83C\uDFE2 \uACF5\uAE09\uC790"), /*#__PURE__*/React.createElement("button", {
@@ -2903,7 +3013,8 @@ function StatementTab({
   }, "\uACF5\uAE09\uC790 \uC120\uD0DD"), /*#__PURE__*/React.createElement("select", {
     className: "form-select",
     value: selectedSupplierKey,
-    onChange: e => setSelectedSupplierKey(e.target.value)
+    onChange: e => setSelectedSupplierKey(e.target.value),
+    disabled: sessionStorage.getItem('dd_user_role') !== 'admin'
   }, suppliersList.map(s => /*#__PURE__*/React.createElement("option", {
     key: s.id,
     value: s.id
@@ -5563,7 +5674,7 @@ function App() {
   const [isTesting, setIsTesting] = useState(false);
   const [connectionMessage, setConnectionMessage] = useState('');
   const [suppliersList, setSuppliersList] = useState(() => getLocalItem('dd_suppliers_list_v1', INITIAL_SUPPLIERS_LIST));
-  const [selectedSupplierKey, setSelectedSupplierKey] = useState(() => localStorage.getItem('selected_supplier_key') || 'sejin');
+  const [selectedSupplierKey, setSelectedSupplierKey] = useState(() => sessionStorage.getItem('selected_supplier_key') || localStorage.getItem('selected_supplier_key') || 'sejin');
   const [currentSupplier, setCurrentSupplier] = useState(DEFAULT_SUPPLIERS.sejin);
   const [customersList, setCustomersList] = useState(() => getLocalItem('dd_customers_list_v1', DEMO_CUSTOMERS));
   const [customer, setCustomer] = useState({
@@ -5762,11 +5873,20 @@ function App() {
 
   const handleReloadDocuments = useCallback(() => {
     dbFetchDocuments().then(data => setDocumentsList(data));
-  }, []);
+  }, [selectedSupplierKey]);
 
   useEffect(() => {
     handleReloadDocuments();
   }, [handleReloadDocuments]);
+
+  // 로그인 상태 또는 공급자 변경 시 전체 데이터 리로드
+  useEffect(() => {
+    if (isLoggedIn) {
+      dbFetch('customers', DEMO_CUSTOMERS).then(setCustomersList);
+      dbFetch('suppliers', INITIAL_SUPPLIERS_LIST).then(d => { if (d.length > 0) setSuppliersList(d); });
+      dbFetch('parts', DEMO_PARTS).then(setPartsList);
+    }
+  }, [isLoggedIn, selectedSupplierKey]);
 
   // 초기 자동 연결 시도
   useEffect(() => {
@@ -6095,8 +6215,7 @@ function App() {
         });
       }
       setActiveTab('doc');
-    }
-  }), activeTab === 'suppliers' && /*#__PURE__*/React.createElement(SupplierTab, {
+  }), activeTab === 'suppliers' && userRole === 'admin' && /*#__PURE__*/React.createElement(SupplierTab, {
     suppliers: suppliersList,
     onSaveSupplier: handleSaveSupplier,
     onDeleteSupplier: handleDeleteSupplier,
