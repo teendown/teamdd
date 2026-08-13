@@ -1045,12 +1045,12 @@ async function dbSave(table, rowData, isEdit = false, currentList = []) {
         const { id, created_at, ...payload } = packedData;
         const { data, error } = await sb.from(table).update(payload).eq('id', id).select().single();
         if (!error) serverRow = unpackRow(data);
-        else console.error('Supabase update error:', error);
+        else { console.error('Supabase update error:', error); alert('Supabase update error: ' + (error.message || JSON.stringify(error))); }
       } else {
         const { id, created_at, ...payload } = packedData;
         const { data, error } = await sb.from(table).insert(payload).select().single();
         if (!error) serverRow = unpackRow(data);
-        else console.error('Supabase insert error:', error);
+        else { console.error('Supabase insert error:', error); alert('Supabase insert error: ' + (error.message || JSON.stringify(error))); }
       }
     } catch (e) { console.error(e); }
   }
