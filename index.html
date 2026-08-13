@@ -3428,30 +3428,73 @@ function AccountingTab({
       )
     ),
     React.createElement("div", { className: "accounting-summary-grid", style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' } },
-      React.createElement("div", { className: "card", style: { padding: '1.25rem', borderLeft: '4px solid #10b981', background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)' } },
-        React.createElement("div", { style: { fontSize: '0.8125rem', fontWeight: '700', color: '#047857', marginBottom: '0.375rem' } }, "💵 총 거래금액 (매출액)"),
-        React.createElement("div", { style: { fontSize: '1.5rem', fontWeight: '900', color: '#064e3b' } }, statistics.totalSales.toLocaleString() + " 원"),
+      React.createElement("div", { className: "card", style: { padding: '1.25rem', borderLeft: '4px solid #10b981', background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.06)' } },
+        React.createElement("div", { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' } },
+          React.createElement("span", { style: { fontSize: '0.8125rem', fontWeight: '800', color: '#047857' } }, "총 거래금액 (매출액)"),
+          React.createElement("div", { style: { width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' } }, "💵")
+        ),
+        React.createElement("div", { style: { fontSize: '1.625rem', fontWeight: '900', color: '#064e3b', letterSpacing: '-0.02em' } }, statistics.totalSales.toLocaleString(), React.createElement("span", { style: { fontSize: '1rem', fontWeight: '700' } }, " 원")),
         React.createElement("div", { style: { fontSize: '0.75rem', color: '#6b7280', marginTop: '0.375rem' } }, (selectedYear !== 'all' ? selectedYear + "년 " : '') + (selectedMonth !== 'all' ? selectedMonth + "월" : '전체') + " 기준")
       ),
-      React.createElement("div", { className: "card", style: { padding: '1.25rem', borderLeft: '4px solid #3b82f6', background: 'linear-gradient(135deg, #ffffff 0%, #eff6ff 100%)' } },
-        React.createElement("div", { style: { fontSize: '0.8125rem', fontWeight: '700', color: '#1d4ed8', marginBottom: '0.375rem' } }, "💳 수금 / 입금 완료액"),
-        React.createElement("div", { style: { fontSize: '1.5rem', fontWeight: '900', color: '#1e3a8a' } }, statistics.totalPaid.toLocaleString() + " 원"),
-        React.createElement("div", { style: { fontSize: '0.75rem', color: '#6b7280', marginTop: '0.375rem' } }, "수금률: " + (statistics.totalSales > 0 ? ((statistics.totalPaid / statistics.totalSales) * 100).toFixed(1) : 0) + "%")
+      (() => {
+        const paidPercent = statistics.totalSales > 0 ? ((statistics.totalPaid / statistics.totalSales) * 100).toFixed(1) : 0;
+        return React.createElement("div", { className: "card", style: { padding: '1.25rem', borderLeft: '4px solid #3b82f6', background: 'linear-gradient(135deg, #ffffff 0%, #eff6ff 100%)', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.06)' } },
+          React.createElement("div", { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' } },
+            React.createElement("span", { style: { fontSize: '0.8125rem', fontWeight: '800', color: '#1d4ed8' } }, "수금 / 입금 완료액"),
+            React.createElement("div", { style: { width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' } }, "💳")
+          ),
+          React.createElement("div", { style: { fontSize: '1.625rem', fontWeight: '900', color: '#1e3a8a', letterSpacing: '-0.02em' } }, statistics.totalPaid.toLocaleString(), React.createElement("span", { style: { fontSize: '1rem', fontWeight: '700' } }, " 원")),
+          React.createElement("div", { style: { marginTop: '0.5rem' } },
+            React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#1d4ed8', fontWeight: '700', marginBottom: '0.2rem' } },
+              React.createElement("span", null, "수금률"),
+              React.createElement("span", null, paidPercent + "%")
+            ),
+            React.createElement("div", { style: { height: '5px', backgroundColor: '#bfdbfe', borderRadius: '3px', overflow: 'hidden' } },
+              React.createElement("div", { style: { width: Math.min(paidPercent, 100) + "%", height: '100%', backgroundColor: '#2563eb', transition: 'width 0.3s' } })
+            )
+          )
+        );
+      })(),
+      React.createElement("div", { className: "card", style: { padding: '1.25rem', borderLeft: "4px solid " + (statistics.totalUnpaid > 0 ? '#ef4444' : '#10b981'), background: statistics.totalUnpaid > 0 ? 'linear-gradient(135deg, #ffffff 0%, #fef2f2 100%)' : 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)', boxShadow: statistics.totalUnpaid > 0 ? '0 4px 12px rgba(239, 68, 68, 0.06)' : '0 4px 12px rgba(16, 185, 129, 0.06)' } },
+        React.createElement("div", { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' } },
+          React.createElement("span", { style: { fontSize: '0.8125rem', fontWeight: '800', color: statistics.totalUnpaid > 0 ? '#b91c1c' : '#047857' } }, "미수금액 (잔액)"),
+          React.createElement("div", { style: { width: '32px', height: '32px', borderRadius: '50%', backgroundColor: statistics.totalUnpaid > 0 ? '#fee2e2' : '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' } }, "⚠️")
+        ),
+        React.createElement("div", { style: { fontSize: '1.625rem', fontWeight: '900', color: statistics.totalUnpaid > 0 ? '#991b1b' : '#064e3b', letterSpacing: '-0.02em' } }, statistics.totalUnpaid.toLocaleString(), React.createElement("span", { style: { fontSize: '1rem', fontWeight: '700' } }, " 원")),
+        React.createElement("div", { style: { fontSize: '0.75rem', color: statistics.totalUnpaid > 0 ? '#dc2626' : '#059669', marginTop: '0.375rem', fontWeight: '700' } }, statistics.totalUnpaid > 0 ? '⚠️ 미수 잔액 관리 필요' : '✓ 전액 완납 완료')
       ),
-      React.createElement("div", { className: "card", style: { padding: '1.25rem', borderLeft: "4px solid " + (statistics.totalUnpaid > 0 ? '#ef4444' : '#10b981'), background: statistics.totalUnpaid > 0 ? 'linear-gradient(135deg, #ffffff 0%, #fef2f2 100%)' : 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)' } },
-        React.createElement("div", { style: { fontSize: '0.8125rem', fontWeight: '700', color: statistics.totalUnpaid > 0 ? '#b91c1c' : '#047857', marginBottom: '0.375rem' } }, "⚠️ 미수금액 (잔액)"),
-        React.createElement("div", { style: { fontSize: '1.5rem', fontWeight: '900', color: statistics.totalUnpaid > 0 ? '#991b1b' : '#064e3b' } }, statistics.totalUnpaid.toLocaleString() + " 원"),
-        React.createElement("div", { style: { fontSize: '0.75rem', color: '#6b7280', marginTop: '0.375rem' } }, "미수건 처리 및 결제 관리 대상")
-      ),
-      React.createElement("div", { className: "card", style: { padding: '1.25rem', borderLeft: '4px solid #8b5cf6', background: 'linear-gradient(135deg, #ffffff 0%, #f5f3ff 100%)' } },
-        React.createElement("div", { style: { fontSize: '0.8125rem', fontWeight: '700', color: '#6d28d9', marginBottom: '0.375rem' } }, "📑 발행 문서 건수"),
-        React.createElement("div", { style: { fontSize: '1.5rem', fontWeight: '900', color: '#4c1d95' } }, statistics.totalDocsCount + " 건"),
-        React.createElement("div", { style: { fontSize: '0.75rem', color: '#6b7280', marginTop: '0.375rem' } }, "검색 조건에 맞는 내역 수")
+      React.createElement("div", { className: "card", style: { padding: '1.25rem', borderLeft: '4px solid #8b5cf6', background: 'linear-gradient(135deg, #ffffff 0%, #f5f3ff 100%)', boxShadow: '0 4px 12px rgba(139, 92, 246, 0.06)' } },
+        React.createElement("div", { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' } },
+          React.createElement("span", { style: { fontSize: '0.8125rem', fontWeight: '800', color: '#6d28d9' } }, "발행 문서 건수"),
+          React.createElement("div", { style: { width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#f3e8ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' } }, "📑")
+        ),
+        React.createElement("div", { style: { fontSize: '1.625rem', fontWeight: '900', color: '#4c1d95', letterSpacing: '-0.02em' } }, statistics.totalDocsCount, React.createElement("span", { style: { fontSize: '1rem', fontWeight: '700' } }, " 건")),
+        React.createElement("div", { style: { fontSize: '0.75rem', color: '#6b7280', marginTop: '0.375rem' } }, "조회 조건 기준 내역 수")
       )
     ),
-    React.createElement("div", { className: "no-print", style: { display: 'flex', gap: '0.5rem', marginBottom: '1rem', borderBottom: '2px solid #e5e7eb', paddingBottom: '0.5rem' } },
-      React.createElement("button", { className: "btn " + (subTab === 'summary' ? 'btn-green' : 'btn-outline'), style: { borderRadius: '20px', fontSize: '0.875rem' }, onClick: () => setSubTab('summary') }, "🏢 거래처별 현황 요약 (" + customerSummaries.length + ")"),
-      React.createElement("button", { className: "btn " + (subTab === 'detailed' ? 'btn-green' : 'btn-outline'), style: { borderRadius: '20px', fontSize: '0.875rem' }, onClick: () => setSubTab('detailed') }, "📋 상세 거래장부 (문서 내역 " + filteredDocuments.length + ")")
+    React.createElement("div", { className: "no-print", style: { display: 'inline-flex', backgroundColor: '#f3f4f6', padding: '4px', borderRadius: '12px', marginBottom: '1.25rem', border: '1px solid #e5e7eb' } },
+      React.createElement("button", {
+        className: "btn",
+        style: {
+          borderRadius: '8px', fontSize: '0.875rem', fontWeight: '800', padding: '0.4rem 1.125rem',
+          backgroundColor: subTab === 'summary' ? '#ffffff' : 'transparent',
+          color: subTab === 'summary' ? '#059669' : '#6b7280',
+          boxShadow: subTab === 'summary' ? '0 2px 4px rgba(0,0,0,0.06)' : 'none',
+          border: 'none', cursor: 'pointer', transition: 'all 0.2s'
+        },
+        onClick: () => setSubTab('summary')
+      }, "🏢 거래처별 현황 요약 (" + customerSummaries.length + ")"),
+      React.createElement("button", {
+        className: "btn",
+        style: {
+          borderRadius: '8px', fontSize: '0.875rem', fontWeight: '800', padding: '0.4rem 1.125rem',
+          backgroundColor: subTab === 'detailed' ? '#ffffff' : 'transparent',
+          color: subTab === 'detailed' ? '#059669' : '#6b7280',
+          boxShadow: subTab === 'detailed' ? '0 2px 4px rgba(0,0,0,0.06)' : 'none',
+          border: 'none', cursor: 'pointer', transition: 'all 0.2s'
+        },
+        onClick: () => setSubTab('detailed')
+      }, "📋 상세 거래장부 (문서 내역 " + filteredDocuments.length + ")")
     ),
     React.createElement("div", { className: "print-only-header", style: { display: 'none', marginBottom: '1.5rem', textAlign: 'center' } },
       React.createElement("h1", { style: { fontSize: '1.5rem', fontWeight: 'bold' } }, "거래처별 월별 회계 장부 (" + selectedYear + "년 " + (selectedMonth === 'all' ? '전체' : selectedMonth + '월') + ")"),
@@ -3462,14 +3505,14 @@ function AccountingTab({
         React.createElement("table", { className: "parts-table", style: { width: '100%', borderCollapse: 'collapse' } },
           React.createElement("thead", null,
             React.createElement("tr", { style: { backgroundColor: '#f9fafb', borderBottom: '2px solid #e5e7eb' } },
-              React.createElement("th", { style: { padding: '0.75rem 1rem', textTransform: 'none', width: '180px' } }, "거래처명"),
+              React.createElement("th", { style: { padding: '0.75rem 1rem', textTransform: 'none', width: '200px' } }, "거래처명"),
               React.createElement("th", { style: { padding: '0.75rem 1rem', textTransform: 'none' } }, "담당자 / 사업자번호"),
               React.createElement("th", { style: { padding: '0.75rem 1rem', textTransform: 'none' } }, "연락처"),
               React.createElement("th", { style: { padding: '0.75rem 1rem', textTransform: 'none', textAlign: 'right' } }, "선택월 매출액"),
               React.createElement("th", { style: { padding: '0.75rem 1rem', textTransform: 'none', textAlign: 'right' } }, "선택월 수금액"),
               React.createElement("th", { style: { padding: '0.75rem 1rem', textTransform: 'none', textAlign: 'right' } }, "선택월 미수금"),
               React.createElement("th", { style: { padding: '0.75rem 1rem', textTransform: 'none', textAlign: 'right' } }, "누적 미수금액"),
-              React.createElement("th", { style: { padding: '0.75rem 1rem', textTransform: 'none', textAlign: 'center', width: '100px' } }, "상태"),
+              React.createElement("th", { style: { padding: '0.75rem 1rem', textTransform: 'none', textAlign: 'center', width: '90px' } }, "상태"),
               React.createElement("th", { className: "no-print", style: { padding: '0.75rem 1rem', textTransform: 'none', textAlign: 'center', width: '100px' } }, "관리")
             )
           ),
@@ -3477,8 +3520,22 @@ function AccountingTab({
             customerSummaries.length === 0 ? React.createElement("tr", null, React.createElement("td", { colSpan: 9, style: { textAlign: 'center', padding: '3rem', color: '#9ca3af' } }, "조건에 해당하는 거래처 회계 데이터가 없습니다.")) :
             customerSummaries.map(c => {
               const hasUnpaid = c.monthlyUnpaid > 0 || c.allTimeUnpaid > 0;
+              const initialChar = c.name ? c.name[0] : '🏢';
               return React.createElement("tr", { key: c.name, style: { borderBottom: '1px solid #f3f4f6' } },
-                React.createElement("td", { style: { padding: '0.75rem 1rem', fontWeight: '700', color: '#111827' } }, c.name),
+                React.createElement("td", { style: { padding: '0.75rem 1rem', fontWeight: '700', color: '#111827' } },
+                  React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '0.5rem' } },
+                    React.createElement("div", {
+                      style: {
+                        width: '28px', height: '28px', borderRadius: '50%',
+                        backgroundColor: hasUnpaid ? '#fee2e2' : '#d1fae5',
+                        color: hasUnpaid ? '#b91c1c' : '#047857',
+                        fontWeight: '800', fontSize: '0.75rem',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                      }
+                    }, initialChar),
+                    React.createElement("span", null, c.name)
+                  )
+                ),
                 React.createElement("td", { style: { padding: '0.75rem 1rem', color: '#4b5563', fontSize: '0.8125rem' } },
                   React.createElement("div", null, c.person !== '-' ? "👤 " + c.person : '-'),
                   React.createElement("div", { style: { fontSize: '0.75rem', color: '#9ca3af' } }, c.bizno !== '-' ? c.bizno : '')

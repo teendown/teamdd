@@ -403,13 +403,15 @@ export default function AccountingTab({
         <div className="card" style={{
           padding: '1.25rem',
           borderLeft: '4px solid #10b981',
-          background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)'
+          background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
+          boxShadow: '0 4px 12px rgba(16, 185, 129, 0.06)'
         }}>
-          <div style={{ fontSize: '0.8125rem', fontWeight: '700', color: '#047857', marginBottom: '0.375rem' }}>
-            💵 총 거래금액 (매출액)
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <span style={{ fontSize: '0.8125rem', fontWeight: '800', color: '#047857' }}>총 거래금액 (매출액)</span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>💵</div>
           </div>
-          <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#064e3b' }}>
-            {statistics.totalSales.toLocaleString()} 원
+          <div style={{ fontSize: '1.625rem', fontWeight: '900', color: '#064e3b', letterSpacing: '-0.02em' }}>
+            {statistics.totalSales.toLocaleString()} <span style={{ fontSize: '1rem', fontWeight: '700' }}>원</span>
           </div>
           <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.375rem' }}>
             {selectedYear !== 'all' ? `${selectedYear}년` : ''} {selectedMonth !== 'all' ? `${selectedMonth}월` : '전체'} 기준
@@ -417,36 +419,51 @@ export default function AccountingTab({
         </div>
 
         {/* Total Paid Card */}
-        <div className="card" style={{
-          padding: '1.25rem',
-          borderLeft: '4px solid #3b82f6',
-          background: 'linear-gradient(135deg, #ffffff 0%, #eff6ff 100%)'
-        }}>
-          <div style={{ fontSize: '0.8125rem', fontWeight: '700', color: '#1d4ed8', marginBottom: '0.375rem' }}>
-            💳 수금 / 입금 완료액
-          </div>
-          <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#1e3a8a' }}>
-            {statistics.totalPaid.toLocaleString()} 원
-          </div>
-          <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.375rem' }}>
-            수금률: {statistics.totalSales > 0 ? ((statistics.totalPaid / statistics.totalSales) * 100).toFixed(1) : 0}%
-          </div>
-        </div>
+        {(() => {
+          const paidPercent = statistics.totalSales > 0 ? ((statistics.totalPaid / statistics.totalSales) * 100).toFixed(1) : 0;
+          return (
+            <div className="card" style={{
+              padding: '1.25rem',
+              borderLeft: '4px solid #3b82f6',
+              background: 'linear-gradient(135deg, #ffffff 0%, #eff6ff 100%)',
+              boxShadow: '0 4px 12px rgba(59, 130, 246, 0.06)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.8125rem', fontWeight: '800', color: '#1d4ed8' }}>수금 / 입금 완료액</span>
+                <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>💳</div>
+              </div>
+              <div style={{ fontSize: '1.625rem', fontWeight: '900', color: '#1e3a8a', letterSpacing: '-0.02em' }}>
+                {statistics.totalPaid.toLocaleString()} <span style={{ fontSize: '1rem', fontWeight: '700' }}>원</span>
+              </div>
+              <div style={{ marginTop: '0.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#1d4ed8', fontWeight: '700', marginBottom: '0.2rem' }}>
+                  <span>수금률</span>
+                  <span>{paidPercent}%</span>
+                </div>
+                <div style={{ height: '5px', backgroundColor: '#bfdbfe', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div style={{ width: `${Math.min(paidPercent, 100)}%`, height: '100%', backgroundColor: '#2563eb', transition: 'width 0.3s' }} />
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Total Unpaid Card */}
         <div className="card" style={{
           padding: '1.25rem',
           borderLeft: `4px solid ${statistics.totalUnpaid > 0 ? '#ef4444' : '#10b981'}`,
-          background: statistics.totalUnpaid > 0 ? 'linear-gradient(135deg, #ffffff 0%, #fef2f2 100%)' : 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)'
+          background: statistics.totalUnpaid > 0 ? 'linear-gradient(135deg, #ffffff 0%, #fef2f2 100%)' : 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
+          boxShadow: statistics.totalUnpaid > 0 ? '0 4px 12px rgba(239, 68, 68, 0.06)' : '0 4px 12px rgba(16, 185, 129, 0.06)'
         }}>
-          <div style={{ fontSize: '0.8125rem', fontWeight: '700', color: statistics.totalUnpaid > 0 ? '#b91c1c' : '#047857', marginBottom: '0.375rem' }}>
-            ⚠️ 미수금액 (잔액)
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <span style={{ fontSize: '0.8125rem', fontWeight: '800', color: statistics.totalUnpaid > 0 ? '#b91c1c' : '#047857' }}>미수금액 (잔액)</span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: statistics.totalUnpaid > 0 ? '#fee2e2' : '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>⚠️</div>
           </div>
-          <div style={{ fontSize: '1.5rem', fontWeight: '900', color: statistics.totalUnpaid > 0 ? '#991b1b' : '#064e3b' }}>
-            {statistics.totalUnpaid.toLocaleString()} 원
+          <div style={{ fontSize: '1.625rem', fontWeight: '900', color: statistics.totalUnpaid > 0 ? '#991b1b' : '#064e3b', letterSpacing: '-0.02em' }}>
+            {statistics.totalUnpaid.toLocaleString()} <span style={{ fontSize: '1rem', fontWeight: '700' }}>원</span>
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.375rem' }}>
-            미수건 처리 및 결제 관리 대상
+          <div style={{ fontSize: '0.75rem', color: statistics.totalUnpaid > 0 ? '#dc2626' : '#059669', marginTop: '0.375rem', fontWeight: '700' }}>
+            {statistics.totalUnpaid > 0 ? '⚠️ 미수 잔액 관리 필요' : '✓ 전액 완납 완료'}
           </div>
         </div>
 
@@ -454,32 +471,63 @@ export default function AccountingTab({
         <div className="card" style={{
           padding: '1.25rem',
           borderLeft: '4px solid #8b5cf6',
-          background: 'linear-gradient(135deg, #ffffff 0%, #f5f3ff 100%)'
+          background: 'linear-gradient(135deg, #ffffff 0%, #f5f3ff 100%)',
+          boxShadow: '0 4px 12px rgba(139, 92, 246, 0.06)'
         }}>
-          <div style={{ fontSize: '0.8125rem', fontWeight: '700', color: '#6d28d9', marginBottom: '0.375rem' }}>
-            📑 발행 문서 건수
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <span style={{ fontSize: '0.8125rem', fontWeight: '800', color: '#6d28d9' }}>발행 문서 건수</span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#f3e8ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>📑</div>
           </div>
-          <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#4c1d95' }}>
-            {statistics.totalDocsCount} 건
+          <div style={{ fontSize: '1.625rem', fontWeight: '900', color: '#4c1d95', letterSpacing: '-0.02em' }}>
+            {statistics.totalDocsCount} <span style={{ fontSize: '1rem', fontWeight: '700' }}>건</span>
           </div>
           <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.375rem' }}>
-            검색 조건에 맞는 내역 수
+            조회 조건 기준 내역 수
           </div>
         </div>
       </div>
 
-      {/* Sub-tab Navigation (View Mode Switcher) */}
-      <div className="no-print" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', borderBottom: '2px solid #e5e7eb', paddingBottom: '0.5rem' }}>
+      {/* Sub-tab Navigation (Segmented Switcher Style) */}
+      <div className="no-print" style={{
+        display: 'inline-flex',
+        backgroundColor: '#f3f4f6',
+        padding: '4px',
+        borderRadius: '12px',
+        marginBottom: '1.25rem',
+        border: '1px solid #e5e7eb'
+      }}>
         <button
-          className={`btn ${subTab === 'summary' ? 'btn-green' : 'btn-outline'}`}
-          style={{ borderRadius: '20px', fontSize: '0.875rem' }}
+          className="btn"
+          style={{
+            borderRadius: '8px',
+            fontSize: '0.875rem',
+            fontWeight: '800',
+            padding: '0.4rem 1.125rem',
+            backgroundColor: subTab === 'summary' ? '#ffffff' : 'transparent',
+            color: subTab === 'summary' ? '#059669' : '#6b7280',
+            boxShadow: subTab === 'summary' ? '0 2px 4px rgba(0,0,0,0.06)' : 'none',
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
           onClick={() => setSubTab('summary')}
         >
           🏢 거래처별 현황 요약 ({customerSummaries.length})
         </button>
         <button
-          className={`btn ${subTab === 'detailed' ? 'btn-green' : 'btn-outline'}`}
-          style={{ borderRadius: '20px', fontSize: '0.875rem' }}
+          className="btn"
+          style={{
+            borderRadius: '8px',
+            fontSize: '0.875rem',
+            fontWeight: '800',
+            padding: '0.4rem 1.125rem',
+            backgroundColor: subTab === 'detailed' ? '#ffffff' : 'transparent',
+            color: subTab === 'detailed' ? '#059669' : '#6b7280',
+            boxShadow: subTab === 'detailed' ? '0 2px 4px rgba(0,0,0,0.06)' : 'none',
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
           onClick={() => setSubTab('detailed')}
         >
           📋 상세 거래장부 (문서 내역 {filteredDocuments.length})
@@ -503,10 +551,50 @@ export default function AccountingTab({
             <table className="parts-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f9fafb', borderBottom: '2px solid #e5e7eb' }}>
-                  <th style={{ padding: '0.75rem 1rem', textTransform: 'none', width: '180px' }}>거래처명</th>
+                  <th style={{ padding: '0.75rem 1rem', textTransform: 'none', width: '200px' }}>거래처명</th>
                   <th style={{ padding: '0.75rem 1rem', textTransform: 'none' }}>담당자 / 사업자번호</th>
                   <th style={{ padding: '0.75rem 1rem', textTransform: 'none' }}>연락처</th>
                   <th style={{ padding: '0.75rem 1rem', textTransform: 'none', textAlign: 'right' }}>선택월 매출액</th>
+                  <th style={{ padding: '0.75rem 1rem', textTransform: 'none', textAlign: 'right' }}>선택월 수금액</th>
+                  <th style={{ padding: '0.75rem 1rem', textTransform: 'none', textAlign: 'right' }}>선택월 미수금</th>
+                  <th style={{ padding: '0.75rem 1rem', textTransform: 'none', textAlign: 'right' }}>누적 미수금액</th>
+                  <th style={{ padding: '0.75rem 1rem', textTransform: 'none', textAlign: 'center', width: '90px' }}>상태</th>
+                  <th className="no-print" style={{ padding: '0.75rem 1rem', textTransform: 'none', textAlign: 'center', width: '100px' }}>관리</th>
+                </tr>
+              </thead>
+              <tbody>
+                {customerSummaries.length === 0 ? (
+                  <tr>
+                    <td colSpan="9" style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>
+                      조건에 해당하는 거래처 회계 데이터가 없습니다.
+                    </td>
+                  </tr>
+                ) : (
+                  customerSummaries.map(c => {
+                    const hasUnpaid = c.monthlyUnpaid > 0 || c.allTimeUnpaid > 0;
+                    const initialChar = c.name ? c.name[0] : '🏢';
+                    return (
+                      <tr key={c.name} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                        <td style={{ padding: '0.75rem 1rem', fontWeight: '700', color: '#111827' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <div style={{
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '50%',
+                              backgroundColor: hasUnpaid ? '#fee2e2' : '#d1fae5',
+                              color: hasUnpaid ? '#b91c1c' : '#047857',
+                              fontWeight: '800',
+                              fontSize: '0.75rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0
+                            }}>
+                              {initialChar}
+                            </div>
+                            <span>{c.name}</span>
+                          </div>
+                        </td>gn: 'right' }}>선택월 매출액</th>
                   <th style={{ padding: '0.75rem 1rem', textTransform: 'none', textAlign: 'right' }}>선택월 수금액</th>
                   <th style={{ padding: '0.75rem 1rem', textTransform: 'none', textAlign: 'right' }}>선택월 미수금</th>
                   <th style={{ padding: '0.75rem 1rem', textTransform: 'none', textAlign: 'right' }}>누적 미수금액</th>
