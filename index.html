@@ -3865,6 +3865,19 @@ function DocHistoryTab({
   onLoadDocument,
   isConnected
 }) {
+  function getEffectivePaymentStatus(doc) {
+    var ps = doc.paymentStatus || doc.payment_status || '\uBBF8\uC218\uAE08';
+    var total = calculateTotal(doc);
+    var paidAmt = Number(doc.paid) || 0;
+    if (ps !== '\uC785\uAE08\uC644\uB8CC' && paidAmt > 0) {
+      if (paidAmt >= total && total > 0) {
+        return '\uC785\uAE08\uC644\uB8CC';
+      } else {
+        return '\uBD80\uBD84\uC785\uAE08';
+      }
+    }
+    return ps;
+  }
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchCustomer, setSearchCustomer] = useState('');
@@ -3928,7 +3941,7 @@ function DocHistoryTab({
       if (!docNo.includes(searchDocNo.toLowerCase())) return false;
     }
     if (paymentFilter !== '\uC804\uCCB4') {
-      var ps = doc.paymentStatus || doc.payment_status || '\uBBF8\uC218\uAE08';
+      var ps = getEffectivePaymentStatus(doc);
       if (ps !== paymentFilter) return false;
     }
     return true;
@@ -3947,19 +3960,19 @@ function DocHistoryTab({
   };
   const totalSumAmount = filtered.reduce(function(sum, d) { return sum + calculateTotal(d); }, 0);
   var totalUnpaid = filtered.reduce(function(sum, d) {
-    var ps = d.paymentStatus || d.payment_status || '\uBBF8\uC218\uAE08';
+    var ps = getEffectivePaymentStatus(d);
     if (ps === '\uC785\uAE08\uC644\uB8CC') return sum;
     var total = calculateTotal(d);
     var paidAmt = Number(d.paid) || 0;
     return sum + (total - paidAmt);
   }, 0);
   var totalPaid = filtered.reduce(function(sum, d) {
-    var ps = d.paymentStatus || d.payment_status || '\uBBF8\uC218\uAE08';
+    var ps = getEffectivePaymentStatus(d);
     if (ps === '\uC785\uAE08\uC644\uB8CC') return sum + calculateTotal(d);
     return sum + (Number(d.paid) || 0);
   }, 0);
   function getPayBadge(doc) {
-    var ps = doc.paymentStatus || doc.payment_status || '\uBBF8\uC218\uAE08';
+    var ps = getEffectivePaymentStatus(doc);
     var cls = ps === '\uC785\uAE08\uC644\uB8CC' ? 'paid' : ps === '\uBD80\uBD84\uC785\uAE08' ? 'partial' : 'unpaid';
     var icon = ps === '\uC785\uAE08\uC644\uB8CC' ? '\u2705' : ps === '\uBD80\uBD84\uC785\uAE08' ? '\uD83D\uDFE1' : '\uD83D\uDD34';
     return /*#__PURE__*/React.createElement('span', { className: 'pay-badge ' + cls }, icon + ' ' + ps);
