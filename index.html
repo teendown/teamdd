@@ -3157,12 +3157,21 @@ function CustomerTab({
     return supply + vat;
   };
 
+  const getDocCustomerName = (doc) => {
+    if (!doc) return '';
+    return (doc.customer_name || (doc.customer_data && doc.customer_data.name) || (doc.customer && doc.customer.name) || '').trim();
+  };
+
+  const getDocDate = (doc) => {
+    if (!doc) return '';
+    return doc.doc_date || doc.docDate || doc.created_at || '';
+  };
+
   const getCustomerBalance = (customerName) => {
     if (!customerName) return 0;
+    const targetName = customerName.trim();
     const customerDocs = documents.filter(d => 
-      d.customer && 
-      d.customer.name && 
-      d.customer.name.trim() === customerName.trim() && 
+      getDocCustomerName(d) === targetName && 
       d.doc_type !== '견적서'
     );
     let sales = 0;
@@ -3186,19 +3195,19 @@ function CustomerTab({
   const getCustomerMonthlyData = (customerName, year) => {
     if (!customerName) return { carriedOver: 0, months: [], totals: { sales: 0, received: 0, balance: 0 } };
     
+    const targetName = customerName.trim();
     const customerDocs = documents.filter(d => 
-      d.customer && 
-      d.customer.name && 
-      d.customer.name.trim() === customerName.trim() && 
+      getDocCustomerName(d) === targetName && 
       d.doc_type !== '견적서'
     );
 
     let prevSales = 0;
     let prevReceived = 0;
     customerDocs.forEach(d => {
-      if (d.doc_date) {
-        const docYear = new Date(d.doc_date).getFullYear();
-        if (docYear < year) {
+      const dDate = getDocDate(d);
+      if (dDate) {
+        const docYear = new Date(dDate).getFullYear();
+        if (!isNaN(docYear) && docYear < year) {
           const total = calculateDocTotal(d);
           const paid = Number(d.paid) || 0;
           prevReceived += paid;
@@ -3224,10 +3233,11 @@ function CustomerTab({
     }));
 
     customerDocs.forEach(d => {
-      if (d.doc_date) {
-        const dateObj = new Date(d.doc_date);
+      const dDate = getDocDate(d);
+      if (dDate) {
+        const dateObj = new Date(dDate);
         const docYear = dateObj.getFullYear();
-        if (docYear === year) {
+        if (!isNaN(docYear) && docYear === year) {
           const docMonthIdx = dateObj.getMonth();
           const total = calculateDocTotal(d);
           const paid = Number(d.paid) || 0;
