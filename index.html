@@ -2474,7 +2474,20 @@ function StatementTab({
 }) {
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const matchingCustomers = (customer.name || '').trim() ? customersList.filter(c => (c.name || '').toLowerCase().includes((customer.name || '').toLowerCase())) : [];
+  const validateBeforeAction = () => {
+    if (!customer || !customer.name || customer.name.trim() === '') {
+      alert('❌ 거래처(공급받는자)를 입력해 주세요.\n거래처가 비어 있으면 인쇄·저장·다운로드가 불가합니다.');
+      return false;
+    }
+    const validItems = items.filter(i => i.name && i.name.trim() !== '');
+    if (validItems.length === 0) {
+      alert('❌ 품목을 1개 이상 입력해 주세요.\n품목이 비어 있으면 인쇄·저장·다운로드가 불가합니다.');
+      return false;
+    }
+    return true;
+  };
   const handleExportPNG = async () => {
+    if (!validateBeforeAction()) return;
     const pages = document.querySelectorAll('.document-page');
     if (!pages || pages.length === 0) return;
     for (let i = 0; i < pages.length; i++) {
@@ -2489,6 +2502,7 @@ function StatementTab({
     }
   };
   const handleExportPDF = async () => {
+    if (!validateBeforeAction()) return;
     const pages = document.querySelectorAll('.document-page');
     if (!pages || pages.length === 0) return;
     try {
@@ -3063,7 +3077,7 @@ function StatementTab({
   }, "\uD83D\uDCF8 \uC774\uBBF8\uC9C0"), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-primary",
     style: { flex: 1, padding: '0.5rem', fontSize: '0.875rem' },
-    onClick: () => window.print()
+    onClick: () => { if (validateBeforeAction()) window.print(); }
   }, "\uD83D\uDDA8\uFE0F \uC778\uC1C4"), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-primary",
     style: { flex: 1, padding: '0.5rem', fontSize: '0.875rem', backgroundColor: '#dc2626', borderColor: '#dc2626' },
@@ -4971,7 +4985,12 @@ function App() {
   // 문서 저장 및 수정
   const handleSaveDocument = async () => {
     if (!customer || !customer.name || customer.name.trim() === '') {
-      alert('공급받는자(거래처)를 반드시 선택하거나 입력해 주세요.');
+      alert('❌ 거래처(공급받는자)를 입력해 주세요.\n거래처가 비어 있으면 저장이 불가합니다.');
+      return;
+    }
+    const validItems = items.filter(i => i.name && i.name.trim() !== '');
+    if (validItems.length === 0) {
+      alert('❌ 품목을 1개 이상 입력해 주세요.\n품목이 비어 있으면 저장이 불가합니다.');
       return;
     }
     await dbSaveDocument({
