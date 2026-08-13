@@ -3064,6 +3064,29 @@ function CustomerTab({
     setMachineList(machineList.filter((_, i) => i !== idx));
   };
 
+  const handleImportContact = async () => {
+    if (!('contacts' in navigator && 'ContactsManager' in window)) {
+      alert('이 기기/브라우저에서는 연락처 불러오기 기능을 지원하지 않습니다.');
+      return;
+    }
+    try {
+      const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: false });
+      if (contacts && contacts.length > 0) {
+        const contact = contacts[0];
+        const name = contact.name && contact.name.length > 0 ? contact.name[0] : '';
+        const tel = contact.tel && contact.tel.length > 0 ? contact.tel[0] : '';
+        setForm(prev => ({
+          ...prev,
+          name: name || prev.name,
+          phone: tel || prev.phone
+        }));
+      }
+    } catch (err) {
+      console.error(err);
+      // user canceled or error
+    }
+  };
+
   const handleSave = () => {
     if (!form.name) {
       alert('상호명은 필수입니다.');
@@ -3242,7 +3265,14 @@ function CustomerTab({
   }, modalMode === 'add' ? '➕ 새 거래처 등록' : (modalMode === 'edit' ? '✏️ 고객(거래처) 정보 수정' : '🔍 고객(거래처) 상세 조회')), 
   
   /*#__PURE__*/React.createElement("div", { className: "form-section" },
-    /*#__PURE__*/React.createElement("div", { className: "section-title" }, "\uD83C\uDFE2 \uAE30\uBCF8 \uC815\uBCF4"),
+    /*#__PURE__*/React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', borderBottom: '2px solid #2563eb', paddingBottom: '0.5rem' } },
+      /*#__PURE__*/React.createElement("div", { className: "section-title", style: { borderBottom: 'none', paddingBottom: '0', marginBottom: '0' } }, "\uD83C\uDFE2 \uAE30\uBCF8 \uC815\uBCF4"),
+      (modalMode === 'add' || modalMode === 'edit') && /*#__PURE__*/React.createElement("button", {
+        className: "btn btn-outline",
+        style: { padding: '4px 8px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' },
+        onClick: handleImportContact
+      }, "\uD83D\uDCDE \uC5F0\uB77D\uCC98 \uBD88\uB7EC\uC624\uAE30")
+    ),
     /*#__PURE__*/React.createElement("div", { className: "grid-2" },
       /*#__PURE__*/React.createElement("div", { className: "form-group" },
         /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC0C1\uD638\uBA85 *"),

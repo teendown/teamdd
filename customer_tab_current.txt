@@ -8,7 +8,7 @@ function CustomerTab({
 }) {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
+  const [modalMode, setModalMode] = useState('add');
   const [form, setForm] = useState({
     id: null,
     code: '',
@@ -17,6 +17,11 @@ function CustomerTab({
     phone: '',
     addr: '',
     bizno: '',
+    repName: '',
+    bizType: '',
+    bizItem: '',
+    email: '',
+    fax: '',
     machine: '',
     memo: ''
   });
@@ -24,9 +29,10 @@ function CustomerTab({
   const [machineNoInput, setMachineNoInput] = useState('');
   const [machineList, setMachineList] = useState([]);
   const [selectMachineCustomer, setSelectMachineCustomer] = useState(null);
+  
   const filtered = customers.filter(c => (c.name || '').toLowerCase().includes(search.toLowerCase()) || (c.phone || '').includes(search) || (c.person || '').includes(search) || (c.machine || '').toLowerCase().includes(search.toLowerCase()));
-  const handleOpenAdd = () => {
-    setIsEditMode(false);
+  
+  const resetFormState = () => {
     setForm({
       id: null,
       code: `C${String(customers.length + 1).padStart(4, '0')}`,
@@ -35,37 +41,36 @@ function CustomerTab({
       phone: '',
       addr: '',
       bizno: '',
+      repName: '',
+      bizType: '',
+      bizItem: '',
+      email: '',
+    fax: '',
       machine: '',
       memo: ''
     });
     setMachineList([]);
     setMachineInput('');
     setMachineNoInput('');
+  };
+
+  const handleOpenAdd = () => {
+    setModalMode('add');
+    resetFormState();
     setShowModal(true);
   };
+
   React.useEffect(() => {
     if (openAddModal) {
-      setIsEditMode(false);
-      setForm({
-        id: null,
-        code: `C${String(customers.length + 1).padStart(4, '0')}`,
-        name: '',
-        person: '',
-        phone: '',
-        addr: '',
-        bizno: '',
-        machine: '',
-        memo: ''
-      });
-      setMachineList([]);
-      setMachineInput('');
-      setMachineNoInput('');
+      setModalMode('add');
+      resetFormState();
       setShowModal(true);
       if (setOpenAddModal) setOpenAddModal(false);
     }
   }, [openAddModal, customers.length, setOpenAddModal]);
-  const handleOpenEdit = c => {
-    setIsEditMode(true);
+
+  const handleOpenView = c => {
+    setModalMode('view');
     setForm({
       id: c.id,
       code: c.code || '',
@@ -74,6 +79,11 @@ function CustomerTab({
       phone: c.phone || '',
       addr: c.addr || '',
       bizno: c.bizno || '',
+      repName: c.repName || '',
+      bizType: c.bizType || '',
+      bizItem: c.bizItem || '',
+      email: c.email || '',
+      fax: c.fax || '',
       machine: c.machine || '',
       memo: c.memo || ''
     });
@@ -82,6 +92,7 @@ function CustomerTab({
     setMachineNoInput('');
     setShowModal(true);
   };
+
   const handleAddMachine = () => {
     if (!machineInput.trim() && !machineNoInput.trim()) return;
     let combined = machineInput.trim();
@@ -92,9 +103,11 @@ function CustomerTab({
     setMachineInput('');
     setMachineNoInput('');
   };
+
   const handleRemoveMachine = idx => {
     setMachineList(machineList.filter((_, i) => i !== idx));
   };
+
   const handleSave = () => {
     if (!form.name) {
       alert('상호명은 필수입니다.');
@@ -104,9 +117,10 @@ function CustomerTab({
     onSaveCustomer({
       ...form,
       machine: finalMachine
-    }, isEditMode);
+    }, modalMode === 'edit' || modalMode === 'add' ? form.id != null : false);
     setShowModal(false);
   };
+
   const renderMachineDisplay = machineStr => {
     if (!machineStr) return '-';
     const list = machineStr.split(',').map(s => s.trim()).filter(s => s);
@@ -127,6 +141,7 @@ function CustomerTab({
       }
     }, "(\uC678 ", list.length - 1, "\uB300)"));
   };
+
   const handleSelectInvoice = c => {
     const list = c.machine ? c.machine.split(',').map(s => s.trim()).filter(s => s) : [];
     if (list.length > 1) {
@@ -141,6 +156,7 @@ function CustomerTab({
       });
     }
   };
+
   return /*#__PURE__*/React.createElement("div", {
     className: "management-container"
   }, /*#__PURE__*/React.createElement("div", {
@@ -195,13 +211,7 @@ function CustomerTab({
       color: '#4b5563',
       marginBottom: '0.5rem'
     }
-  }, /*#__PURE__*/React.createElement("div", null, "\uAE30\uC885: ", renderMachineDisplay(c.machine)), /*#__PURE__*/React.createElement("div", null, "\uB2F4\uB2F9\uC790: ", c.person || '-'), /*#__PURE__*/React.createElement("div", null, "\uC5F0\uB77D\uCC98: ", c.phone || '-'), /*#__PURE__*/React.createElement("div", {
-    style: {
-      textOverflow: 'ellipsis',
-      overflow: 'hidden',
-      whiteSpace: 'nowrap'
-    }
-  }, "\uC8FC\uC18C: ", c.addr || '-')), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", null, "\uAE30\uC885: ", renderMachineDisplay(c.machine)), /*#__PURE__*/React.createElement("div", null, "\uB2F4\uB2F9\uC790: ", c.person || '-'), /*#__PURE__*/React.createElement("div", null, "\uC5F0\uB77D\uCC98: ", c.phone || '-')), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: '0.375rem',
@@ -214,16 +224,8 @@ function CustomerTab({
       minHeight: '32px',
       fontSize: '0.75rem'
     },
-    onClick: () => handleOpenEdit(c)
-  }, "\uC0C1\uC138 / \uC218\uC815"), /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-red-outline",
-    style: {
-      flex: 1,
-      minHeight: '32px',
-      fontSize: '0.75rem'
-    },
-    onClick: () => onDeleteCustomer(c.id)
-  }, "\uC0AD\uC81C")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => handleOpenView(c)
+  }, "상세조회")), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-primary",
     style: {
       width: '100%',
@@ -235,7 +237,7 @@ function CustomerTab({
     className: "desktop-table-view"
   }, /*#__PURE__*/React.createElement("table", {
     className: "data-table"
-  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Code"), /*#__PURE__*/React.createElement("th", null, "\uC0C1\uD638\uBA85"), /*#__PURE__*/React.createElement("th", null, "\uAE30\uC885"), /*#__PURE__*/React.createElement("th", null, "\uB2F4\uB2F9\uC790"), /*#__PURE__*/React.createElement("th", null, "\uC5F0\uB77D\uCC98"), /*#__PURE__*/React.createElement("th", null, "\uC8FC\uC18C"), /*#__PURE__*/React.createElement("th", null, "\uC791\uC5C5"))), /*#__PURE__*/React.createElement("tbody", null, filtered.map(c => /*#__PURE__*/React.createElement("tr", {
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Code"), /*#__PURE__*/React.createElement("th", null, "\uC0C1\uD638\uBA85"), /*#__PURE__*/React.createElement("th", null, "\uAE30\uC885"), /*#__PURE__*/React.createElement("th", null, "\uB2F4\uB2F9\uC790"), /*#__PURE__*/React.createElement("th", null, "\uC5F0\uB77D\uCC98"), /*#__PURE__*/React.createElement("th", null, "\uC791\uC5C5"))), /*#__PURE__*/React.createElement("tbody", null, filtered.map(c => /*#__PURE__*/React.createElement("tr", {
     key: c.id
   }, /*#__PURE__*/React.createElement("td", {
     style: {
@@ -246,10 +248,6 @@ function CustomerTab({
       fontWeight: '700'
     }
   }, c.name), /*#__PURE__*/React.createElement("td", null, renderMachineDisplay(c.machine)), /*#__PURE__*/React.createElement("td", null, c.person), /*#__PURE__*/React.createElement("td", null, c.phone), /*#__PURE__*/React.createElement("td", {
-    style: {
-      fontSize: '11px'
-    }
-  }, c.addr), /*#__PURE__*/React.createElement("td", {
     style: {
       whiteSpace: 'nowrap'
     }
@@ -271,15 +269,8 @@ function CustomerTab({
       fontSize: '10px',
       padding: '4px 6px'
     },
-    onClick: () => handleOpenEdit(c)
-  }, "\uC218\uC815"), /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-red-outline",
-    style: {
-      fontSize: '10px',
-      padding: '4px 6px'
-    },
-    onClick: () => onDeleteCustomer(c.id)
-  }, "\uC0AD\uC81C"))))))))), showModal && /*#__PURE__*/React.createElement("div", {
+    onClick: () => handleOpenView(c)
+  }, "상세조회"))))))))), showModal && /*#__PURE__*/React.createElement("div", {
     className: "modal-overlay"
   }, /*#__PURE__*/React.createElement("div", {
     className: "modal-content",
@@ -292,167 +283,133 @@ function CustomerTab({
       marginBottom: '1rem',
       fontWeight: '900'
     }
-  }, isEditMode ? '✏️ 고객(거래처) 정보 상세/수정' : '➕ 새 거래처 등록'), /*#__PURE__*/React.createElement("div", {
-    className: "grid-2"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "form-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label"
-  }, "\uC0C1\uD638\uBA85 *"), /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    className: "form-input",
-    value: form.name,
-    onChange: e => setForm({
-      ...form,
-      name: e.target.value
-    })
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "form-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label"
-  }, "\uC0AC\uC5C5\uC790\uB4F1\uB85D\uBC88\uD638"), /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    className: "form-input",
-    value: form.bizno,
-    onChange: e => setForm({
-      ...form,
-      bizno: e.target.value
-    })
-  }))), /*#__PURE__*/React.createElement("div", {
-    className: "grid-2"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "form-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label"
-  }, "\uB2F4\uB2F9\uC790"), /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    className: "form-input",
-    value: form.person,
-    onChange: e => setForm({
-      ...form,
-      person: e.target.value
-    })
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "form-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label"
-  }, "\uC5F0\uB77D\uCC98"), /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    className: "form-input",
-    value: form.phone,
-    onChange: e => setForm({
-      ...form,
-      phone: e.target.value
-    })
-  }))), /*#__PURE__*/React.createElement("div", {
-    className: "form-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label"
-  }, "\uAE30\uC885 (\uC7A5\uBE44 \uBAA9\uB85D)"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: '4px',
-      marginBottom: '8px',
-      flexWrap: 'wrap'
-    }
-  }, machineList.map((m, idx) => /*#__PURE__*/React.createElement("span", {
-    key: idx,
-    style: {
-      backgroundColor: '#eff6ff',
-      color: '#1d4ed8',
-      border: '1px solid #bfdbfe',
-      padding: '2px 8px',
-      borderRadius: '9999px',
-      fontSize: '0.75rem',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '4px'
-    }
-  }, m, /*#__PURE__*/React.createElement("button", {
-    style: {
-      background: 'none',
-      border: 'none',
-      cursor: 'pointer',
-      color: '#ef4444',
-      fontWeight: 'bold'
-    },
-    onClick: () => handleRemoveMachine(idx)
-  }, "\xD7"))), machineList.length === 0 && /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: '0.75rem',
-      color: '#9ca3af'
-    }
-  }, "\uB4F1\uB85D\uB41C \uAE30\uC885\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: '4px'
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    className: "form-input",
-    style: {
-      flex: 1
-    },
-    placeholder: "\uAE30\uC885\uBA85 (\uC608: DX140W)",
-    value: machineInput,
-    onChange: e => setMachineInput(e.target.value),
-    onKeyDown: e => e.key === 'Enter' && handleAddMachine()
-  }), /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    className: "form-input",
-    style: {
-      flex: 1
-    },
-    placeholder: "\uD638\uAE30\uC218 (\uC608: 1\uD638\uAE30)",
-    value: machineNoInput,
-    onChange: e => setMachineNoInput(e.target.value),
-    onKeyDown: e => e.key === 'Enter' && handleAddMachine()
-  }), /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-outline",
-    onClick: handleAddMachine
-  }, "\uCD94\uAC00"))), /*#__PURE__*/React.createElement("div", {
-    className: "form-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label"
-  }, "\uC8FC\uC18C"), /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    className: "form-input",
-    value: form.addr,
-    onChange: e => setForm({
-      ...form,
-      addr: e.target.value
-    })
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "form-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label"
-  }, "\uBA54\uBAA8 / \uD2B9\uC774\uC0AC\uD56D"), /*#__PURE__*/React.createElement("textarea", {
-    className: "form-textarea",
-    rows: "2",
-    value: form.memo,
-    onChange: e => setForm({
-      ...form,
-      memo: e.target.value
-    })
-  })), /*#__PURE__*/React.createElement("div", {
+  }, modalMode === 'add' ? '➕ 새 거래처 등록' : (modalMode === 'edit' ? '✏️ 고객(거래처) 정보 수정' : '🔍 고객(거래처) 상세 조회')), 
+  
+  /*#__PURE__*/React.createElement("div", { className: "form-section" },
+    /*#__PURE__*/React.createElement("div", { className: "section-title" }, "\uD83C\uDFE2 \uAE30\uBCF8 \uC815\uBCF4"),
+    /*#__PURE__*/React.createElement("div", { className: "grid-2" },
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC0C1\uD638\uBA85 *"),
+        modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value", style: { fontWeight: '700' } }, form.name) : /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: form.name, onChange: e => setForm({ ...form, name: e.target.value }) })
+      ),
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uB2F4\uB2F9\uC790"),
+        modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value" }, form.person || '-') : /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: form.person, onChange: e => setForm({ ...form, person: e.target.value }) })
+      )
+    ),
+    /*#__PURE__*/React.createElement("div", { className: "grid-2" },
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC5F0\uB77D\uCC98"),
+        modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value" }, form.phone || '-') : /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: form.phone, onChange: e => setForm({ ...form, phone: e.target.value }) })
+      ),
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uD329\uC2A4\uBC88\uD638"),
+        modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value" }, form.fax || '-') : /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: form.fax, onChange: e => setForm({ ...form, fax: e.target.value }) })
+      )
+    ),
+    /*#__PURE__*/React.createElement("div", { className: "form-group" },
+      /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uAE30\uC885 (\uC7A5\uBE44 \uBAA9\uB85D)"),
+      /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '4px', marginBottom: modalMode === 'view' ? '0' : '8px', flexWrap: 'wrap' } },
+        machineList.map((m, idx) => /*#__PURE__*/React.createElement("span", {
+          key: idx,
+          style: {
+            backgroundColor: '#eff6ff',
+            color: '#1d4ed8',
+            border: '1px solid #bfdbfe',
+            padding: '2px 8px',
+            borderRadius: '9999px',
+            fontSize: '0.75rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
+          }
+        }, m, modalMode !== 'view' && /*#__PURE__*/React.createElement("button", {
+          style: { background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontWeight: 'bold' },
+          onClick: () => handleRemoveMachine(idx)
+        }, "\xD7")))
+      ),
+      modalMode !== 'view' && /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '4px', marginTop: '8px' } },
+        /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", style: { flex: 1 }, placeholder: "\uAE30\uC885\uBA85 (\uC608: DX140W)", value: machineInput, onChange: e => setMachineInput(e.target.value), onKeyDown: e => e.key === 'Enter' && handleAddMachine() }),
+        /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", style: { flex: 1 }, placeholder: "\uD638\uAE30\uC218 (\uC608: 1\uD638\uAE30)", value: machineNoInput, onChange: e => setMachineNoInput(e.target.value), onKeyDown: e => e.key === 'Enter' && handleAddMachine() }),
+        /*#__PURE__*/React.createElement("button", { className: "btn btn-outline", onClick: handleAddMachine }, "\uCD94\uAC00")
+      )
+    )
+  ),
+  
+  /*#__PURE__*/React.createElement("div", { className: "form-section" },
+    /*#__PURE__*/React.createElement("div", { className: "section-title" }, "\uD83D\uDCDC \uC138\uAE08\uACC4\uC0B0\uC11C \uC815\uBCF4"),
+    /*#__PURE__*/React.createElement("div", { className: "grid-2" },
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC0AC\uC5C5\uC790\uB4F1\uB85D\uBC88\uD638"),
+        modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value" }, form.bizno || '-') : /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: form.bizno, onChange: e => setForm({ ...form, bizno: e.target.value }) })
+      ),
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uB300\uD45C\uC790\uBA85"),
+        modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value" }, form.repName || '-') : /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: form.repName, onChange: e => setForm({ ...form, repName: e.target.value }) })
+      )
+    ),
+    /*#__PURE__*/React.createElement("div", { className: "form-group" },
+      /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC0AC\uC5C5\uC7A5 \uC8FC\uC18C"),
+      modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value" }, form.addr || '-') : /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: form.addr, onChange: e => setForm({ ...form, addr: e.target.value }) })
+    ),
+    /*#__PURE__*/React.createElement("div", { className: "grid-2" },
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC5C5\uD0DC"),
+        modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value" }, form.bizType || '-') : /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: form.bizType, onChange: e => setForm({ ...form, bizType: e.target.value }) })
+      ),
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC885\uBAA9"),
+        modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value" }, form.bizItem || '-') : /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: form.bizItem, onChange: e => setForm({ ...form, bizItem: e.target.value }) })
+      )
+    ),
+    /*#__PURE__*/React.createElement("div", { className: "form-group" },
+      /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC774\uBA54\uC77C"),
+      modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value" }, form.email || '-') : /*#__PURE__*/React.createElement("input", { type: "email", className: "form-input", value: form.email, onChange: e => setForm({ ...form, email: e.target.value }) })
+    )
+  ),
+  
+  /*#__PURE__*/React.createElement("div", { className: "form-section", style: { borderBottom: 'none' } },
+    /*#__PURE__*/React.createElement("div", { className: "section-title" }, "\uD83D\uDCDD \uBA54\uBAA8 / \uD2B9\uC774\uC0AC\uD56D"),
+    /*#__PURE__*/React.createElement("div", { className: "form-group" },
+      modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value", style: { whiteSpace: 'pre-wrap', minHeight: '40px' } }, form.memo || '-') : /*#__PURE__*/React.createElement("textarea", { className: "form-textarea", rows: "2", value: form.memo, onChange: e => setForm({ ...form, memo: e.target.value }) })
+    )
+  ),
+
+  /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: '0.5rem',
-      marginTop: '1rem'
+      marginTop: '1.5rem',
+      paddingTop: '1rem',
+      borderTop: '1px solid #e2e8f0'
     }
-  }, /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-primary",
-    style: {
-      flex: 1
-    },
-    onClick: handleSave
-  }, isEditMode ? '수정 완료' : '등록 완료'), /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-outline",
-    style: {
-      flex: 1
-    },
-    onClick: () => setShowModal(false)
-  }, "\uB2EB\uAE30 / \uCDE8\uC18C")))), selectMachineCustomer && /*#__PURE__*/React.createElement("div", {
+  }, 
+  modalMode === 'view' ? 
+    /*#__PURE__*/React.createElement(React.Fragment, null, 
+      /*#__PURE__*/React.createElement("button", { className: "btn btn-outline", style: { flex: 1 }, onClick: () => setShowModal(false) }, "\uB2EB\uAE30"),
+      /*#__PURE__*/React.createElement("button", { className: "btn btn-primary", style: { flex: 1 }, onClick: () => setModalMode('edit') }, "\uC218\uC815"),
+      /*#__PURE__*/React.createElement("button", { className: "btn btn-red-outline", style: { flex: 1 }, onClick: () => {
+        if(confirm('정말로 이 고객을 삭제하시겠습니까?')) {
+          onDeleteCustomer(form.id);
+          setShowModal(false);
+        }
+      } }, "\uC0AD\uC81C")
+    ) 
+  : 
+    /*#__PURE__*/React.createElement(React.Fragment, null,
+      /*#__PURE__*/React.createElement("button", { className: "btn btn-primary", style: { flex: 1 }, onClick: handleSave }, modalMode === 'edit' ? '저장' : '등록 완료'),
+      /*#__PURE__*/React.createElement("button", { className: "btn btn-outline", style: { flex: 1 }, onClick: () => {
+        if (modalMode === 'edit') {
+          // Revert to view mode
+          const originalCustomer = customers.find(c => c.id === form.id);
+          if (originalCustomer) handleOpenView(originalCustomer);
+          else setShowModal(false);
+        } else {
+          setShowModal(false);
+        }
+      } }, "\uCDE8\uC18C")
+    )
+  ))), selectMachineCustomer && /*#__PURE__*/React.createElement("div", {
     className: "modal-overlay"
   }, /*#__PURE__*/React.createElement("div", {
     className: "modal-content",
