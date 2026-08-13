@@ -981,6 +981,35 @@ async function sbTestConnection(url, key) {
 }
 
 // ── DB CRUD helpers ────────────────────────────────────────────────────────
+function packRow(r, table) {
+  if (table !== 'customers' && table !== 'suppliers') return { ...r };
+  const standardCols = ['id', 'created_at', 'code', 'name', 'bizno', 'person', 'phone', 'tel', 'bank', 'addr', 'machine', 'memo'];
+  const payload = { ...r };
+  const extraFields = {};
+  for (const key of Object.keys(payload)) {
+    if (!standardCols.includes(key)) {
+      extraFields[key] = payload[key];
+      delete payload[key];
+    }
+  }
+  if (Object.keys(extraFields).length > 0) {
+    payload.memo = (payload.memo || '') + '\n---EXT---\n' + JSON.stringify(extraFields);
+  }
+  return payload;
+}
+
+function unpackRow(r) {
+  if (!r) return r;
+  if (r.memo && r.memo.includes('\n---EXT---\n')) {
+    const parts = r.memo.split('\n---EXT---\n');
+    r.memo = parts[0];
+    try {
+      Object.assign(r, JSON.parse(parts[1]));
+    } catch(e) {}
+  }
+  return r;
+}
+
 async function dbFetch(table, fallback, orderCol = 'code') {
   const sb = getSupabaseClient();
   if (sb) {
@@ -992,53 +1021,40 @@ async function dbFetch(table, fallback, orderCol = 'code') {
         ascending: true
       });
       if (!error && Array.isArray(data) && data.length > 0) {
-        setLocalItem('dd_' + table + '_list_v1', data);
-        return data;
+        const unpacked = data.map(unpackRow);
+        setLocalItem('dd_' + table + '_list_v1', unpacked);
+        return unpacked;
       }
-    } catch (e) {/* fallback */}
+    } catch (e) { console.error(e); }
   }
-  return getLocalItem('dd_' + table + '_list_v1', fallback);
+  return getLocalItem('dd_' + table + '_list_v1', fallback).map(unpackRow);
 }
+
 async function dbSave(table, rowData, isEdit = false, currentList = []) {
   const sb = getSupabaseClient();
   let serverRow = null;
   if (sb) {
     try {
+      const packedData = packRow(rowData, table);
       if (isEdit && rowData.id) {
-        const {
-          id,
-          created_at,
-          ...payload
-        } = rowData;
-        const {
-          data,
-          error
-        } = await sb.from(table).update(payload).eq('id', id).select().single();
-        if (!error) serverRow = data;
+        const { id, created_at, ...payload } = packedData;
+        const { data, error } = await sb.from(table).update(payload).eq('id', id).select().single();
+        if (!error) serverRow = unpackRow(data);
+        else console.error('Supabase update error:', error);
       } else {
-        const {
-          id,
-          ...payload
-        } = rowData;
-        const {
-          data,
-          error
-        } = await sb.from(table).insert(payload).select().single();
-        if (!error) serverRow = data;
+        const { id, created_at, ...payload } = packedData;
+        const { data, error } = await sb.from(table).insert(payload).select().single();
+        if (!error) serverRow = unpackRow(data);
+        else console.error('Supabase insert error:', error);
       }
-    } catch (e) {/* fallback */}
+    } catch (e) { console.error(e); }
   }
   let updated;
   if (isEdit && rowData.id) {
-    updated = currentList.map(r => r.id === rowData.id ? {
-      ...r,
-      ...(serverRow || rowData)
-    } : r);
+    updated = currentList.map(r => r.id === rowData.id ? { ...r, ...(serverRow || rowData) } : r);
   } else {
-    const saved = serverRow || {
-      ...rowData,
-      id: table + '_' + Date.now()
-    };
+    const fallbackId = isEdit && rowData.id ? rowData.id : (table + '_' + Date.now() + Math.random().toString(36).substring(2, 6));
+    const saved = serverRow || { ...rowData, id: fallbackId };
     updated = [saved, ...currentList.filter(r => r.id !== saved.id)];
   }
   setLocalItem('dd_' + table + '_list_v1', updated);
