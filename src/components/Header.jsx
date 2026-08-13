@@ -162,6 +162,12 @@ export default function Header({
             📄 거래명세서 작성
           </button>
           <button
+            className={`tab-btn ${activeTab === 'accounting' ? 'active' : ''}`}
+            onClick={() => setActiveTab('accounting')}
+          >
+            📊 거래처별 회계
+          </button>
+          <button
             className={`tab-btn ${activeTab === 'customers' ? 'active' : ''}`}
             onClick={() => setActiveTab('customers')}
           >

@@ -1,5 +1,5 @@
 import { getAutoClient } from './supabase.js';
-import { INITIAL_SUPPLIERS_LIST, DEMO_CUSTOMERS, DEMO_PARTS } from './defaults.js';
+import { INITIAL_SUPPLIERS_LIST, DEMO_CUSTOMERS, DEMO_PARTS, DEMO_DOCUMENTS } from './defaults.js';
 
 // ─── LocalStorage 유틸 ────────────────────────────────────────────────────────
 
@@ -240,7 +240,7 @@ export async function deletePart(partId) {
 
 // ─── DOCUMENTS ─────────────────────────────────────────────────────────────────
 
-export async function fetchDocuments(limit = 50) {
+export async function fetchDocuments(limit = 100) {
   const sb = getAutoClient();
   if (sb) {
     try {
@@ -249,7 +249,7 @@ export async function fetchDocuments(limit = 50) {
         .select('*')
         .order('created_at', { ascending: false })
         .limit(limit);
-      if (!error && Array.isArray(data)) {
+      if (!error && Array.isArray(data) && data.length > 0) {
         setLocalItem(KEYS.DOCUMENTS, data);
         return data;
       }
@@ -257,7 +257,7 @@ export async function fetchDocuments(limit = 50) {
       console.warn('Supabase fetch documents fallback:', e);
     }
   }
-  return getLocalItem(KEYS.DOCUMENTS, []);
+  return getLocalItem(KEYS.DOCUMENTS, DEMO_DOCUMENTS);
 }
 
 export async function saveDocument(docData) {
@@ -288,10 +288,36 @@ export async function saveDocument(docData) {
     }
   }
 
-  const local = getLocalItem(KEYS.DOCUMENTS, []);
+  const local = getLocalItem(KEYS.DOCUMENTS, DEMO_DOCUMENTS);
   const newDoc = { ...payload, id: savedId, created_at: new Date().toISOString() };
-  setLocalItem(KEYS.DOCUMENTS, [newDoc, ...local]);
-  return newDoc;
+  const updated = [newDoc, ...local];
+  setLocalItem(KEYS.DOCUMENTS, updated);
+  return updated;
+}
+
+export async function updateDocumentPaid(docId, paidAmount, remark) {
+  const sb = getAutoClient();
+  const paidNum = Number(paidAmount) || 0;
+  
+  if (sb) {
+    try {
+      const updateData = { paid: paidNum };
+      if (remark !== undefined) updateData.remark = remark;
+      await sb.from('documents').update(updateData).eq('id', docId);
+    } catch (e) {
+      console.warn('Supabase update document paid fallback:', e);
+    }
+  }
+
+  const local = getLocalItem(KEYS.DOCUMENTS, DEMO_DOCUMENTS);
+  const updated = local.map(d => {
+    if (d.id === docId) {
+      return { ...d, paid: paidNum, ...(remark !== undefined ? { remark } : {}) };
+    }
+    return d;
+  });
+  setLocalItem(KEYS.DOCUMENTS, updated);
+  return updated;
 }
 
 export async function deleteDocument(docId) {
@@ -303,7 +329,8 @@ export async function deleteDocument(docId) {
       console.warn('Supabase delete document fallback:', e);
     }
   }
-  const updated = getLocalItem(KEYS.DOCUMENTS, []).filter(d => d.id !== docId);
+  const local = getLocalItem(KEYS.DOCUMENTS, DEMO_DOCUMENTS);
+  const updated = local.filter(d => d.id !== docId);
   setLocalItem(KEYS.DOCUMENTS, updated);
   return updated;
 }

@@ -538,8 +538,11 @@ html, body, #root {
   body {
     background-color: #ffffff !important;
   }
-  .top-header, .tab-bar-container, .form-panel, .action-buttons-bar, .modal-overlay {
+  .top-header, .tab-bar-container, .form-panel, .action-buttons-bar, .modal-overlay, .no-print {
     display: none !important;
+  }
+  .print-only-header {
+    display: block !important;
   }
   .preview-panel {
     padding: 0 !important;
@@ -555,5 +558,9 @@ html, body, #root {
     height: 100vh !important;
     padding: 20px !important;
     page-break-after: always;
+  }
+  .print-container {
+    padding: 0 !important;
+    margin: 0 !important;
   }
 }

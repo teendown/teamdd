@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Header from './components/Header.jsx';
 import StatementTab from './components/StatementTab.jsx';
+import AccountingTab from './components/AccountingTab.jsx';
 import CustomerTab from './components/CustomerTab.jsx';
 import SupplierTab from './components/SupplierTab.jsx';
 import PartsTab from './components/PartsTab.jsx';
@@ -28,7 +29,9 @@ import {
   savePart,
   deletePart,
   saveDocument,
-  fetchDocuments
+  fetchDocuments,
+  updateDocumentPaid,
+  deleteDocument
 } from './services/storage.js';
 
 export default function App() {
@@ -124,8 +127,19 @@ export default function App() {
     }
   }, []);
 
+  // Documents dataset
+  const [documentsList, setDocumentsList] = useState([]);
+
+  // Load documents initially & on tab change
+  useEffect(() => {
+    fetchDocuments().then(data => setDocumentsList(data));
+  }, []);
+
   // 탭 전환 시 해당 탭 데이터 새로고침
   useEffect(() => {
+    if (activeTab === 'accounting' || activeTab === 'doc') {
+      fetchDocuments().then(data => setDocumentsList(data));
+    }
     if (!isConnected) return;
     if (activeTab === 'customers') {
       fetchCustomers().then(data => setCustomersList(data));
@@ -235,8 +249,21 @@ export default function App() {
       paid,
       remark
     };
-    await saveDocument(docData);
+    const updatedDocs = await saveDocument(docData);
+    if (Array.isArray(updatedDocs)) setDocumentsList(updatedDocs);
     alert(`✓ ${docType} (번호: ${docNo}) 문서가 저장되었습니다!`);
+  };
+
+  const handleUpdateDocumentPaid = async (docId, newPaidAmount, newRemark) => {
+    const updatedDocs = await updateDocumentPaid(docId, newPaidAmount, newRemark);
+    setDocumentsList(updatedDocs);
+    alert('✓ 수금 내역이 성공적으로 업데이트되었습니다.');
+  };
+
+  const handleDeleteDocument = async (docId) => {
+    if (!window.confirm('해당 문서/거래내역을 삭제하시겠습니까?')) return;
+    const updatedDocs = await deleteDocument(docId);
+    setDocumentsList(updatedDocs);
   };
 
   return (
@@ -287,6 +314,16 @@ export default function App() {
             setRemark={setRemark}
             onResetForm={handleResetForm}
             onSaveDocument={handleSaveDocument}
+          />
+        )}
+
+        {activeTab === 'accounting' && (
+          <AccountingTab
+            documents={documentsList}
+            customersList={customersList}
+            suppliersList={suppliersList}
+            onUpdateDocumentPaid={handleUpdateDocumentPaid}
+            onDeleteDocument={handleDeleteDocument}
           />
         )}
 
