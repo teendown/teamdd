@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -750,6 +750,106 @@
     .splash-footer {
       margin-top: 2.5rem; font-size: 0.6875rem;
       color: rgba(255,255,255,0.3); text-align: center;
+    }
+
+    /* ── Splash Login Form Styles ── */
+    .login-form-container {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      padding: 1.75rem 1.5rem;
+      width: 100%;
+      max-width: 320px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      animation: splashFadeIn 0.3s ease;
+      margin: 0 auto;
+    }
+    .login-form-title {
+      font-size: 1.15rem;
+      color: #ffffff;
+      font-weight: 800;
+      margin-bottom: 0.25rem;
+      text-align: center;
+    }
+    .login-form-subtitle {
+      font-size: 0.8125rem;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 1.25rem;
+      text-align: center;
+    }
+    .login-input {
+      background: rgba(255,255,255,0.1);
+      border: 1.5px solid rgba(255,255,255,0.2);
+      border-radius: 12px;
+      width: 100%;
+      height: 44px;
+      font-size: 1.25rem;
+      letter-spacing: 0.3em;
+      text-align: center;
+      color: #ffffff;
+      outline: none;
+      transition: all 0.2s ease;
+      margin-bottom: 0.75rem;
+    }
+    .login-input:focus {
+      background: rgba(255,255,255,0.15);
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.25);
+    }
+    .login-error {
+      color: #fca5a5;
+      font-size: 0.75rem;
+      margin-bottom: 0.75rem;
+      font-weight: 600;
+      text-align: center;
+      min-height: 18px;
+    }
+    .login-buttons {
+      display: flex;
+      gap: 0.5rem;
+      width: 100%;
+    }
+    .login-btn {
+      flex: 1;
+      height: 40px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.875rem;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+    }
+    .login-btn-primary {
+      background: #3b82f6;
+      color: #ffffff;
+    }
+    .login-btn-primary:hover {
+      background: #2563eb;
+    }
+    .login-btn-secondary {
+      background: rgba(255,255,255,0.15);
+      color: #ffffff;
+    }
+    .login-btn-secondary:hover {
+      background: rgba(255,255,255,0.25);
+    }
+    .admin-login-trigger {
+      margin-top: 1.5rem;
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.4);
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: underline;
+      transition: color 0.2s ease;
+    }
+    .admin-login-trigger:hover {
+      color: rgba(255,255,255,0.8);
     }
   
     .view-value {
@@ -2469,7 +2569,9 @@ function Header({
   setSupabaseKey,
   onTestConnection,
   docType,
-  setDocType
+  setDocType,
+  userRole,
+  onLogout
 }) {
   const [showConfig, setShowConfig] = React.useState(false);
   const [copiedSQL, setCopiedSQL] = React.useState(false);
@@ -2487,7 +2589,15 @@ function Header({
     className: "brand-title"
   }, "TEAM D.D"), /*#__PURE__*/React.createElement("span", {
     className: "brand-sub"
-  }, "\uB300\uD55C\uBBFC\uAD6D \uAC74\uC124\uAE30\uACC4 \uC815\uBE44 1\uB4F1")), /*#__PURE__*/React.createElement("button", {
+  }, "\uB300\uD55C\uBBFC\uAD6D \uAC74\uC124\uAE30\uACC4 \uC815\uBE44 1\uB4F1")), /*#__PURE__*/React.createElement("div", {
+    style: { display: 'flex', alignItems: 'center', gap: '0.5rem' }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: { fontSize: '11px', color: '#4b5563', fontWeight: '700', backgroundColor: '#e2e8f0', padding: '2px 8px', borderRadius: '4px' }
+  }, userRole === 'admin' ? '👑 관리자' : '👤 공급자'), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: onLogout,
+    style: { padding: '4px 10px', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: '6px', fontSize: '11px', color: '#b91c1c', fontWeight: '700', cursor: 'pointer' }
+  }, "로그아웃")), /*#__PURE__*/React.createElement("button", {
     type: "button",
     onClick: () => setShowConfig(prev => !prev),
     className: `status-badge ${isConnected ? 'connected' : 'disconnected'}`
@@ -5158,7 +5268,90 @@ function DocHistoryTab({
 function SplashScreen(_ref) {
   var suppliersList = _ref.suppliersList;
   var onSelect = _ref.onSelect;
+  var onSelectAdmin = _ref.onSelectAdmin;
   var avatarColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+  var _useState = React.useState;
+  var _s1 = _useState(null);
+  var selectedSupplier = _s1[0];
+  var setSelectedSupplier = _s1[1];
+  var _s2 = _useState(false);
+  var isAdminMode = _s2[0];
+  var setIsAdminMode = _s2[1];
+  var _s3 = _useState('');
+  var password = _s3[0];
+  var setPassword = _s3[1];
+  var _s4 = _useState('');
+  var error = _s4[0];
+  var setError = _s4[1];
+
+  var handleLogin = function(e) {
+    if (e) e.preventDefault();
+    if (isAdminMode) {
+      var savedAdminPwd = localStorage.getItem('dd_pwd_admin') || '0000';
+      if (password === savedAdminPwd) {
+        setError('');
+        setPassword('');
+        onSelectAdmin();
+      } else {
+        setError('비밀번호가 일치하지 않습니다.');
+      }
+    } else if (selectedSupplier) {
+      var savedPwd = localStorage.getItem('dd_pwd_' + selectedSupplier.id) || '0000';
+      if (password === savedPwd) {
+        setError('');
+        setPassword('');
+        onSelect(selectedSupplier.id);
+      } else {
+        setError('비밀번호가 일치하지 않습니다.');
+      }
+    }
+  };
+
+  var handleCancel = function() {
+    setSelectedSupplier(null);
+    setIsAdminMode(false);
+    setPassword('');
+    setError('');
+  };
+
+  if (selectedSupplier || isAdminMode) {
+    var title = isAdminMode ? '관리자 시스템 로그인' : (selectedSupplier.name || selectedSupplier.company) + ' 로그인';
+    var subtitle = isAdminMode ? '관리자 권한으로 전체 데이터를 제어합니다.' : '공급자 비밀번호를 입력해주세요.';
+    return React.createElement('div', { className: 'splash-screen' },
+      React.createElement('div', { className: 'splash-logo-wrap' },
+        React.createElement('div', { className: 'splash-icon' },
+          React.createElement('svg', { width: 38, height: 38, viewBox: '0 0 24 24', fill: 'none', stroke: '#60a5fa', strokeWidth: 2 },
+            React.createElement('rect', { x: 2, y: 3, width: 20, height: 14, rx: 2 }),
+            React.createElement('path', { d: 'M8 21h8M12 17v4' })
+          )
+        ),
+        React.createElement('div', { className: 'splash-title' },
+          'TEAM ', React.createElement('span', null, 'D.D')
+        ),
+        React.createElement('div', { className: 'splash-subtitle' }, 'Construction Machine Management')
+      ),
+      React.createElement('form', { className: 'login-form-container', onSubmit: handleLogin },
+        React.createElement('div', { className: 'login-form-title' }, title),
+        React.createElement('div', { className: 'login-form-subtitle' }, subtitle),
+        React.createElement('input', {
+          type: 'password',
+          className: 'login-input',
+          maxLength: 12,
+          placeholder: '••••',
+          value: password,
+          onChange: function(e) { setPassword(e.target.value); setError(''); },
+          autoFocus: true
+        }),
+        React.createElement('div', { className: 'login-error' }, error),
+        React.createElement('div', { className: 'login-buttons' },
+          React.createElement('button', { type: 'button', className: 'login-btn login-btn-secondary', onClick: handleCancel }, '뒤로가기'),
+          React.createElement('button', { type: 'submit', className: 'login-btn login-btn-primary' }, '로그인')
+        )
+      ),
+      React.createElement('div', { className: 'splash-footer' }, 'TEAM D.D · 비밀번호 분실 시 관리자에게 문의바람')
+    );
+  }
+
   return React.createElement('div', { className: 'splash-screen' },
     React.createElement('div', { className: 'splash-logo-wrap' },
       React.createElement('div', { className: 'splash-icon' },
@@ -5172,27 +5365,32 @@ function SplashScreen(_ref) {
       ),
       React.createElement('div', { className: 'splash-subtitle' }, 'Construction Machine Management')
     ),
-    React.createElement('div', { className: 'splash-label' }, '\uACF5\uAE09\uC790\uB97C \uC120\uD0DD\uD558\uC138\uC694'),
+    React.createElement('div', { className: 'splash-label' }, '공급자를 선택하세요'),
     React.createElement('div', { className: 'splash-cards' },
       suppliersList.map(function(s, idx) {
         return React.createElement('div', {
           key: s.id,
           className: 'splash-card',
-          onClick: function() { onSelect(s.id); }
+          onClick: function() { setSelectedSupplier(s); }
         },
           React.createElement('div', {
             className: 'splash-card-avatar',
             style: { background: avatarColors[idx % avatarColors.length] + '33', border: '1.5px solid ' + avatarColors[idx % avatarColors.length] + '66' }
-          }, React.createElement('span', { style: { fontSize: '1.25rem' } }, '\uD83C\uDFEC')),
+          }, React.createElement('span', { style: { fontSize: '1.25rem' } }, '🏢')),
           React.createElement('div', { className: 'splash-card-info' },
             React.createElement('div', { className: 'splash-card-name' }, s.name || s.company),
             React.createElement('div', { className: 'splash-card-sub' }, s.bizno || s.phone || '')
           ),
-          React.createElement('div', { className: 'splash-card-arrow' }, '\u203A')
+          React.createElement('div', { className: 'splash-card-arrow' }, '›')
         );
       })
     ),
-    React.createElement('div', { className: 'splash-footer' }, 'TEAM D.D \u00B7 \uB300\uD55C\uBBFC\uAD6D \uAC74\uC124\uAE30\uACC4 \uC815\uBE44 1\uB4F1'),
+    React.createElement('button', {
+      type: 'button',
+      className: 'admin-login-trigger',
+      onClick: function() { setIsAdminMode(true); }
+    }, '관리자 로그인 (Admin)'),
+    React.createElement('div', { className: 'splash-footer' }, 'TEAM D.D · 대한민국 건설기계 정비 1등'),
     React.createElement(InstallPrompt, null)
   );
 }
@@ -5350,10 +5548,13 @@ function App() {
   const [activeTab, setActiveTab] = useState('doc');
   const [openAddCustomerModal, setOpenAddCustomerModal] = useState(false);
   const [editingDocId, setEditingDocId] = useState(null);
-  // Splash login screen - bypass if supplier was already chosen this session
   const [isLoggedIn, setIsLoggedIn] = useState(function() {
     return !!sessionStorage.getItem('dd_logged_in');
   });
+  const [userRole, setUserRole] = useState(function() {
+    return sessionStorage.getItem('dd_user_role') || 'supplier';
+  });
+
 
   // Supabase 연결 상태
   const [supabaseUrl, setSupabaseUrl] = useState(() => localStorage.getItem('supabase_url') || 'https://wmrfwrsaacolkpjyrffy.supabase.co');
@@ -5740,11 +5941,36 @@ function App() {
     setReceiveDate('');
     setRemark('');
     setEditingDocId(null);
-    setIsSavedThisSession(false);
     setPendingReset(false);
     setPendingTab(null);
   };
-  if (!isLoggedIn) return React.createElement(SplashScreen, { suppliersList: suppliersList, onSelect: function(key) { setSelectedSupplierKey(key); localStorage.setItem('selected_supplier_key', key); sessionStorage.setItem('dd_logged_in', '1'); setIsLoggedIn(true); } });
+  const handleLogout = () => {
+    if (window.confirm('로그아웃 하시겠습니까?')) {
+      sessionStorage.removeItem('dd_logged_in');
+      sessionStorage.removeItem('dd_user_role');
+      setIsLoggedIn(false);
+    }
+  };
+  if (!isLoggedIn) {
+    return React.createElement(SplashScreen, {
+      suppliersList: suppliersList,
+      onSelect: function(key) {
+        setSelectedSupplierKey(key);
+        localStorage.setItem('selected_supplier_key', key);
+        sessionStorage.setItem('dd_logged_in', '1');
+        sessionStorage.setItem('dd_user_role', 'supplier');
+        setUserRole('supplier');
+        setIsLoggedIn(true);
+      },
+      onSelectAdmin: function() {
+        sessionStorage.setItem('dd_logged_in', '1');
+        sessionStorage.setItem('dd_user_role', 'admin');
+        setUserRole('admin');
+        setIsLoggedIn(true);
+      }
+    });
+  }
+
 
   return /*#__PURE__*/React.createElement("div", {
     className: "app-container"
@@ -5760,7 +5986,9 @@ function App() {
     setSupabaseKey: setSupabaseKey,
     onTestConnection: handleTestConnection,
     docType: docType,
-    setDocType: handleDocTypeChange
+    setDocType: handleDocTypeChange,
+    userRole: userRole,
+    onLogout: handleLogout
   }), /*#__PURE__*/React.createElement(StatementAggregationModal, {
     isOpen: isAggregationModalOpen,
     onClose: () => setIsAggregationModalOpen(false),
