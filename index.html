@@ -1899,7 +1899,7 @@ function DocumentCanvas({
       fontWeight: '700',
       borderRight: '1px solid rgba(255,255,255,0.2)'
     }
-  }, "No"), /*#__PURE__*/React.createElement("th", {
+  }, "No"), doc.doc_type === '청구서' && /*#__PURE__*/React.createElement("th", {
     style: {
       width: '45px',
       textAlign: 'center',
@@ -1965,7 +1965,7 @@ function DocumentCanvas({
         fontSize: '11px',
         borderRight: '1px solid #e2e8f0'
       }
-    }, item ? pageIdx * ITEMS_PER_PAGE + idx + 1 : ''), /*#__PURE__*/React.createElement("td", {
+    }, item ? pageIdx * ITEMS_PER_PAGE + idx + 1 : ''), doc.doc_type === '청구서' && /*#__PURE__*/React.createElement("td", {
       style: {
         textAlign: 'center',
         color: '#64748b',
@@ -2780,8 +2780,8 @@ function StatementTab({
       price: 0
     }] : items.filter(i => i.id !== item.id))
   }, "\uD83D\uDDD1\uFE0F \uC0AD\uC81C")), /*#__PURE__*/React.createElement("div", {
-    style: { display: 'grid', gridTemplateColumns: '110px 1fr', gap: '4px', marginBottom: '4px' }
-  }, /*#__PURE__*/React.createElement("input", {
+    style: { display: 'grid', gridTemplateColumns: docType === '청구서' ? '110px 1fr' : '1fr', gap: '4px', marginBottom: '4px' }
+  }, docType === '청구서' && /*#__PURE__*/React.createElement("input", {
     type: "date",
     className: "form-input",
     value: item.date || '',
@@ -4742,6 +4742,70 @@ function App() {
   const [receiveDate, setReceiveDate] = useState('');
   const [remark, setRemark] = useState('');
 
+  const [docDrafts, setDocDrafts] = useState({});
+
+  const handleDocTypeChange = (targetType) => {
+    if (docType === targetType) return;
+    
+    // Save current state to drafts
+    setDocDrafts(prev => ({
+      ...prev,
+      [docType]: {
+        customer, docNo, docDate, docTime, items, vatIncluded, vat, paid, paymentStatus, paymentMethod, paymentDate, validityPeriod, deliveryDate, deliveryLocation, paymentTerms, bankAccount, dueDate, receiverName, receiveDate, remark, editingDocId
+      }
+    }));
+
+    // Load from drafts or reset
+    setDocType(targetType);
+    const draft = docDrafts[targetType];
+    if (draft) {
+      setCustomer(draft.customer);
+      setDocNo(draft.docNo);
+      setDocDate(draft.docDate);
+      setDocTime(draft.docTime);
+      setItems(draft.items);
+      setVatIncluded(draft.vatIncluded);
+      setVat(draft.vat);
+      setPaid(draft.paid);
+      setPaymentStatus(draft.paymentStatus);
+      setPaymentMethod(draft.paymentMethod);
+      setPaymentDate(draft.paymentDate);
+      setValidityPeriod(draft.validityPeriod);
+      setDeliveryDate(draft.deliveryDate);
+      setDeliveryLocation(draft.deliveryLocation);
+      setPaymentTerms(draft.paymentTerms);
+      setBankAccount(draft.bankAccount);
+      setDueDate(draft.dueDate);
+      setReceiverName(draft.receiverName);
+      setReceiveDate(draft.receiveDate);
+      setRemark(draft.remark);
+      setEditingDocId(draft.editingDocId);
+    } else {
+      var now = new Date();
+      setCustomer({name: '', person: '', phone: '', addr: ''});
+      setDocNo('' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '-001');
+      setDocDate(now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0'));
+      setDocTime(String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0'));
+      setItems([{ id: Date.now().toString(), code: '', name: '', unit: 'EA', qty: 1, price: 0 }]);
+      setVatIncluded(true);
+      setVat(0);
+      setPaid(0);
+      setPaymentStatus('미수금');
+      setPaymentMethod('계좌이체');
+      setPaymentDate(now.toISOString().split('T')[0]);
+      setValidityPeriod('');
+      setDeliveryDate('');
+      setDeliveryLocation('');
+      setPaymentTerms('');
+      setBankAccount('');
+      setDueDate('');
+      setReceiverName('');
+      setReceiveDate('');
+      setRemark('');
+      setEditingDocId(null);
+    }
+  };
+
   // 미저장 변경사항 상태 관리
   const [isSavedThisSession, setIsSavedThisSession] = useState(true);
   const [isAggregationModalOpen, setIsAggregationModalOpen] = useState(false);
@@ -4954,6 +5018,8 @@ function App() {
   const handleResetForm = () => {
     const now = new Date();
     setDocNo(`${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(Math.floor(Math.random() * 100)).padStart(3, '0')}`);
+    setDocDate(now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0'));
+    setDocTime(String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0'));
     setCustomer({
       name: '',
       person: '',
@@ -5002,7 +5068,7 @@ function App() {
     setSupabaseKey: setSupabaseKey,
     onTestConnection: handleTestConnection,
     docType: docType,
-    setDocType: setDocType
+    setDocType: handleDocTypeChange
   }), /*#__PURE__*/React.createElement(StatementAggregationModal, {
     isOpen: isAggregationModalOpen,
     onClose: () => setIsAggregationModalOpen(false),
