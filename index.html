@@ -1898,8 +1898,14 @@ function DocumentCanvas({
       textAlign: 'center',
       fontWeight: '700',
       borderRight: '1px solid rgba(255,255,255,0.2)'
-    }
   }, "No"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      width: '45px',
+      textAlign: 'center',
+      fontWeight: '700',
+      borderRight: '1px solid rgba(255,255,255,0.2)'
+    }
+  }, "\uC77C\uC790"), /*#__PURE__*/React.createElement("th", {
     style: {
       textAlign: 'center',
       fontWeight: '700',
@@ -1959,6 +1965,13 @@ function DocumentCanvas({
         borderRight: '1px solid #e2e8f0'
       }
     }, item ? pageIdx * ITEMS_PER_PAGE + idx + 1 : ''), /*#__PURE__*/React.createElement("td", {
+      style: {
+        textAlign: 'center',
+        color: '#64748b',
+        fontSize: '10px',
+        borderRight: '1px solid #e2e8f0'
+      }
+    }, item && item.date ? item.date.substring(5).replace('-', '/') : ''), /*#__PURE__*/React.createElement("td", {
       style: {
         padding: '0 8px',
         fontWeight: item ? '700' : 'normal',
@@ -2421,6 +2434,7 @@ function StatementTab({
   customersList,
   items,
   setItems,
+  onAggregateOpen,
   vat,
   setVat,
   vatIncluded,
@@ -2723,8 +2737,15 @@ function StatementTab({
   /*#__PURE__*/React.createElement("div", {
     className: "form-section"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "section-title"
-  }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCE6 \uD488\uBAA9 \uB9AC\uC2A4\uD2B8 (", items.length, "\uAC74)")), items.map((item, idx) => /*#__PURE__*/React.createElement("div", {
+    className: "section-title",
+    style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }
+  }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCE6 \uD488\uBAA9 \uB9AC\uC2A4\uD2B8 (", items.length, "\uAC74)"), 
+    docType === '청구서' && customer && customer.name && /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-secondary",
+      style: { fontSize: '11px', padding: '4px 8px' },
+      onClick: onAggregateOpen
+    }, "🧾 기간별 취합")
+  ), items.map((item, idx) => /*#__PURE__*/React.createElement("div", {
     key: item.id,
     className: "item-card"
   }, /*#__PURE__*/React.createElement("div", {
@@ -2753,7 +2774,15 @@ function StatementTab({
       qty: 1,
       price: 0
     }] : items.filter(i => i.id !== item.id))
-  }, "\uD83D\uDDD1\uFE0F \uC0AD\uC81C")), /*#__PURE__*/React.createElement("input", {
+  }, "\uD83D\uDDD1\uFE0F \uC0AD\uC81C")), /*#__PURE__*/React.createElement("div", {
+    style: { display: 'grid', gridTemplateColumns: '110px 1fr', gap: '4px', marginBottom: '4px' }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    className: "form-input",
+    value: item.date || '',
+    onChange: e => setItems(items.map(i => i.id === item.id ? { ...i, date: e.target.value } : i)),
+    style: { fontSize: '11px', padding: '0.4rem' }
+  }), /*#__PURE__*/React.createElement("input", {
     type: "text",
     className: "form-input",
     placeholder: "\uD488\uBA85 \uBC0F \uADDC\uACA9",
@@ -2763,10 +2792,9 @@ function StatementTab({
       name: e.target.value
     } : i)),
     style: {
-      marginBottom: '4px',
       fontWeight: '700'
     }
-  }), /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'grid',
       gridTemplateColumns: '65px 75px 1fr',
@@ -4544,6 +4572,108 @@ function InstallPrompt() {
   return null;
 }
 
+
+function StatementAggregationModal({ isOpen, onClose, customer, onApply }) {
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+  });
+  const [endDate, setEndDate] = useState(() => {
+    return new Date().toISOString().split('T')[0];
+  });
+  const [statements, setStatements] = useState([]);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && customer && customer.name) {
+      fetchStatements();
+    }
+  }, [isOpen, startDate, endDate]);
+
+  const fetchStatements = async () => {
+    setIsLoading(true);
+    try {
+      // dbFetchDocuments(startDate, endDate)를 호출하고 필터링합니다.
+      // 전역함수 dbFetchDocuments가 있으므로 활용합니다.
+      const docs = await dbFetchDocuments(startDate, endDate);
+      const filtered = docs.filter(d => d.doc_type === '거래명세서' && d.customer_name === customer.name);
+      filtered.sort((a, b) => new Date(a.doc_date) - new Date(b.doc_date));
+      setStatements(filtered);
+      setSelectedIds(new Set(filtered.map(d => d.id)));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleToggle = (id) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedIds(next);
+  };
+
+  const handleApply = () => {
+    const selectedDocs = statements.filter(d => selectedIds.has(d.id));
+    let aggregatedItems = [];
+    selectedDocs.forEach(doc => {
+      if (doc.items && Array.isArray(doc.items)) {
+        doc.items.forEach(item => {
+          if (item.name || item.price > 0) {
+            aggregatedItems.push({
+              ...item,
+              id: Date.now().toString() + Math.random().toString().slice(2, 6),
+              date: doc.doc_date
+            });
+          }
+        });
+      }
+    });
+    onApply(aggregatedItems);
+  };
+
+  if (!isOpen) return null;
+
+  return /*#__PURE__*/React.createElement("div", {
+    style: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center' }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: { backgroundColor: '#fff', borderRadius: '12px', width: '90%', maxWidth: '500px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }
+  },
+    /*#__PURE__*/React.createElement("div", { style: { padding: '16px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+      /*#__PURE__*/React.createElement("h3", { style: { margin: 0, fontSize: '16px', fontWeight: 'bold' } }, "기간별 거래명세서 취합"),
+      /*#__PURE__*/React.createElement("button", { onClick: onClose, style: { background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' } }, "×")
+    ),
+    /*#__PURE__*/React.createElement("div", { style: { padding: '16px', display: 'flex', gap: '8px', alignItems: 'center', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' } },
+      /*#__PURE__*/React.createElement("input", { type: "date", className: "form-input", value: startDate, onChange: e => setStartDate(e.target.value) }),
+      /*#__PURE__*/React.createElement("span", null, "~"),
+      /*#__PURE__*/React.createElement("input", { type: "date", className: "form-input", value: endDate, onChange: e => setEndDate(e.target.value) })
+    ),
+    /*#__PURE__*/React.createElement("div", { style: { flex: 1, overflowY: 'auto', padding: '16px' } },
+      isLoading ? /*#__PURE__*/React.createElement("div", { style: { textAlign: 'center', padding: '20px', color: '#64748b' } }, "조회 중...") :
+      statements.length === 0 ? /*#__PURE__*/React.createElement("div", { style: { textAlign: 'center', padding: '20px', color: '#64748b' } }, "해당 기간에 발행된 거래명세서가 없습니다.") :
+      statements.map(doc => /*#__PURE__*/React.createElement("div", {
+        key: doc.id,
+        style: { display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', marginBottom: '8px', backgroundColor: selectedIds.has(doc.id) ? '#f0f9ff' : '#fff', cursor: 'pointer' },
+        onClick: () => handleToggle(doc.id)
+      }, 
+        /*#__PURE__*/React.createElement("input", { type: "checkbox", checked: selectedIds.has(doc.id), readOnly: true, style: { marginTop: '4px' } }),
+        /*#__PURE__*/React.createElement("div", { style: { flex: 1 } },
+          /*#__PURE__*/React.createElement("div", { style: { fontWeight: 'bold', fontSize: '13px', marginBottom: '4px' } }, `${doc.doc_date} (문서번호: ${doc.doc_no})`),
+          /*#__PURE__*/React.createElement("div", { style: { fontSize: '12px', color: '#64748b' } }, `품목: ${(doc.items || []).filter(i => i.name).map(i => i.name).join(', ')}`),
+          /*#__PURE__*/React.createElement("div", { style: { fontSize: '13px', color: '#0f172a', marginTop: '4px', textAlign: 'right' } }, `총액: ${doc.total_amount.toLocaleString()}원`)
+        )
+      ))
+    ),
+    /*#__PURE__*/React.createElement("div", { style: { padding: '16px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '8px' } },
+      /*#__PURE__*/React.createElement("button", { className: "btn btn-secondary", onClick: onClose }, "취소"),
+      /*#__PURE__*/React.createElement("button", { className: "btn btn-primary", onClick: handleApply, disabled: selectedIds.size === 0 }, `선택한 ${selectedIds.size}건 취합하기`)
+    )
+  ));
+}
+
+
 function App() {
   const [activeTab, setActiveTab] = useState('doc');
   const [openAddCustomerModal, setOpenAddCustomerModal] = useState(false);
@@ -4609,6 +4739,7 @@ function App() {
 
   // 미저장 변경사항 상태 관리
   const [isSavedThisSession, setIsSavedThisSession] = useState(true);
+  const [isAggregationModalOpen, setIsAggregationModalOpen] = useState(false);
   const [pendingTab, setPendingTab] = useState(null);
   const [pendingReset, setPendingReset] = useState(false);
   const isDocumentDirty = React.useMemo(() => {
@@ -4865,6 +4996,18 @@ function App() {
     supabaseKey: supabaseKey,
     setSupabaseKey: setSupabaseKey,
     onTestConnection: handleTestConnection
+  }), /*#__PURE__*/React.createElement(StatementAggregationModal, {
+    isOpen: isAggregationModalOpen,
+    onClose: () => setIsAggregationModalOpen(false),
+    customer: customer,
+    onApply: (aggregatedItems) => {
+      // 빈 항목 제거 후 합치기
+      setItems(prev => {
+        const filtered = prev.filter(i => (i.name && i.name.trim() !== '') || i.price > 0);
+        return [...filtered, ...aggregatedItems];
+      });
+      setIsAggregationModalOpen(false);
+    }
   }), /*#__PURE__*/React.createElement("main", {
     className: "main-content"
   }, activeTab === 'doc' && /*#__PURE__*/React.createElement(StatementTab, {
@@ -4886,6 +5029,7 @@ function App() {
     customersList: customersList,
     items: items,
     setItems: setItems,
+    onAggregateOpen: () => setIsAggregationModalOpen(true),
     vat: vat,
     setVat: setVat,
     vatIncluded: vatIncluded,
