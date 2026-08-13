@@ -1249,9 +1249,7 @@ async function dbFetch(table, fallback, orderCol = 'code') {
         
         // 공급자별 격리 필터
         if (userRole === 'supplier') {
-          if (table === 'suppliers') {
-            unpacked = unpacked.filter(s => areSupplierKeysEquivalent(s.id, selectedSupplierKey));
-          } else if (table === 'customers' || table === 'parts') {
+          if (table === 'customers' || table === 'parts') {
             unpacked = unpacked.filter(item => !item.supplier_key || areSupplierKeysEquivalent(item.supplier_key, selectedSupplierKey));
           }
         }
@@ -1262,9 +1260,7 @@ async function dbFetch(table, fallback, orderCol = 'code') {
   
   let list = getLocalItem('dd_' + table + '_list_v1', fallback).map(unpackRow);
   if (userRole === 'supplier') {
-    if (table === 'suppliers') {
-      list = list.filter(s => areSupplierKeysEquivalent(s.id, selectedSupplierKey));
-    } else if (table === 'customers' || table === 'parts') {
+    if (table === 'customers' || table === 'parts') {
       list = list.filter(item => !item.supplier_key || areSupplierKeysEquivalent(item.supplier_key, selectedSupplierKey));
     }
   }
