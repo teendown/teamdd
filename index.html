@@ -1877,17 +1877,7 @@ function DocumentCanvas({
     /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "입금 계좌번호: "), bankAccount),
     /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "입금 기한: "), dueDate)
   ),
-  (pageIdx === pages.length - 1) && docType === '거래명세서' && /*#__PURE__*/React.createElement("div", {
-    style: { display: 'flex', gap: '16px', marginBottom: '12px', fontSize: '11px', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 16px', backgroundColor: '#f8fafc', justifyContent: 'space-between', alignItems: 'center' }
-  },
-    /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '16px' } }, 
-      /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "인수 일시: "), receiveDate)
-    ),
-    /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '8px', alignItems: 'center' } },
-      /*#__PURE__*/React.createElement("strong", null, "인수자 성명 (서명): "), receiverName,
-      /*#__PURE__*/React.createElement("div", { style: { width: '120px', borderBottom: '1px solid #cbd5e1' } })
-    )
-  ),
+
 
   /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2756,19 +2746,7 @@ function StatementTab({
       )
     )
   ),
-  docType === '거래명세서' && /*#__PURE__*/React.createElement("div", { className: "form-section" },
-    /*#__PURE__*/React.createElement("div", { className: "section-title" }, "거래명세서 상세 정보"),
-    /*#__PURE__*/React.createElement("div", { className: "grid-2" },
-      /*#__PURE__*/React.createElement("div", { className: "form-group" },
-        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "인수자 성명"),
-        /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: receiverName, onChange: e => setReceiverName(e.target.value) })
-      ),
-      /*#__PURE__*/React.createElement("div", { className: "form-group" },
-        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "인수 일시"),
-        /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: receiveDate, onChange: e => setReceiveDate(e.target.value) })
-      )
-    )
-  ),
+
   /*#__PURE__*/React.createElement("div", {
     className: "form-section"
   }, /*#__PURE__*/React.createElement("div", {
