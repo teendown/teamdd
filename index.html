@@ -3421,7 +3421,7 @@ function SupplierTab({
 }) {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
+  const [modalMode, setModalMode] = useState('add');
   const [form, setForm] = useState({
     id: null,
     code: '',
@@ -3431,14 +3431,16 @@ function SupplierTab({
     phone: '',
     fax: '',
     email: '',
-    fax: '',
     bank: '',
     addr: '',
+    bizType: '',
+    bizItem: '',
     memo: ''
   });
+  
   const filtered = suppliers.filter(s => (s.name || '').toLowerCase().includes(search.toLowerCase()) || (s.bizno || '').includes(search) || (s.phone || '').includes(search) || (s.tel || '').includes(search));
-  const handleOpenAdd = () => {
-    setIsEditMode(false);
+  
+  const resetFormState = () => {
     setForm({
       id: null,
       code: `S${String(suppliers.length + 1).padStart(4, '0')}`,
@@ -3448,15 +3450,22 @@ function SupplierTab({
       phone: '',
       fax: '',
       email: '',
-    fax: '',
       bank: '',
       addr: '',
+      bizType: '',
+      bizItem: '',
       memo: ''
     });
+  };
+
+  const handleOpenAdd = () => {
+    setModalMode('add');
+    resetFormState();
     setShowModal(true);
   };
-  const handleOpenEdit = s => {
-    setIsEditMode(true);
+  
+  const handleOpenView = s => {
+    setModalMode('view');
     setForm({
       id: s.id,
       code: s.code || '',
@@ -3468,10 +3477,22 @@ function SupplierTab({
       email: s.email || '',
       bank: s.bank || '',
       addr: s.addr || '',
+      bizType: s.bizType || '',
+      bizItem: s.bizItem || '',
       memo: s.memo || ''
     });
     setShowModal(true);
   };
+
+  const handleSave = () => {
+    if (!form.name) {
+      alert('상호명은 필수입니다.');
+      return;
+    }
+    onSaveSupplier(form, modalMode === 'edit' || modalMode === 'add' ? form.id != null : false);
+    setShowModal(false);
+  };
+
   return /*#__PURE__*/React.createElement("div", {
     className: "management-container"
   }, /*#__PURE__*/React.createElement("div", {
@@ -3526,7 +3547,13 @@ function SupplierTab({
       color: '#4b5563',
       marginBottom: '0.5rem'
     }
-  }, /*#__PURE__*/React.createElement("div", null, "\uB300\uD45C\uC790: ", s.person || '-'), /*#__PURE__*/React.createElement("div", null, "\uC5F0\uB77D\uCC98: ", s.phone || s.tel || '-'), /*#__PURE__*/React.createElement("div", null, "\uC8FC\uC18C: ", s.addr || '-'), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", null, "\uB300\uD45C\uC790: ", s.person || '-'), /*#__PURE__*/React.createElement("div", null, "\uC5F0\uB77D\uCC98: ", s.phone || s.tel || '-'), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textOverflow: 'ellipsis',
+      overflow: 'hidden',
+      whiteSpace: 'nowrap'
+    }
+  }, "\uC8FC\uC18C: ", s.addr || '-'), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: '0.6875rem',
       color: '#9ca3af',
@@ -3545,16 +3572,8 @@ function SupplierTab({
       minHeight: '32px',
       fontSize: '0.75rem'
     },
-    onClick: () => handleOpenEdit(s)
-  }, "\u270F\uFE0F \uC218\uC815"), /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-red-outline",
-    style: {
-      flex: 1,
-      minHeight: '32px',
-      fontSize: '0.75rem'
-    },
-    onClick: () => onDeleteSupplier(s.id)
-  }, "\uD83D\uDDD1\uFE0F \uC0AD\uC81C")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => handleOpenView(s)
+  }, "상세조회")), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-primary",
     style: {
       width: '100%',
@@ -3612,151 +3631,119 @@ function SupplierTab({
       fontSize: '10px',
       padding: '4px 6px'
     },
-    onClick: () => handleOpenEdit(s)
-  }, "\uC218\uC815"), /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-red-outline",
-    style: {
-      fontSize: '10px',
-      padding: '4px 6px'
-    },
-    onClick: () => onDeleteSupplier(s.id)
-  }, "\uC0AD\uC81C"))))))))), showModal && /*#__PURE__*/React.createElement("div", {
+    onClick: () => handleOpenView(s)
+  }, "상세조회"))))))))), showModal && /*#__PURE__*/React.createElement("div", {
     className: "modal-overlay"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "modal-content"
+    className: "modal-content",
+    style: {
+      maxHeight: '90vh',
+      overflowY: 'auto'
+    }
   }, /*#__PURE__*/React.createElement("h3", {
     style: {
       marginBottom: '1rem',
       fontWeight: '900'
     }
-  }, isEditMode ? '✏️ 공급자 정보 수정' : '➕ 새 공급자 등록'), /*#__PURE__*/React.createElement("div", {
-    className: "grid-2"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "form-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label"
-  }, "\uC0C1\uD638\uBA85 *"), /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    className: "form-input",
-    value: form.name,
-    onChange: e => setForm({
-      ...form,
-      name: e.target.value
-    })
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "form-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label"
-  }, "\uC0AC\uC5C5\uC790\uB4F1\uB85D\uBC88\uD638"), /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    className: "form-input",
-    value: form.bizno,
-    onChange: e => setForm({
-      ...form,
-      bizno: e.target.value
-    })
-  }))), /*#__PURE__*/React.createElement("div", {
-    className: "grid-2"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "form-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label"
-  }, "\uB300\uD45C\uC790"), /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    className: "form-input",
-    value: form.person,
-    onChange: e => setForm({
-      ...form,
-      person: e.target.value
-    })
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "form-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label"
-  }, "\uC5F0\uB77D\uCC98"), /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    className: "form-input",
-    value: form.phone,
-    onChange: e => setForm({
-      ...form,
-      phone: e.target.value
-    })
-  }))), /*#__PURE__*/React.createElement("div", {
-    className: "grid-2"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "form-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label"
-  }, "\uD329\uC2A4"), /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    className: "form-input",
-    value: form.fax,
-    onChange: e => setForm({
-      ...form,
-      fax: e.target.value
-    })
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "form-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label"
-  }, "\uC774\uBA54\uC77C"), /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    className: "form-input",
-    value: form.email,
-    onChange: e => setForm({
-      ...form,
-      email: e.target.value
-    })
-  }))), /*#__PURE__*/React.createElement("div", {
-    className: "form-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label"
-  }, "\uC8FC\uC18C"), /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    className: "form-input",
-    value: form.addr,
-    onChange: e => setForm({
-      ...form,
-      addr: e.target.value
-    })
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "form-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label"
-  }, "\uACC4\uC88C\uBC88\uD638 (\uC740\uD589\uBA85 \uD3EC\uD568)"), /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    className: "form-input",
-    value: form.bank,
-    onChange: e => setForm({
-      ...form,
-      bank: e.target.value
-    })
-  })), /*#__PURE__*/React.createElement("div", {
+  }, modalMode === 'add' ? '➕ 새 공급자 등록' : (modalMode === 'edit' ? '✏️ 공급자 정보 수정' : '🔍 공급자 상세 조회')),
+
+  /*#__PURE__*/React.createElement("div", { className: "form-section" },
+    /*#__PURE__*/React.createElement("div", { className: "section-title" }, "\uD83C\uDFE2 \uAE30\uBCF8 \uC815\uBCF4"),
+    /*#__PURE__*/React.createElement("div", { className: "grid-2" },
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC0C1\uD638\uBA85 *"),
+        modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value", style: { fontWeight: '700' } }, form.name) : /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: form.name, onChange: e => setForm({ ...form, name: e.target.value }) })
+      ),
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uB300\uD45C\uC790"),
+        modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value" }, form.person || '-') : /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: form.person, onChange: e => setForm({ ...form, person: e.target.value }) })
+      )
+    ),
+    /*#__PURE__*/React.createElement("div", { className: "grid-2" },
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC5F0\uB77D\uCC98"),
+        modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value" }, form.phone || '-') : /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: form.phone, onChange: e => setForm({ ...form, phone: e.target.value }) })
+      ),
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uD329\uC2A4\uBC88\uD638"),
+        modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value" }, form.fax || '-') : /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: form.fax, onChange: e => setForm({ ...form, fax: e.target.value }) })
+      )
+    )
+  ),
+
+  /*#__PURE__*/React.createElement("div", { className: "form-section" },
+    /*#__PURE__*/React.createElement("div", { className: "section-title" }, "\uD83D\uDCDC \uC138\uAE08\uACC4\uC0B0\uC11C / \uACC4\uC88C \uC815\uBCF4"),
+    /*#__PURE__*/React.createElement("div", { className: "grid-2" },
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC0AC\uC5C5\uC790\uB4F1\uB85D\uBC88\uD638"),
+        modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value" }, form.bizno || '-') : /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: form.bizno, onChange: e => setForm({ ...form, bizno: e.target.value }) })
+      ),
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC774\uBA54\uC77C"),
+        modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value" }, form.email || '-') : /*#__PURE__*/React.createElement("input", { type: "email", className: "form-input", value: form.email, onChange: e => setForm({ ...form, email: e.target.value }) })
+      )
+    ),
+    /*#__PURE__*/React.createElement("div", { className: "form-group" },
+      /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC0AC\uC5C5\uC7A5 \uC8FC\uC18C"),
+      modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value" }, form.addr || '-') : /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: form.addr, onChange: e => setForm({ ...form, addr: e.target.value }) })
+    ),
+    /*#__PURE__*/React.createElement("div", { className: "grid-2" },
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC5C5\uD0DC"),
+        modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value" }, form.bizType || '-') : /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: form.bizType, onChange: e => setForm({ ...form, bizType: e.target.value }) })
+      ),
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC885\uBAA9"),
+        modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value" }, form.bizItem || '-') : /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: form.bizItem, onChange: e => setForm({ ...form, bizItem: e.target.value }) })
+      )
+    ),
+    /*#__PURE__*/React.createElement("div", { className: "form-group" },
+      /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uACC4\uC88C\uBC88\uD638 (\uC740\uD589\uBA85 \uD3EC\uD568)"),
+      modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value" }, form.bank || '-') : /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: form.bank, onChange: e => setForm({ ...form, bank: e.target.value }) })
+    )
+  ),
+
+  /*#__PURE__*/React.createElement("div", { className: "form-section", style: { borderBottom: 'none' } },
+    /*#__PURE__*/React.createElement("div", { className: "section-title" }, "\uD83D\uDCDD \uBA54\uBAA8 / \uD2B9\uC774\uC0AC\uD56D"),
+    /*#__PURE__*/React.createElement("div", { className: "form-group" },
+      modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value", style: { whiteSpace: 'pre-wrap', minHeight: '40px' } }, form.memo || '-') : /*#__PURE__*/React.createElement("textarea", { className: "form-textarea", rows: "2", value: form.memo, onChange: e => setForm({ ...form, memo: e.target.value }) })
+    )
+  ),
+
+  /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: '0.5rem',
-      marginTop: '1rem'
+      marginTop: '1.5rem',
+      paddingTop: '1rem',
+      borderTop: '1px solid #e2e8f0'
     }
-  }, /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-primary",
-    style: {
-      flex: 1
-    },
-    onClick: () => {
-      if (!form.name) {
-        alert('상호명은 필수입니다.');
-        return;
-      }
-      onSaveSupplier(form, isEditMode);
-      setShowModal(false);
-    }
-  }, isEditMode ? '수정 완료' : '등록 완료'), /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-outline",
-    style: {
-      flex: 1
-    },
-    onClick: () => setShowModal(false)
-  }, "\uCDE8\uC18C")))));
+  }, 
+  modalMode === 'view' ? 
+    /*#__PURE__*/React.createElement(React.Fragment, null, 
+      /*#__PURE__*/React.createElement("button", { className: "btn btn-outline", style: { flex: 1 }, onClick: () => setShowModal(false) }, "\uB2EB\uAE30"),
+      /*#__PURE__*/React.createElement("button", { className: "btn btn-primary", style: { flex: 1 }, onClick: () => setModalMode('edit') }, "\uC218\uC815"),
+      /*#__PURE__*/React.createElement("button", { className: "btn btn-red-outline", style: { flex: 1 }, onClick: () => {
+        if(confirm('정말로 이 공급자를 삭제하시겠습니까?')) {
+          onDeleteSupplier(form.id);
+          setShowModal(false);
+        }
+      } }, "\uC0AD\uC81C")
+    ) 
+  : 
+    /*#__PURE__*/React.createElement(React.Fragment, null,
+      /*#__PURE__*/React.createElement("button", { className: "btn btn-primary", style: { flex: 1 }, onClick: handleSave }, modalMode === 'edit' ? '저장' : '등록 완료'),
+      /*#__PURE__*/React.createElement("button", { className: "btn btn-outline", style: { flex: 1 }, onClick: () => {
+        if (modalMode === 'edit') {
+          const originalSupplier = suppliers.find(s => s.id === form.id);
+          if (originalSupplier) handleOpenView(originalSupplier);
+          else setShowModal(false);
+        } else {
+          setShowModal(false);
+        }
+      } }, "\uCDE8\uC18C")
+    )
+  ))));
 }
 function PartsTab({
   parts,
