@@ -2621,8 +2621,21 @@ function StatementTab({
   }, /*#__PURE__*/React.createElement("span", null, "\u2728 \uC2E0\uADDC \uBB38\uC11C \uC791\uC131"))), /*#__PURE__*/React.createElement("div", {
     className: "form-section"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "section-title"
-  }, "\uD83D\uDC65 \uACF5\uAE09\uBC1B\uB294\uC790 (\uAC70\uB798\uCC98)"), /*#__PURE__*/React.createElement("div", {
+    className: "section-title",
+    style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }
+  }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDC65 \uACF5\uAE09\uBC1B\uB294\uC790 (\uAC70\uB798\uCC98)"), 
+    docType === '청구서' && /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-secondary",
+      style: { fontSize: '11px', padding: '4px 8px', backgroundColor: '#3b82f6', color: '#fff', border: 'none' },
+      onClick: () => {
+        if (!customer || !customer.name) {
+          alert('먼저 거래처를 검색하거나 입력해주세요.');
+          return;
+        }
+        onAggregateOpen();
+      }
+    }, "🧾 기간별 명세서 취합")
+  ), /*#__PURE__*/React.createElement("div", {
     className: "form-group",
     style: {
       position: 'relative'
@@ -2738,15 +2751,8 @@ function StatementTab({
   /*#__PURE__*/React.createElement("div", {
     className: "form-section"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "section-title",
-    style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }
-  }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCE6 \uD488\uBAA9 \uB9AC\uC2A4\uD2B8 (", items.length, "\uAC74)"), 
-    docType === '청구서' && customer && customer.name && /*#__PURE__*/React.createElement("button", {
-      className: "btn btn-secondary",
-      style: { fontSize: '11px', padding: '4px 8px' },
-      onClick: onAggregateOpen
-    }, "🧾 기간별 취합")
-  ), items.map((item, idx) => /*#__PURE__*/React.createElement("div", {
+    className: "section-title"
+  }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCE6 \uD488\uBAA9 \uB9AC\uC2A4\uD2B8 (", items.length, "\uAC74)")), items.map((item, idx) => /*#__PURE__*/React.createElement("div", {
     key: item.id,
     className: "item-card"
   }, /*#__PURE__*/React.createElement("div", {
