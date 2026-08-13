@@ -1899,7 +1899,7 @@ function DocumentCanvas({
       fontWeight: '700',
       borderRight: '1px solid rgba(255,255,255,0.2)'
     }
-  }, "No"), doc.doc_type === '청구서' && /*#__PURE__*/React.createElement("th", {
+  }, "No"), docType === '청구서' && /*#__PURE__*/React.createElement("th", {
     style: {
       width: '45px',
       textAlign: 'center',
@@ -1965,7 +1965,7 @@ function DocumentCanvas({
         fontSize: '11px',
         borderRight: '1px solid #e2e8f0'
       }
-    }, item ? pageIdx * ITEMS_PER_PAGE + idx + 1 : ''), doc.doc_type === '청구서' && /*#__PURE__*/React.createElement("td", {
+    }, item ? pageIdx * ITEMS_PER_PAGE + idx + 1 : ''), docType === '청구서' && /*#__PURE__*/React.createElement("td", {
       style: {
         textAlign: 'center',
         color: '#64748b',
