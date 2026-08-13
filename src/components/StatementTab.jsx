@@ -602,6 +602,9 @@ export default function StatementTab({
           vatIncluded={vatIncluded}
           paid={paid}
           remark={remark}
+          setItems={setItems}
+          setCustomer={setCustomer}
+          setRemark={setRemark}
         />
       </div>
     </div>

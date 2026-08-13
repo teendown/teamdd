@@ -1327,8 +1327,20 @@ function DocumentCanvas({
   bankAccount,
   dueDate,
   receiverName,
-  receiveDate
+  receiveDate,
+  setItems,
+  setCustomer,
+  setRemark
 }) {
+  const updateItem = (itemIdx, field, value) => {
+    if (!setItems) return;
+    const newItems = [...items];
+    while (newItems.length <= itemIdx) {
+      newItems.push({ id: (Date.now() + Math.random()).toString(), code: '', name: '', unit: 'EA', qty: 1, price: 0 });
+    }
+    newItems[itemIdx] = { ...newItems[itemIdx], [field]: value };
+    setItems(newItems);
+  };
   const ITEMS_PER_PAGE = 20;
   const totalSupply = items.reduce((sum, item) => sum + (Number(item.qty) || 0) * (Number(item.price) || 0), 0);
   const vatAmount = vatIncluded ? Math.floor(totalSupply * 0.1) : 0;
@@ -3197,7 +3209,10 @@ function StatementTab({
     vat: vat,
     vatIncluded: vatIncluded,
     paid: paid,
-    remark: remark
+    remark: remark,
+    setItems: setItems,
+    setCustomer: setCustomer,
+    setRemark: setRemark
   })));
 }
 function AccountingTab({
