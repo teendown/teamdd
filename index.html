@@ -1237,7 +1237,15 @@ function DocumentCanvas({
   vat,
   vatIncluded,
   paid,
-  remark
+  remark,
+  validityPeriod,
+  deliveryDate,
+  deliveryLocation,
+  paymentTerms,
+  bankAccount,
+  dueDate,
+  receiverName,
+  receiveDate
 }) {
   const ITEMS_PER_PAGE = 20;
   const totalSupply = items.reduce((sum, item) => sum + (Number(item.qty) || 0) * (Number(item.price) || 0), 0);
