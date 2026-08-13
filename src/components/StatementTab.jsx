@@ -32,11 +32,16 @@ export default function StatementTab({
   setRemark,
   onResetForm,
   onSaveDocument,
-  onSelectCustomerFromTab
+  onSelectCustomerFromTab,
+  documentsList = [],
+  onLoadDocument,
+  onCopyDocument
 }) {
   const [showSupplierEdit, setShowSupplierEdit] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [selectedRecentDocId, setSelectedRecentDocId] = useState('');
+  const [selectedRecentDoc, setSelectedRecentDoc] = useState(null);
   const fileInputRef = useRef(null);
 
   // Filter autocomplete customers
@@ -164,6 +169,76 @@ export default function StatementTab({
     <div className="generator-split">
       {/* Left Input Control Form */}
       <div className="form-panel">
+        {/* Recent Document Quick Load Bar */}
+        {documentsList && documentsList.length > 0 && (
+          <div className="form-section" style={{ backgroundColor: '#f0fdf4', border: '1.5px solid #86efac', padding: '0.875rem', borderRadius: '12px', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <div style={{ fontSize: '0.875rem', fontWeight: '800', color: '#166534', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                <span>📂 최근 작성 명세서 퀵 불러오기</span>
+              </div>
+              <span style={{ fontSize: '0.75rem', color: '#15803d', fontWeight: '700' }}>최신 {Math.min(documentsList.length, 10)}건</span>
+            </div>
+
+            <select
+              className="form-select"
+              style={{ backgroundColor: '#ffffff', borderColor: '#86efac', fontWeight: '700', color: '#14532d' }}
+              value={selectedRecentDocId}
+              onChange={(e) => {
+                const docId = e.target.value;
+                if (!docId) {
+                  setSelectedRecentDoc(null);
+                  setSelectedRecentDocId('');
+                  return;
+                }
+                const found = documentsList.find(d => d.id === docId || d.doc_no === docId);
+                if (found) {
+                  setSelectedRecentDoc(found);
+                  setSelectedRecentDocId(docId);
+                }
+              }}
+            >
+              <option value="">-- 불러올 최근 명세서를 선택하세요 --</option>
+              {documentsList.slice(0, 10).map(d => {
+                const rawName = (d.customer_name || d.customer_data?.name || d.customer?.name || '').trim();
+                const custName = (!rawName || rawName === '미지정') ? '거래처미지정' : rawName;
+                const itemsCount = (d.items || []).length;
+                return (
+                  <option key={d.id || d.doc_no} value={d.id || d.doc_no}>
+                    [{d.doc_date || '일자미상'}] {custName} - {d.doc_type || '명세서'} ({d.doc_no || '-'})
+                  </option>
+                );
+              })}
+            </select>
+
+            {selectedRecentDoc && (
+              <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #86efac', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  className="btn btn-green"
+                  style={{ flex: 1, fontSize: '0.8125rem', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                  onClick={() => {
+                    if (onCopyDocument) onCopyDocument(selectedRecentDoc);
+                    setSelectedRecentDoc(null);
+                    setSelectedRecentDocId('');
+                  }}
+                >
+                  📋 이 내용으로 새 명세서 복사 작성
+                </button>
+                <button
+                  className="btn btn-outline"
+                  style={{ flex: 1, fontSize: '0.8125rem', padding: '0.5rem', borderColor: '#16a34a', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                  onClick={() => {
+                    if (onLoadDocument) onLoadDocument(selectedRecentDoc);
+                    setSelectedRecentDoc(null);
+                    setSelectedRecentDocId('');
+                  }}
+                >
+                  ✏️ 기존 명세서 수정하기
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Document Meta Section */}
         <div className="form-section">
           <div className="section-title">📄 문서 기본 설정</div>

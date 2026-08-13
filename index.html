@@ -2554,9 +2554,14 @@ function StatementTab({
   onResetForm,
   onSaveDocument,
   onAddNewCustomer,
-  editingDocId
+  editingDocId,
+  documentsList = [],
+  onLoadDocument,
+  onCopyDocument
 }) {
   const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [selectedRecentDocId, setSelectedRecentDocId] = useState('');
+  const [selectedRecentDoc, setSelectedRecentDoc] = useState(null);
   const matchingCustomers = (customer.name || '').trim() ? customersList.filter(c => (c.name || '').toLowerCase().includes((customer.name || '').toLowerCase())) : [];
   const validateBeforeAction = () => {
     if (!customer || !customer.name || customer.name.trim() === '') {
@@ -5679,7 +5684,10 @@ function App() {
       handleRequestTabChange('customers');
       setOpenAddCustomerModal(true);
     },
-    editingDocId: editingDocId
+    editingDocId: editingDocId,
+    documentsList: documentsList,
+    onLoadDocument: handleLoadDocument,
+    onCopyDocument: handleCopyDocument
   }), activeTab === 'history' && /*#__PURE__*/React.createElement(DocHistoryTab, {
     onLoadDocument: handleLoadDocument,
     onCopyDocument: handleCopyDocument,

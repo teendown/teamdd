@@ -266,6 +266,33 @@ export default function App() {
     setDocumentsList(updatedDocs);
   };
 
+  const handleLoadDocument = (doc) => {
+    if (doc.doc_type || doc.docType) setDocType(doc.doc_type || doc.docType);
+    if (doc.doc_no || doc.docNo) setDocNo(doc.doc_no || doc.docNo);
+    if (doc.doc_date || doc.docDate) setDocDate(doc.doc_date || doc.docDate);
+    if (doc.doc_time || doc.docTime) setDocTime(doc.doc_time || doc.docTime);
+    if (doc.customer_data || doc.customer) setCustomer(doc.customer_data || doc.customer);
+    else if (doc.customer_name) setCustomer({ name: doc.customer_name, person: '', phone: '', addr: '' });
+    if (doc.supplier_key) setSelectedSupplierKey(doc.supplier_key);
+    if (doc.items && Array.isArray(doc.items)) setItems(doc.items);
+    if (doc.vat_included !== undefined) setVatIncluded(doc.vat_included);
+    if (doc.vat !== undefined) setVat(doc.vat);
+    if (doc.paid !== undefined) setPaid(doc.paid);
+    if (doc.remark !== undefined) setRemark(doc.remark);
+    setActiveTab('doc');
+    alert(`✓ [${doc.doc_no || doc.doc_type}] 문서를 불러왔습니다.`);
+  };
+
+  const handleCopyDocument = (doc) => {
+    handleLoadDocument(doc);
+    const now = new Date();
+    const pad = (num) => String(num).padStart(2, '0');
+    setDocDate(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`);
+    setDocTime(`${pad(now.getHours())}:${pad(now.getMinutes())}`);
+    setDocNo(`${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${String(Math.floor(Math.random() * 100)).padStart(3, '0')}`);
+    alert(`✓ [${doc.customer_name || doc.customer?.name || '거래처'}] 내용이 복사되어 오늘 날짜로 새 명세서가 준비되었습니다.`);
+  };
+
   return (
     <div className="app-container">
       {/* Navigation & Connection Header */}
@@ -314,6 +341,9 @@ export default function App() {
             setRemark={setRemark}
             onResetForm={handleResetForm}
             onSaveDocument={handleSaveDocument}
+            documentsList={documentsList}
+            onLoadDocument={handleLoadDocument}
+            onCopyDocument={handleCopyDocument}
           />
         )}
 
