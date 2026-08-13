@@ -982,12 +982,14 @@ async function sbTestConnection(url, key) {
 
 // ── DB CRUD helpers ────────────────────────────────────────────────────────
 function packRow(r, table) {
-  if (table !== 'customers' && table !== 'suppliers') return { ...r };
+  if (table !== 'customers' && table !== 'suppliers' && table !== 'documents') return { ...r };
   let standardCols = [];
   if (table === 'customers') {
     standardCols = ['id', 'created_at', 'code', 'name', 'bizno', 'person', 'phone', 'addr', 'machine', 'memo'];
   } else if (table === 'suppliers') {
     standardCols = ['id', 'created_at', 'code', 'name', 'bizno', 'person', 'phone', 'tel', 'bank', 'addr', 'memo'];
+  } else if (table === 'documents') {
+    standardCols = ['id', 'created_at', 'doc_type', 'doc_no', 'doc_date', 'doc_time', 'customer_name', 'customer_data', 'supplier_key', 'supplier_data', 'items', 'vat', 'vat_included', 'paid', 'remark'];
   }
   const payload = { ...r };
   const extraFields = {};
@@ -998,7 +1000,11 @@ function packRow(r, table) {
     }
   }
   if (Object.keys(extraFields).length > 0) {
-    payload.memo = (payload.memo || '') + '\n---EXT---\n' + JSON.stringify(extraFields);
+    if (table === 'documents') {
+      payload.remark = (payload.remark || '') + '\n---EXT---\n' + JSON.stringify(extraFields);
+    } else {
+      payload.memo = (payload.memo || '') + '\n---EXT---\n' + JSON.stringify(extraFields);
+    }
   }
   return payload;
 }
@@ -1008,9 +1014,12 @@ function unpackRow(r) {
   if (r.memo && r.memo.includes('\n---EXT---\n')) {
     const parts = r.memo.split('\n---EXT---\n');
     r.memo = parts[0];
-    try {
-      Object.assign(r, JSON.parse(parts[1]));
-    } catch(e) {}
+    try { Object.assign(r, JSON.parse(parts[1])); } catch(e) {}
+  }
+  if (r.remark && r.remark.includes('\n---EXT---\n')) {
+    const parts = r.remark.split('\n---EXT---\n');
+    r.remark = parts[0];
+    try { Object.assign(r, JSON.parse(parts[1])); } catch(e) {}
   }
   return r;
 }
@@ -1079,7 +1088,7 @@ async function dbDelete(table, rowId, currentList = []) {
 async function dbSaveDocument(docData) {
   const sb = getSupabaseClient();
   const docId = docData.id || 'doc_' + Date.now();
-  const payload = {
+  const rawPayload = {
     doc_type: docData.docType,
     doc_no: docData.docNo,
     doc_date: docData.docDate,
@@ -1092,30 +1101,38 @@ async function dbSaveDocument(docData) {
     vat: docData.vat || 0,
     vat_included: docData.vatIncluded !== false,
     paid: docData.paid || 0,
-    remark: docData.remark || ''
+    remark: docData.remark || '',
+    paymentStatus: docData.paymentStatus,
+    paymentMethod: docData.paymentMethod,
+    paymentDate: docData.paymentDate
   };
+  const payload = packRow(rawPayload, 'documents');
   if (sb) {
     try {
       if (docData.id && !String(docData.id).startsWith('doc_')) {
-        await sb.from('documents').update(payload).eq('id', docData.id);
+        const { error } = await sb.from('documents').update(payload).eq('id', docData.id);
+        if (error) { console.error('Supabase update error:', error); alert('Supabase update error: ' + (error.message || JSON.stringify(error))); }
       } else {
-        await sb.from('documents').insert(payload);
+        const { error } = await sb.from('documents').insert(payload);
+        if (error) { console.error('Supabase insert error:', error); alert('Supabase insert error: ' + (error.message || JSON.stringify(error))); }
       }
-    } catch (e) {}
+    } catch (e) { console.error(e); }
   }
   const local = getLocalItem('dd_documents_history_v1', []);
   const existingIdx = local.findIndex(d => d.id === docId || d.doc_no === docData.docNo && d.doc_date === docData.docDate);
   let updated;
+  // Always save unpacked payload locally so UI works
+  const localPayload = unpackRow(payload);
   if (existingIdx >= 0) {
     updated = [...local];
     updated[existingIdx] = {
-      ...payload,
+      ...localPayload,
       id: local[existingIdx].id,
       updated_at: new Date().toISOString()
     };
   } else {
     updated = [{
-      ...payload,
+      ...localPayload,
       id: docId,
       created_at: new Date().toISOString()
     }, ...local];
@@ -1134,11 +1151,14 @@ async function dbFetchDocuments() {
       } = await sb.from('documents').select('*').order('created_at', {
         ascending: false
       });
-      if (!error && data && data.length > 0) list = data;
-    } catch (e) {}
+      if (!error && data && data.length > 0) {
+        list = data.map(unpackRow);
+        setLocalItem('dd_documents_history_v1', list);
+      }
+    } catch (e) { console.error(e); }
   }
   if (list.length === 0) {
-    list = getLocalItem('dd_documents_history_v1', []);
+    list = getLocalItem('dd_documents_history_v1', []).map(unpackRow);
   }
   return list;
 }
