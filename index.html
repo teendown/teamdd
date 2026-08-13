@@ -3202,6 +3202,9 @@ function AccountingTab({
   onUpdateDocumentPaid,
   onDeleteDocument
 }) {
+  const useState = React.useState;
+  const useMemo = React.useMemo;
+
   const currentDate = new Date();
   const currentYearStr = String(currentDate.getFullYear());
   const currentMonthStr = String(currentDate.getMonth() + 1).padStart(2, '0');
@@ -3229,7 +3232,7 @@ function AccountingTab({
     return { totalSupply, vatAmount, grandTotal, paid, balance };
   };
 
-  const filteredDocuments = useMemo(() => {
+  const filteredDocuments = React.useMemo(() => {
     return documents.filter(doc => {
       if (doc.doc_date) {
         const [y, m] = doc.doc_date.split('-');
@@ -3258,7 +3261,7 @@ function AccountingTab({
     });
   }, [documents, selectedYear, selectedMonth, selectedCustomer, selectedSupplier, docTypeFilter, searchQuery]);
 
-  const statistics = useMemo(() => {
+  const statistics = React.useMemo(() => {
     let totalSales = 0, totalPaid = 0, totalUnpaid = 0, totalDocsCount = filteredDocuments.length;
     filteredDocuments.forEach(doc => {
       const { grandTotal, paid, balance } = getDocTotals(doc);
@@ -3269,7 +3272,7 @@ function AccountingTab({
     return { totalSales, totalPaid, totalUnpaid, totalDocsCount };
   }, [filteredDocuments]);
 
-  const customerSummaries = useMemo(() => {
+  const customerSummaries = React.useMemo(() => {
     const map = new Map();
     customersList.forEach(c => {
       if (c.name) {
