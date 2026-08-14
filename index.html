@@ -4490,7 +4490,8 @@ function SupplierTab({
     addr: '',
     bizType: '',
     bizItem: '',
-    memo: ''
+    memo: '',
+    pwd: '0000'
   });
   
   const filtered = suppliers.filter(s => (s.name || '').toLowerCase().includes(search.toLowerCase()) || (s.bizno || '').includes(search) || (s.phone || '').includes(search) || (s.tel || '').includes(search));
@@ -4509,7 +4510,8 @@ function SupplierTab({
       addr: '',
       bizType: '',
       bizItem: '',
-      memo: ''
+      memo: '',
+      pwd: '0000'
     });
   };
 
@@ -4534,7 +4536,8 @@ function SupplierTab({
       addr: s.addr || '',
       bizType: s.bizType || '',
       bizItem: s.bizItem || '',
-      memo: s.memo || ''
+      memo: s.memo || '',
+      pwd: s.pwd || localStorage.getItem('dd_pwd_' + s.id) || '0000'
     });
     setShowModal(true);
   };
@@ -4723,6 +4726,13 @@ function SupplierTab({
         /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uD329\uC2A4\uBC88\uD638"),
         modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value" }, form.fax || '-') : /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", value: form.fax, onChange: e => setForm({ ...form, fax: e.target.value }) })
       )
+    ),
+    /*#__PURE__*/React.createElement("div", { className: "grid-2" },
+      /*#__PURE__*/React.createElement("div", { className: "form-group" },
+        /*#__PURE__*/React.createElement("label", { className: "form-label" }, "🔑 \uB85C\uADF8\uC778 \uD544\uC218 \uBE44\uBC00\uC5BC\uD638 (4\uC790\uB9AC \uC22B\uC790)"),
+        modalMode === 'view' ? /*#__PURE__*/React.createElement("div", { className: "view-value", style: { fontFamily: 'monospace', letterSpacing: '2px', fontWeight: 'bold', color: '#1d4ed8' } }, form.pwd || '0000') : /*#__PURE__*/React.createElement("input", { type: "text", maxLength: 4, className: "form-input", style: { fontFamily: 'monospace', letterSpacing: '2px', fontWeight: 'bold' }, placeholder: '0000', value: form.pwd, onChange: e => setForm({ ...form, pwd: e.target.value.replace(/[^0-9]/g, '') }) })
+      ),
+      /*#__PURE__*/React.createElement("div", { className: "form-group" })
     )
   ),
 
@@ -5423,7 +5433,7 @@ function SplashScreen(_ref) {
         setError('비밀번호가 일치하지 않습니다.');
       }
     } else if (selectedSupplier) {
-      var savedPwd = localStorage.getItem('dd_pwd_' + selectedSupplier.id) || '0000';
+      var savedPwd = selectedSupplier.pwd || localStorage.getItem('dd_pwd_' + selectedSupplier.id) || '0000';
       if (password === savedPwd) {
         setError('');
         setPassword('');
@@ -5938,6 +5948,11 @@ function App() {
   const handleSaveSupplier = async (s, isEdit) => {
     const updated = await dbSave('suppliers', s, isEdit, suppliersList);
     setSuppliersList(updated);
+    // 생성 혹은 수정된 공급자 정보를 검색하여 로컬 비밀번호 캐시 동기화
+    const saved = updated.find(x => x.code === s.code);
+    if (saved && s.pwd) {
+      localStorage.setItem('dd_pwd_' + saved.id, s.pwd);
+    }
     alert('✓ 공급자 정보가 저장되었습니다.');
   };
   const handleDeleteSupplier = async id => {
