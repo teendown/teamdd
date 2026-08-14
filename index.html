@@ -1234,7 +1234,7 @@ function areSupplierKeysEquivalent(key1, key2) {
 async function dbFetch(table, fallback, orderCol = 'code') {
   const sb = getSupabaseClient();
   const userRole = sessionStorage.getItem('dd_user_role') || 'supplier';
-  const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || 'sejin';
+  const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || localStorage.getItem('selected_supplier_key') || 'sejin';
   if (sb) {
     try {
       const {
@@ -1270,7 +1270,7 @@ async function dbFetch(table, fallback, orderCol = 'code') {
 async function dbSave(table, rowData, isEdit = false, currentList = []) {
   const sb = getSupabaseClient();
   const userRole = sessionStorage.getItem('dd_user_role') || 'supplier';
-  const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || 'sejin';
+  const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || localStorage.getItem('selected_supplier_key') || 'sejin';
   
   // 공급자별 수정 권한 체크 및 바인딩
   if (userRole === 'supplier') {
@@ -1323,7 +1323,7 @@ async function dbSave(table, rowData, isEdit = false, currentList = []) {
 async function dbDelete(table, rowId, currentList = []) {
   const sb = getSupabaseClient();
   const userRole = sessionStorage.getItem('dd_user_role') || 'supplier';
-  const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || 'sejin';
+  const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || localStorage.getItem('selected_supplier_key') || 'sejin';
   
   // 공급자별 삭제 권한 체크
   if (userRole === 'supplier') {
@@ -1351,7 +1351,7 @@ async function dbDelete(table, rowId, currentList = []) {
 async function dbSaveDocument(docData) {
   const sb = getSupabaseClient();
   const userRole = sessionStorage.getItem('dd_user_role') || 'supplier';
-  const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || 'sejin';
+  const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || localStorage.getItem('selected_supplier_key') || 'sejin';
   
   // 공급자별 권한 체크 및 바인딩
   if (userRole === 'supplier') {
@@ -1430,7 +1430,7 @@ async function dbSaveDocument(docData) {
 async function dbFetchDocuments() {
   const sb = getSupabaseClient();
   const userRole = sessionStorage.getItem('dd_user_role') || 'supplier';
-  const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || 'sejin';
+  const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || localStorage.getItem('selected_supplier_key') || 'sejin';
   
   let list = [];
   if (sb) {
@@ -1461,7 +1461,7 @@ async function dbFetchDocuments() {
 async function dbDeleteDocument(docId) {
   const sb = getSupabaseClient();
   const userRole = sessionStorage.getItem('dd_user_role') || 'supplier';
-  const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || 'sejin';
+  const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || localStorage.getItem('selected_supplier_key') || 'sejin';
   const local = getLocalItem('dd_documents_history_v1', DEMO_DOCUMENTS);
   
   // 공급자별 권한 체크
@@ -1486,7 +1486,7 @@ async function dbDeleteDocument(docId) {
 async function dbUpdateDocumentPaid(docId, paidAmount, remark) {
   const sb = getSupabaseClient();
   const userRole = sessionStorage.getItem('dd_user_role') || 'supplier';
-  const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || 'sejin';
+  const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || localStorage.getItem('selected_supplier_key') || 'sejin';
   const paidNum = Number(paidAmount) || 0;
   const local = getLocalItem('dd_documents_history_v1', DEMO_DOCUMENTS);
   
@@ -4998,12 +4998,22 @@ function DocHistoryTab({
     className: "card-box"
   }, /*#__PURE__*/React.createElement("div", {
     className: "card-box-header"
-  }, /*#__PURE__*/React.createElement("h2", {
-    style: {
-      fontSize: '1.125rem',
-      fontWeight: '900'
-    }
-  }, "\uD83D\uDCC1 \uC800\uC7A5\uB41C \uBB38\uC11C \uAE30\uAC04\uBCC4 \uC870\uD68C \uBC0F \uC218\uC815"), /*#__PURE__*/React.createElement("button", {
+  }, (function() {
+    const sessionRole = sessionStorage.getItem('dd_user_role') || 'supplier';
+    const sessionKey = sessionStorage.getItem('selected_supplier_key') || localStorage.getItem('selected_supplier_key') || 'sejin';
+    const sessionName = sessionRole === 'admin' ? '통합 관리자' : (sessionKey === 'ds_gimje' || sessionKey === '767fd9c8-d5e9-46b0-a7c4-713dac601ae4' ? '디에스건설기계 김제점' : '세진건설기계');
+    return /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }
+    }, /*#__PURE__*/React.createElement("h2", {
+      style: {
+        fontSize: '1.125rem',
+        fontWeight: '900',
+        margin: 0
+      }
+    }, "\uD83D\uDCC1 \uC800\uC7A5\uB41C \uBB38\uC11C \uAE30\uAC04\uBCC4 \uC870\uD68C \uBC0F \uC218\uC815"), /*#__PURE__*/React.createElement("span", {
+      style: { fontSize: '11px', color: '#1e40af', backgroundColor: '#dbeafe', padding: '2px 8px', borderRadius: '12px', fontWeight: '700' }
+    }, `접속: ${sessionName}`));
+  })(), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-outline",
     style: {
       fontSize: '0.75rem'
@@ -6075,6 +6085,7 @@ function App() {
     if (window.confirm('로그아웃 하시겠습니까?')) {
       sessionStorage.removeItem('dd_logged_in');
       sessionStorage.removeItem('dd_user_role');
+      sessionStorage.removeItem('selected_supplier_key');
       setIsLoggedIn(false);
     }
   };
@@ -6084,6 +6095,7 @@ function App() {
       onSelect: function(key) {
         setSelectedSupplierKey(key);
         localStorage.setItem('selected_supplier_key', key);
+        sessionStorage.setItem('selected_supplier_key', key);
         sessionStorage.setItem('dd_logged_in', '1');
         sessionStorage.setItem('dd_user_role', 'supplier');
         setUserRole('supplier');
