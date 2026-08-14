@@ -4515,6 +4515,19 @@ function SupplierTab({
     });
   };
 
+  const handleOpenAdminPwdChange = () => {
+    const currentAdminPwd = localStorage.getItem('dd_pwd_admin') || '0000';
+    const newPwd = prompt('🔑 새로운 관리자 비밀번호를 입력해주세요 (4자리 숫자):', currentAdminPwd);
+    if (newPwd === null) return;
+    const cleaned = newPwd.replace(/[^0-9]/g, '');
+    if (cleaned.length !== 4) {
+      alert('❌ 비밀번호는 반드시 4자리 숫자여야 합니다.');
+      return;
+    }
+    localStorage.setItem('dd_pwd_admin', cleaned);
+    alert('✓ 관리자 비밀번호가 성공적으로 변경되었습니다!');
+  };
+
   const handleOpenAdd = () => {
     setModalMode('add');
     resetFormState();
@@ -4562,10 +4575,16 @@ function SupplierTab({
       fontSize: '1.125rem',
       fontWeight: '900'
     }
-  }, "\uD83C\uDFE2 \uACF5\uAE09\uC790 \uAD00\uB9AC"), /*#__PURE__*/React.createElement("button", {
+  }, "\uD83C\uDFE2 \uACF5\uAE09\uC790 \uAD00\uB9AC"), /*#__PURE__*/React.createElement("div", {
+    style: { display: 'flex', gap: '8px' }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline",
+    style: { fontSize: '0.75rem', padding: '0.4rem 0.75rem', borderColor: '#cbd5e1', color: '#334155' },
+    onClick: handleOpenAdminPwdChange
+  }, "🔑 \uAD00\uB9AC\uC790 \uBE44\uBC88 \uBCC0\uACBD"), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-primary",
     onClick: handleOpenAdd
-  }, "+ \uACF5\uAE09\uC790 \uCD94\uAC00")), /*#__PURE__*/React.createElement("div", {
+  }, "+ \uACF5\uAE09\uC790 \uCD94\uAC00"))), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0.75rem',
       backgroundColor: '#f9fafb'
