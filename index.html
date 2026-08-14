@@ -5599,7 +5599,7 @@ function InstallPrompt() {
 }
 
 
-function StatementAggregationModal({ isOpen, onClose, customer, onApply }) {
+function StatementAggregationModal({ isOpen, onClose, customer, selectedSupplierKey, onApply }) {
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
@@ -5615,7 +5615,7 @@ function StatementAggregationModal({ isOpen, onClose, customer, onApply }) {
     if (isOpen && customer && customer.name) {
       fetchStatements();
     }
-  }, [isOpen, startDate, endDate]);
+  }, [isOpen, startDate, endDate, selectedSupplierKey]);
 
   const fetchStatements = async () => {
     setIsLoading(true);
@@ -5623,7 +5623,11 @@ function StatementAggregationModal({ isOpen, onClose, customer, onApply }) {
       // dbFetchDocuments(startDate, endDate)를 호출하고 필터링합니다.
       // 전역함수 dbFetchDocuments가 있으므로 활용합니다.
       const docs = await dbFetchDocuments(startDate, endDate);
-      const filtered = docs.filter(d => d.doc_type === '거래명세서' && d.customer_name === customer.name);
+      const filtered = docs.filter(d => 
+        d.doc_type === '거래명세서' && 
+        d.customer_name === customer.name &&
+        areSupplierKeysEquivalent(d.supplier_key, selectedSupplierKey)
+      );
       filtered.sort((a, b) => new Date(a.doc_date) - new Date(b.doc_date));
       setStatements(filtered);
       setSelectedIds(new Set(filtered.map(d => d.id)));
@@ -6167,6 +6171,7 @@ function App() {
     isOpen: isAggregationModalOpen,
     onClose: () => setIsAggregationModalOpen(false),
     customer: customer,
+    selectedSupplierKey: selectedSupplierKey,
     onApply: (aggregatedItems) => {
       // 빈 항목 제거 후 합치기
       setItems(prev => {
