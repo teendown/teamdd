@@ -1268,79 +1268,6 @@ async function dbFetch(table, fallback, orderCol = 'code') {
   return list;
 }
 
-// 과거 및 현재 모든 문서에 등장하는 거래처를 customers 고객 마스터로 전수 자동 등록 및 통합
-async function syncCustomersFromDocuments(currentCusts, currentDocs) {
-  if (!currentDocs || currentDocs.length === 0) return currentCusts || [];
-  
-  const custMap = new Map();
-  // 1. 기존 고객 마스터 등록
-  (currentCusts || []).forEach(c => {
-    if (c && c.name && c.name.trim() && c.name.trim() !== '미지정') {
-      custMap.set(c.name.trim().toLowerCase(), { ...c });
-    }
-  });
-
-  let hasNew = false;
-  const newCustsToSave = [];
-
-  // 2. 문서 전수 스캔 및 거래처 흡수
-  currentDocs.forEach(doc => {
-    const rawName = (doc.customer_name || doc.customer_data?.name || '').trim();
-    if (!rawName || rawName === '미지정') return;
-    
-    const key = rawName.toLowerCase();
-    const docCust = doc.customer_data || {};
-    
-    if (!custMap.has(key)) {
-      // 새로운 고객 마스터 생성!
-      const newCustomer = {
-        id: 'cust_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
-        code: `C${String(custMap.size + 1).padStart(4, '0')}`,
-        name: rawName,
-        person: docCust.person || docCust.repName || '',
-        phone: docCust.phone || '',
-        addr: docCust.addr || '',
-        bizno: docCust.bizno || '',
-        repName: docCust.repName || docCust.person || '',
-        machine: docCust.machine || docCust.selectedMachine || '',
-        memo: '과거 발행 문서에서 자동 등록됨'
-      };
-      custMap.set(key, newCustomer);
-      newCustsToSave.push(newCustomer);
-      hasNew = true;
-    } else {
-      // 이미 존재하는 고객이라도, 연락처/주소 등이 비어있고 문서에 정보가 있으면 보충
-      const existing = custMap.get(key);
-      let updated = false;
-      if (!existing.phone && docCust.phone) { existing.phone = docCust.phone; updated = true; }
-      if (!existing.person && docCust.person) { existing.person = docCust.person; updated = true; }
-      if (!existing.addr && docCust.addr) { existing.addr = docCust.addr; updated = true; }
-      if (!existing.bizno && docCust.bizno) { existing.bizno = docCust.bizno; updated = true; }
-      if (updated) hasNew = true;
-    }
-  });
-
-  const mergedList = Array.from(custMap.values());
-
-  if (hasNew) {
-    // 로컬 스토리지에 즉시 최신 반영
-    setLocalItem('dd_customers_list_v1', mergedList);
-    // Supabase DB에도 신규 고객들 비동기 백그라운드 저장
-    const sb = getSupabaseClient();
-    if (sb && newCustsToSave.length > 0) {
-      try {
-        for (const nc of newCustsToSave) {
-          const packed = packRow(nc, 'customers');
-          const { id, created_at, ...payload } = packed;
-          await sb.from('customers').insert(payload);
-        }
-      } catch (e) { console.error('Auto-sync customers insert error:', e); }
-    }
-  }
-
-  return mergedList;
-}
-
 async function dbSave(table, rowData, isEdit = false, currentList = []) {
   const sb = getSupabaseClient();
   const userRole = sessionStorage.getItem('dd_user_role') || 'supplier';
@@ -3033,30 +2960,7 @@ function StatementTab({
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [selectedRecentDocId, setSelectedRecentDocId] = useState('');
   const [selectedRecentDoc, setSelectedRecentDoc] = useState(null);
-  
-  // 1글자 타이핑 즉시 상호+담당자+전화번호+사업자번호 실시간 통합 리스트업
-  const matchingCustomers = React.useMemo(() => {
-    const rawQ = (customer.name || '').trim();
-    if (!rawQ) return [];
-    const q = rawQ.toLowerCase();
-    const cleanNum = rawQ.replace(/[^0-9]/g, '');
-
-    return customersList.filter(c => {
-      if (!c || !c.name) return false;
-      const name = (c.name || '').toLowerCase();
-      const person = (c.person || c.repName || '').toLowerCase();
-      const phone = (c.phone || '').replace(/[^0-9]/g, '');
-      const bizno = (c.bizno || '').replace(/[^0-9]/g, '');
-      const addr = (c.addr || '').toLowerCase();
-
-      if (name.includes(q)) return true;
-      if (person.includes(q)) return true;
-      if (cleanNum && cleanNum.length >= 1 && phone.includes(cleanNum)) return true;
-      if (cleanNum && cleanNum.length >= 2 && bizno.includes(cleanNum)) return true;
-      if (addr.includes(q)) return true;
-      return false;
-    }).slice(0, 15); // 최대 15개 추천
-  }, [customer.name, customersList]);
+  const matchingCustomers = (customer.name || '').trim() ? customersList.filter(c => (c.name || '').toLowerCase().includes((customer.name || '').toLowerCase())) : [];
   const validateBeforeAction = () => {
     if (!customer || !customer.name || customer.name.trim() === '') {
       alert('❌ 거래처(공급받는자)를 입력해 주세요.\n거래처가 비어 있으면 인쇄·저장·다운로드가 불가합니다.');
@@ -3375,11 +3279,10 @@ function StatementTab({
     onClick: () => {
       setCustomer({
         name: c.name,
-        person: c.person || c.repName || '',
-        phone: c.phone || '',
-        addr: c.addr || '',
-        bizno: c.bizno || '',
-        selectedMachine: c.selectedMachine || c.machine || ''
+        person: c.person,
+        phone: c.phone,
+        addr: c.addr,
+        selectedMachine: c.selectedMachine
       });
       setShowAutocomplete(false);
     }
@@ -4500,51 +4403,20 @@ function CustomerTab({
   onDeleteCustomer,
   onSelectCustomer,
   openAddModal,
-  setOpenAddModal,
-  onSyncCustomers
+  setOpenAddModal
 }) {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState('add');
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [selectMachineCustomer, setSelectMachineCustomer] = useState(null);
-  const [isSyncing, setIsSyncing] = useState(false);
   
-  const filtered = customers.filter(c => {
-    if (!c || !c.name) return false;
-    if (!search.trim()) return true;
-    const q = search.trim().toLowerCase();
-    const cleanNum = search.trim().replace(/[^0-9]/g, '');
-
-    const name = (c.name || '').toLowerCase();
-    const person = (c.person || c.repName || '').toLowerCase();
-    const phone = (c.phone || '').replace(/[^0-9]/g, '');
-    const bizno = (c.bizno || '').replace(/[^0-9]/g, '');
-    const addr = (c.addr || '').toLowerCase();
-    const machine = (c.machine || '').toLowerCase();
-    const memo = (c.memo || '').toLowerCase();
-
-    return name.includes(q) || 
-           person.includes(q) || 
-           (cleanNum.length >= 1 && phone.includes(cleanNum)) || 
-           (cleanNum.length >= 2 && bizno.includes(cleanNum)) || 
-           addr.includes(q) || 
-           machine.includes(q) || 
-           memo.includes(q);
-  });
+  const filtered = customers.filter(c => (c.name || '').toLowerCase().includes(search.toLowerCase()) || (c.phone || '').includes(search) || (c.person || '').includes(search) || (c.machine || '').toLowerCase().includes(search.toLowerCase()));
 
   const handleOpenAdd = () => {
     setModalMode('add');
     setEditingCustomer(null);
     setShowModal(true);
-  };
-
-  const handleManualSync = async () => {
-    if (!onSyncCustomers) return;
-    setIsSyncing(true);
-    await onSyncCustomers();
-    setIsSyncing(false);
-    alert('✓ 발행된 모든 문서의 거래처가 고객관리에 완벽하게 동기화되었습니다!');
   };
 
   React.useEffect(() => {
@@ -4609,19 +4481,10 @@ function CustomerTab({
       fontSize: '1.125rem',
       fontWeight: '900'
     }
-  }, "\uD83D\uDC65 \uACE0\uAC1D (\uAC70\uB798\uCC98) \uAD00\uB9AC"), 
-  /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '0.5rem', flexWrap: 'wrap' } },
-    /*#__PURE__*/React.createElement("button", {
-      className: "btn btn-outline",
-      style: { fontSize: '0.75rem', padding: '0.4rem 0.75rem', display: 'flex', alignItems: 'center', gap: '4px' },
-      onClick: handleManualSync,
-      disabled: isSyncing
-    }, isSyncing ? "⏳ 동기화 중..." : "🔄 문서 거래처 동기화"),
-    /*#__PURE__*/React.createElement("button", {
-      className: "btn btn-primary",
-      onClick: handleOpenAdd
-    }, "+ \uAC70\uB798\uCC98 \uCD94\uAC00")
-  )), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDC65 \uACE0\uAC1D (\uAC70\uB798\uCC98) \uAD00\uB9AC"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-primary",
+    onClick: handleOpenAdd
+  }, "+ \uAC70\uB798\uCC98 \uCD94\uAC00")), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0.75rem',
       backgroundColor: '#f9fafb'
@@ -6478,19 +6341,12 @@ function App() {
   const [documentsList, setDocumentsList] = useState([]);
 
   const handleReloadDocuments = useCallback(() => {
-    dbFetchDocuments().then(async data => {
-      setDocumentsList(data);
-      // 문서 속 거래처(남원국토 등)를 customers 고객 마스터로 전수 자동 동기화
-      const synced = await syncCustomersFromDocuments(customersList, data);
-      if (synced && synced.length > 0) {
-        setCustomersList(synced);
-      }
-    });
-  }, [selectedSupplierKey, customersList]);
+    dbFetchDocuments().then(data => setDocumentsList(data));
+  }, [selectedSupplierKey]);
 
   useEffect(() => {
     handleReloadDocuments();
-  }, []);
+  }, [handleReloadDocuments]);
 
   // 로그인 상태 또는 공급자 변경 시 전체 데이터 리로드
   useEffect(() => {
@@ -6569,44 +6425,6 @@ function App() {
       alert('❌ 품목을 1개 이상 입력해 주세요.\n품목이 비어 있으면 저장이 불가합니다.');
       return;
     }
-
-    const trimmedCustName = customer.name.trim();
-
-    // 1. 거래처 고객 마스터(customers) 자동 등록 / 정보 최신화
-    try {
-      const existingCust = customersList.find(c => (c.name || '').trim().toLowerCase() === trimmedCustName.toLowerCase());
-      let currentCustList = customersList;
-      if (!existingCust) {
-        const newCust = {
-          code: `C${String(customersList.length + 1).padStart(4, '0')}`,
-          name: trimmedCustName,
-          person: customer.person || '',
-          phone: customer.phone || '',
-          addr: customer.addr || '',
-          bizno: customer.bizno || '',
-          machine: customer.selectedMachine || customer.machine || '',
-          memo: '문서 작성 시 자동 등록'
-        };
-        currentCustList = await dbSave('customers', newCust, false, customersList);
-        setCustomersList(currentCustList);
-      } else {
-        // 기존 거래처 정보 최신화 (연락처/주소 등이 새로 입력된 경우)
-        let needsUpdate = false;
-        const updatedCust = { ...existingCust };
-        if (customer.person && existingCust.person !== customer.person) { updatedCust.person = customer.person; needsUpdate = true; }
-        if (customer.phone && existingCust.phone !== customer.phone) { updatedCust.phone = customer.phone; needsUpdate = true; }
-        if (customer.addr && existingCust.addr !== customer.addr) { updatedCust.addr = customer.addr; needsUpdate = true; }
-        if (customer.bizno && existingCust.bizno !== customer.bizno) { updatedCust.bizno = customer.bizno; needsUpdate = true; }
-        if (needsUpdate) {
-          currentCustList = await dbSave('customers', updatedCust, true, customersList);
-          setCustomersList(currentCustList);
-        }
-      }
-    } catch (err) {
-      console.error('Customer master upsert error:', err);
-    }
-
-    // 2. 문서 저장
     await dbSaveDocument({
       id: editingDocId,
       docType,
@@ -6902,10 +6720,6 @@ function App() {
     setOpenAddModal: setOpenAddCustomerModal,
     onSaveCustomer: handleSaveCustomer,
     onDeleteCustomer: handleDeleteCustomer,
-    onSyncCustomers: async () => {
-      const synced = await syncCustomersFromDocuments(customersList, documentsList);
-      if (synced && synced.length > 0) setCustomersList(synced);
-    },
     onSelectCustomer: c => {
       setCustomer(c);
       if (c.selectedMachine) {
