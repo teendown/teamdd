@@ -1223,6 +1223,7 @@ function unpackRow(r) {
 }
 
 function areSupplierKeysEquivalent(key1, key2) {
+  if (!key1 || !key2) return false;
   if (key1 === key2) return true;
   const sejinKeys = ['sejin', 'cc76e46a-935a-455b-9070-0a4465035c19'];
   const gimjeKeys = ['ds_gimje', '767fd9c8-d5e9-46b0-a7c4-713dac601ae4'];
@@ -1247,9 +1248,9 @@ async function dbFetch(table, fallback, orderCol = 'code') {
         let unpacked = data.map(unpackRow);
         setLocalItem('dd_' + table + '_list_v1', unpacked);
         
-        // 공급자별 격리 필터
+        // 공급자별 격리 필터 (거래처 customers는 전체 공급자 공유)
         if (userRole === 'supplier') {
-          if (table === 'customers' || table === 'parts') {
+          if (table === 'parts') {
             unpacked = unpacked.filter(item => !item.supplier_key || areSupplierKeysEquivalent(item.supplier_key, selectedSupplierKey));
           }
         }
@@ -1260,7 +1261,7 @@ async function dbFetch(table, fallback, orderCol = 'code') {
   
   let list = getLocalItem('dd_' + table + '_list_v1', fallback).map(unpackRow);
   if (userRole === 'supplier') {
-    if (table === 'customers' || table === 'parts') {
+    if (table === 'parts') {
       list = list.filter(item => !item.supplier_key || areSupplierKeysEquivalent(item.supplier_key, selectedSupplierKey));
     }
   }
@@ -1272,14 +1273,14 @@ async function dbSave(table, rowData, isEdit = false, currentList = []) {
   const userRole = sessionStorage.getItem('dd_user_role') || 'supplier';
   const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || localStorage.getItem('selected_supplier_key') || 'sejin';
   
-  // 공급자별 수정 권한 체크 및 바인딩
+  // 공급자별 수정 권한 체크 및 바인딩 (거래처 customers는 전원 공유/수정 가능)
   if (userRole === 'supplier') {
     if (table === 'suppliers') {
       if (!areSupplierKeysEquivalent(rowData.id, selectedSupplierKey)) {
         alert('본인의 공급자 정보만 수정할 수 있습니다.');
         return currentList;
       }
-    } else if (table === 'customers' || table === 'parts') {
+    } else if (table === 'parts') {
       rowData.supplier_key = selectedSupplierKey;
       if (isEdit && rowData.id) {
         const found = currentList.find(r => r.id === rowData.id);
@@ -3566,7 +3567,7 @@ function AccountingTab({
       }
       if (selectedSupplier !== 'all') {
         const suppKey = doc.supplier_key || '';
-        if (suppKey !== selectedSupplier) return false;
+        if (!areSupplierKeysEquivalent(suppKey, selectedSupplier)) return false;
       }
       if (docTypeFilter !== 'all' && doc.doc_type !== docTypeFilter) return false;
 
@@ -3730,10 +3731,9 @@ function AccountingTab({
             React.createElement("option", { value: "all" }, "🏢 전체 거래처"),
             customersList.map(c => React.createElement("option", { key: c.id || c.name, value: c.name }, c.name))
           ),
-          React.createElement("select", { className: "form-input", style: { width: '140px' }, value: selectedSupplier, onChange: e => setSelectedSupplier(e.target.value) },
+          sessionStorage.getItem('dd_user_role') === 'admin' && React.createElement("select", { className: "form-input", style: { width: '140px' }, value: selectedSupplier, onChange: e => setSelectedSupplier(e.target.value) },
             React.createElement("option", { value: "all" }, "🏪 전체 공급자"),
-            React.createElement("option", { value: "sejin" }, "세진건설기계"),
-            React.createElement("option", { value: "ds_gimje" }, "디에스김제점")
+            suppliersList.map(s => React.createElement("option", { key: s.id, value: s.id }, s.name || s.company))
           ),
           React.createElement("select", { className: "form-input", style: { width: '120px' }, value: docTypeFilter, onChange: e => setDocTypeFilter(e.target.value) },
             React.createElement("option", { value: "all" }, "📄 전체 문서"),
