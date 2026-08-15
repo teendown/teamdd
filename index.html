@@ -1718,7 +1718,7 @@ async function dbDeleteDocument(docId) {
     const found = local.find(d => d.id === docId || d.doc_no === docId);
     if (found && found.supplier_key && !areSupplierKeysEquivalent(found.supplier_key, selectedSupplierKey)) {
       alert('해당 문서를 삭제할 권한이 없습니다.');
-      return local.filter(unpackRow);
+      return local.filter(d => areSupplierKeysEquivalent(d.supplier_key, selectedSupplierKey));
     }
   }
 
@@ -1736,12 +1736,18 @@ async function dbDeleteDocument(docId) {
     return d;
   });
   setLocalItem('dd_documents_history_v1', updated);
+
+  if (userRole === 'supplier') {
+    return updated.filter(d => areSupplierKeysEquivalent(d.supplier_key, selectedSupplierKey));
+  }
   return updated;
 }
 
 // 삭제된 문서 복원 (휴지통에서 되살리기)
 async function dbRestoreDocument(docId) {
   const sb = getSupabaseClient();
+  const userRole = sessionStorage.getItem('dd_user_role') || 'supplier';
+  const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || localStorage.getItem('selected_supplier_key') || 'sejin';
   const local = getLocalItem('dd_documents_history_v1', DEMO_DOCUMENTS);
 
   if (sb && docId && !String(docId).startsWith('doc_')) {
@@ -1757,12 +1763,18 @@ async function dbRestoreDocument(docId) {
     return d;
   });
   setLocalItem('dd_documents_history_v1', updated);
+
+  if (userRole === 'supplier') {
+    return updated.filter(d => areSupplierKeysEquivalent(d.supplier_key, selectedSupplierKey));
+  }
   return updated;
 }
 
 // 완전 영구 삭제 (휴지통 비우기)
 async function dbPermanentDeleteDocument(docId) {
   const sb = getSupabaseClient();
+  const userRole = sessionStorage.getItem('dd_user_role') || 'supplier';
+  const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || localStorage.getItem('selected_supplier_key') || 'sejin';
   const local = getLocalItem('dd_documents_history_v1', DEMO_DOCUMENTS);
 
   if (sb && docId && !String(docId).startsWith('doc_')) {
@@ -1773,6 +1785,10 @@ async function dbPermanentDeleteDocument(docId) {
 
   const updated = local.filter(d => d.id !== docId && d.doc_no !== docId);
   setLocalItem('dd_documents_history_v1', updated);
+
+  if (userRole === 'supplier') {
+    return updated.filter(d => areSupplierKeysEquivalent(d.supplier_key, selectedSupplierKey));
+  }
   return updated;
 }
 
@@ -5657,24 +5673,24 @@ function DocHistoryTab({
     }
     if (!confirm(confirmMsg)) return;
 
-    const updated = await dbDeleteDocument(doc.id);
-    setDocuments(updated);
+    await dbDeleteDocument(doc.id);
+    await loadDocs();
     alert('✓ 문서가 휴지통으로 안전하게 이동되었습니다.');
   };
 
   // 휴지통에서 복원
   const handleRestore = async doc => {
     if (!confirm(`[${doc.doc_no || doc.doc_type}] 문서를 원래 목록으로 복원하시겠습니까?`)) return;
-    const updated = await dbRestoreDocument(doc.id);
-    setDocuments(updated);
+    await dbRestoreDocument(doc.id);
+    await loadDocs();
     alert('✓ 문서가 성공적으로 복원되었습니다.');
   };
 
   // 영구 삭제
   const handlePermanentDelete = async doc => {
     if (!confirm(`⚠️ 경고: [${doc.doc_no || doc.doc_type}] 문서를 완전히 영구 삭제하시겠습니까?\n영구 삭제 후에는 절대 복구할 수 없습니다!`)) return;
-    const updated = await dbPermanentDeleteDocument(doc.id);
-    setDocuments(updated);
+    await dbPermanentDeleteDocument(doc.id);
+    await loadDocs();
     alert('✓ 문서가 완전히 영구 삭제되었습니다.');
   };
 
