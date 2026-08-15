@@ -1614,11 +1614,67 @@ function DocumentCanvas({
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-  const pages = [];
-  for (let i = 0; i < items.length; i += ITEMS_PER_PAGE) {
-    pages.push(items.slice(i, i + ITEMS_PER_PAGE));
-  }
-  if (pages.length === 0) pages.push([]);
+
+  const ITEMS_PER_PAGE_LAST = 20; // 푸터가 있는 마지막 페이지 (20줄)
+  const ITEMS_PER_PAGE_MIDDLE = 27; // 푸터가 없는 중간 페이지 (27줄)
+
+  const calculateDocumentPages = () => {
+    if (items.length <= ITEMS_PER_PAGE_LAST) {
+      return [{
+        pageIndex: 0,
+        items: items,
+        isLastPage: true,
+        maxRows: ITEMS_PER_PAGE_LAST,
+        startIndex: 0
+      }];
+    }
+
+    const resultPages = [];
+    let currentIdx = 0;
+
+    while (currentIdx < items.length) {
+      const remaining = items.length - currentIdx;
+
+      // 남은 항목이 마지막 페이지 정원(20개) 이하인 경우 -> 마지막 페이지로 생성 후 종료
+      if (remaining <= ITEMS_PER_PAGE_LAST) {
+        resultPages.push({
+          pageIndex: resultPages.length,
+          items: items.slice(currentIdx, currentIdx + remaining),
+          isLastPage: true,
+          maxRows: ITEMS_PER_PAGE_LAST,
+          startIndex: currentIdx
+        });
+        break;
+      }
+
+      // 남은 항목이 21~27개인 경우: 마지막 페이지에 최소 1개 이상을 남겨두기 위해 분할
+      if (remaining <= ITEMS_PER_PAGE_MIDDLE) {
+        const firstChunk = Math.min(remaining - 1, 16);
+        resultPages.push({
+          pageIndex: resultPages.length,
+          items: items.slice(currentIdx, currentIdx + firstChunk),
+          isLastPage: false,
+          maxRows: ITEMS_PER_PAGE_MIDDLE,
+          startIndex: currentIdx
+        });
+        currentIdx += firstChunk;
+      } else {
+        // 28개 이상이면 중간 페이지에 27개 꽉 채움
+        resultPages.push({
+          pageIndex: resultPages.length,
+          items: items.slice(currentIdx, currentIdx + ITEMS_PER_PAGE_MIDDLE),
+          isLastPage: false,
+          maxRows: ITEMS_PER_PAGE_MIDDLE,
+          startIndex: currentIdx
+        });
+        currentIdx += ITEMS_PER_PAGE_MIDDLE;
+      }
+    }
+
+    return resultPages.length > 0 ? resultPages : [{ pageIndex: 0, items: [], isLastPage: true, maxRows: ITEMS_PER_PAGE_LAST, startIndex: 0 }];
+  };
+
+  const pages = calculateDocumentPages();
   const supplierName = supplier.company || supplier.name || '디에스건설기계 김제점';
   const supplierRep = supplier.person || supplier.owner || (supplier.name !== supplier.company ? supplier.name : '-') || '-';
   return /*#__PURE__*/React.createElement("div", {
@@ -1630,7 +1686,7 @@ function DocumentCanvas({
       width: '100%',
       overflow: 'hidden'
     }
-  }, pages.map((pageItems, pageIdx) => /*#__PURE__*/React.createElement("div", {
+  }, pages.map((pageInfo, pageIdx) => /*#__PURE__*/React.createElement("div", {
     key: pageIdx,
     className: "document-page-wrapper",
     style: {
@@ -2309,9 +2365,9 @@ function DocumentCanvas({
       fontWeight: '700'
     }
   }, "\uBE44\uACE0"))), /*#__PURE__*/React.createElement("tbody", null, Array.from({
-    length: ITEMS_PER_PAGE
+    length: pageInfo.maxRows
   }).map((_, idx) => {
-    const realIdx = pageIdx * ITEMS_PER_PAGE + idx;
+    const realIdx = pageInfo.startIndex + idx;
     const item = items[realIdx];
     const amount = item ? (Number(item.qty) || 0) * (Number(item.price) || 0) : 0;
     return /*#__PURE__*/React.createElement("tr", {
@@ -2415,7 +2471,7 @@ function DocumentCanvas({
       value: (item && (item.memo || item.remark)) || '',
       onChange: function(e) { updateItem(realIdx, 'memo', e.target.value); }
     }) : ((item && (item.memo || item.remark)) || '')));
-  }))))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }))))), pageInfo.isLastPage ? /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       border: '1px solid #cbd5e1',
       borderRadius: '10px',
@@ -2671,7 +2727,24 @@ function DocumentCanvas({
       fontFamily: 'monospace',
       fontSize: '11.5px'
     }
-  }, supplier.bank || '문의바람')))))))));
+  }, supplier.bank || '문의바람'))))) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: '12px',
+      padding: '10px 14px',
+      backgroundColor: '#f8fafc',
+      borderRadius: '8px',
+      border: '1px dashed #94a3b8',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      fontSize: '11.5px',
+      color: '#475569',
+      fontWeight: '700'
+    }
+  },
+    /*#__PURE__*/React.createElement("span", null, `※ 품목 내역이 다음 페이지로 계속 이어집니다. (${pageIdx + 1} / ${pages.length} 페이지)`),
+    /*#__PURE__*/React.createElement("span", { style: { color: '#1d6bf3', fontWeight: '800' } }, `(다음 ${pageIdx + 2}페이지에 계속 ➡️)`)
+  )))))));
 }
 function Header({
   activeTab,
