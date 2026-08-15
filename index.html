@@ -1615,8 +1615,8 @@ function DocumentCanvas({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const ITEMS_PER_PAGE_LAST = 20; // 푸터가 있는 마지막 페이지 (20줄)
-  const ITEMS_PER_PAGE_MIDDLE = 27; // 푸터가 없는 중간 페이지 (27줄)
+  const ITEMS_PER_PAGE_LAST = 18; // 푸터가 있는 마지막 페이지 (18줄로 여유 확보)
+  const ITEMS_PER_PAGE_MIDDLE = 24; // 푸터가 없는 중간 페이지 (24줄로 하단 안내박스 잘림 방지)
 
   const calculateDocumentPages = () => {
     if (items.length <= ITEMS_PER_PAGE_LAST) {
@@ -1635,7 +1635,7 @@ function DocumentCanvas({
     while (currentIdx < items.length) {
       const remaining = items.length - currentIdx;
 
-      // 남은 항목이 마지막 페이지 정원(20개) 이하인 경우 -> 마지막 페이지로 생성 후 종료
+      // 남은 항목이 마지막 페이지 정원(18개) 이하인 경우 -> 마지막 페이지로 생성 후 종료
       if (remaining <= ITEMS_PER_PAGE_LAST) {
         resultPages.push({
           pageIndex: resultPages.length,
@@ -1647,9 +1647,9 @@ function DocumentCanvas({
         break;
       }
 
-      // 남은 항목이 21~27개인 경우: 마지막 페이지에 최소 1개 이상을 남겨두기 위해 분할
+      // 남은 항목이 19~24개인 경우: 마지막 페이지에 최소 1개 이상을 남겨두기 위해 분할
       if (remaining <= ITEMS_PER_PAGE_MIDDLE) {
-        const firstChunk = Math.min(remaining - 1, 16);
+        const firstChunk = Math.min(remaining - 1, 14);
         resultPages.push({
           pageIndex: resultPages.length,
           items: items.slice(currentIdx, currentIdx + firstChunk),
@@ -1659,7 +1659,7 @@ function DocumentCanvas({
         });
         currentIdx += firstChunk;
       } else {
-        // 28개 이상이면 중간 페이지에 27개 꽉 채움
+        // 25개 이상이면 중간 페이지에 24개 채움
         resultPages.push({
           pageIndex: resultPages.length,
           items: items.slice(currentIdx, currentIdx + ITEMS_PER_PAGE_MIDDLE),
@@ -2729,15 +2729,15 @@ function DocumentCanvas({
     }
   }, supplier.bank || '문의바람'))))) : /*#__PURE__*/React.createElement("div", {
     style: {
-      marginTop: '12px',
-      padding: '10px 14px',
+      marginTop: '8px',
+      padding: '7px 12px',
       backgroundColor: '#f8fafc',
-      borderRadius: '8px',
-      border: '1px dashed #94a3b8',
+      borderRadius: '6px',
+      border: '1px dashed #cbd5e1',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      fontSize: '11.5px',
+      fontSize: '11px',
       color: '#475569',
       fontWeight: '700'
     }
