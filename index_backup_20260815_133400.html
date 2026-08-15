@@ -1479,111 +1479,15 @@ async function dbDelete(table, rowId, currentList = []) {
   return updated;
 }
 
-// 스마트 고유 순번 채번 함수 (YYYYMMDD-001, -002 ...)
-function generateNextDocNo(targetDate, docList = []) {
-  const d = targetDate ? new Date(targetDate) : new Date();
-  const dateStr = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
-  
-  let maxSeq = 0;
-  (docList || []).forEach(doc => {
-    if (!doc || !doc.doc_no) return;
-    const cleanNo = String(doc.doc_no).trim();
-    if (cleanNo.startsWith(dateStr)) {
-      const parts = cleanNo.split('-');
-      if (parts.length >= 2) {
-        const seq = parseInt(parts[1], 10);
-        if (!isNaN(seq) && seq > maxSeq) {
-          maxSeq = seq;
-        }
-      }
-    }
-  });
-
-  return `${dateStr}-${String(maxSeq + 1).padStart(3, '0')}`;
-}
-
-// 과거 중복 문서번호 자동 정리 및 고유 순번 재부여 (1회성 마이그레이션)
-async function deduplicateAndResequenceDocNumbers(docList = []) {
-  if (!docList || docList.length === 0) return docList;
-  
-  const dateGroups = new Map();
-  docList.forEach(doc => {
-    const rawDate = doc.doc_date || (doc.created_at ? doc.created_at.split('T')[0] : '') || new Date().toISOString().split('T')[0];
-    const d = new Date(rawDate);
-    const dateKey = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
-    if (!dateGroups.has(dateKey)) dateGroups.set(dateKey, []);
-    dateGroups.get(dateKey).push(doc);
-  });
-
-  let hasChange = false;
-  const updatedList = [];
-
-  dateGroups.forEach((docs, dateKey) => {
-    // 생성일시 및 시간 기준 정렬 (오래된 것부터 001, 002...)
-    docs.sort((a, b) => {
-      const timeA = (a.doc_date || '') + ' ' + (a.doc_time || a.created_at || '');
-      const timeB = (b.doc_date || '') + ' ' + (b.doc_time || b.created_at || '');
-      return timeA.localeCompare(timeB);
-    });
-
-    const usedSeqs = new Set();
-    docs.forEach((doc, idx) => {
-      let currentSeq = null;
-      if (doc.doc_no && doc.doc_no.startsWith(dateKey)) {
-        const parts = doc.doc_no.split('-');
-        if (parts.length >= 2) {
-          const num = parseInt(parts[1], 10);
-          if (!isNaN(num) && !usedSeqs.has(num)) {
-            currentSeq = num;
-          }
-        }
-      }
-      
-      if (currentSeq === null) {
-        // 다음 빈 순번 탐색
-        let nextSeq = 1;
-        while (usedSeqs.has(nextSeq)) nextSeq++;
-        currentSeq = nextSeq;
-        hasChange = true;
-      }
-      
-      usedSeqs.add(currentSeq);
-      const uniqueDocNo = `${dateKey}-${String(currentSeq).padStart(3, '0')}`;
-      if (doc.doc_no !== uniqueDocNo) {
-        doc.doc_no = uniqueDocNo;
-        hasChange = true;
-      }
-      updatedList.push(doc);
-    });
-  });
-
-  if (hasChange) {
-    setLocalItem('dd_documents_history_v1', updatedList);
-    // Supabase 동기화
-    const sb = getSupabaseClient();
-    if (sb) {
-      try {
-        for (const d of updatedList) {
-          if (d.id && !String(d.id).startsWith('doc_')) {
-            await sb.from('documents').update({ doc_no: d.doc_no }).eq('id', d.id);
-          }
-        }
-      } catch (e) { console.error('Error syncing resequenced doc numbers:', e); }
-    }
-  }
-
-  return updatedList;
-}
-
 async function dbSaveDocument(docData) {
   const sb = getSupabaseClient();
   const userRole = sessionStorage.getItem('dd_user_role') || 'supplier';
   const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || localStorage.getItem('selected_supplier_key') || 'sejin';
-  const local = getLocalItem('dd_documents_history_v1', []);
-
+  
   // 공급자별 권한 체크 및 바인딩
   if (userRole === 'supplier') {
     if (docData.id) {
+      const local = getLocalItem('dd_documents_history_v1', []);
       const found = local.find(d => d.id === docData.id);
       if (found && found.supplier_key && !areSupplierKeysEquivalent(found.supplier_key, selectedSupplierKey)) {
         alert('해당 문서를 수정할 권한이 없습니다.');
@@ -1593,29 +1497,10 @@ async function dbSaveDocument(docData) {
     docData.supplierKey = selectedSupplierKey;
   }
 
-  let finalDocNo = (docData.docNo || '').trim();
-  const isEditing = !!docData.id;
-
-  // 신규 저장 시 문서번호 중복 방지 안전 가드
-  if (!isEditing) {
-    const isDuplicate = local.some(d => d.doc_no === finalDocNo && !d.is_deleted);
-    if (!finalDocNo || isDuplicate) {
-      finalDocNo = generateNextDocNo(docData.docDate, local);
-    }
-  }
-
-  const docId = docData.id || 'doc_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
-  
-  // 기존 리비전 조회
-  let currentRevision = 0;
-  if (isEditing) {
-    const prevDoc = local.find(d => d.id === docId);
-    if (prevDoc) currentRevision = (prevDoc.revision || 0) + 1;
-  }
-
+  const docId = docData.id || 'doc_' + Date.now();
   const rawPayload = {
     doc_type: docData.docType,
-    doc_no: finalDocNo,
+    doc_no: docData.docNo,
     doc_date: docData.docDate,
     doc_time: docData.docTime,
     customer_name: (docData.customer == null ? undefined : docData.customer.name) || '',
@@ -1637,26 +1522,22 @@ async function dbSaveDocument(docData) {
     bankAccount: docData.bankAccount,
     dueDate: docData.dueDate,
     receiverName: docData.receiverName,
-    receiveDate: docData.receiveDate,
-    revision: currentRevision,
-    is_deleted: false,
-    deleted_at: null
+    receiveDate: docData.receiveDate
   };
-  
   const payload = packRow(rawPayload, 'documents');
   if (sb) {
     try {
       if (docData.id && !String(docData.id).startsWith('doc_')) {
         const { error } = await sb.from('documents').update(payload).eq('id', docData.id);
-        if (error) console.error('Supabase update error:', error);
+        if (error) { console.error('Supabase update error:', error); alert('Supabase update error: ' + (error.message || JSON.stringify(error))); }
       } else {
         const { error } = await sb.from('documents').insert(payload);
-        if (error) console.error('Supabase insert error:', error);
+        if (error) { console.error('Supabase insert error:', error); alert('Supabase insert error: ' + (error.message || JSON.stringify(error))); }
       }
     } catch (e) { console.error(e); }
   }
-
-  const existingIdx = local.findIndex(d => d.id === docId);
+  const local = getLocalItem('dd_documents_history_v1', []);
+  const existingIdx = local.findIndex(d => d.id === docId || d.doc_no === docData.docNo && d.doc_date === docData.docDate);
   let updated;
   const localPayload = unpackRow(payload);
   if (existingIdx >= 0) {
@@ -1674,7 +1555,7 @@ async function dbSaveDocument(docData) {
     }, ...local];
   }
   setLocalItem('dd_documents_history_v1', updated);
-  return { list: updated, docNo: finalDocNo };
+  return updated;
 }
 
 async function dbFetchDocuments() {
@@ -1685,7 +1566,12 @@ async function dbFetchDocuments() {
   let list = [];
   if (sb) {
     try {
-      const { data, error } = await sb.from('documents').select('*').order('created_at', { ascending: false });
+      const {
+        data,
+        error
+      } = await sb.from('documents').select('*').order('created_at', {
+        ascending: false
+      });
       if (!error && data && data.length > 0) {
         list = data.map(unpackRow);
         setLocalItem('dd_documents_history_v1', list);
@@ -1700,20 +1586,16 @@ async function dbFetchDocuments() {
   if (userRole === 'supplier') {
     list = list.filter(d => areSupplierKeysEquivalent(d.supplier_key, selectedSupplierKey));
   }
-
-  // 중복 문서번호 자동 정리 및 고유 순번 보장
-  list = await deduplicateAndResequenceDocNumbers(list);
-
   return list;
 }
 
-// 소프트 삭제 (휴지통 이동)
 async function dbDeleteDocument(docId) {
   const sb = getSupabaseClient();
   const userRole = sessionStorage.getItem('dd_user_role') || 'supplier';
   const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || localStorage.getItem('selected_supplier_key') || 'sejin';
   const local = getLocalItem('dd_documents_history_v1', DEMO_DOCUMENTS);
   
+  // 공급자별 권한 체크
   if (userRole === 'supplier') {
     const found = local.find(d => d.id === docId || d.doc_no === docId);
     if (found && found.supplier_key && !areSupplierKeysEquivalent(found.supplier_key, selectedSupplierKey)) {
@@ -1722,55 +1604,11 @@ async function dbDeleteDocument(docId) {
     }
   }
 
-  const deletedAt = new Date().toISOString();
-  if (sb && docId && !String(docId).startsWith('doc_')) {
-    try {
-      await sb.from('documents').update({ is_deleted: true, deleted_at: deletedAt }).eq('id', docId);
-    } catch (e) { console.error(e); }
-  }
-
-  const updated = local.map(d => {
-    if (d.id === docId || d.doc_no === docId) {
-      return { ...d, is_deleted: true, deleted_at: deletedAt };
-    }
-    return d;
-  });
-  setLocalItem('dd_documents_history_v1', updated);
-  return updated;
-}
-
-// 삭제된 문서 복원 (휴지통에서 되살리기)
-async function dbRestoreDocument(docId) {
-  const sb = getSupabaseClient();
-  const local = getLocalItem('dd_documents_history_v1', DEMO_DOCUMENTS);
-
-  if (sb && docId && !String(docId).startsWith('doc_')) {
-    try {
-      await sb.from('documents').update({ is_deleted: false, deleted_at: null }).eq('id', docId);
-    } catch (e) { console.error(e); }
-  }
-
-  const updated = local.map(d => {
-    if (d.id === docId || d.doc_no === docId) {
-      return { ...d, is_deleted: false, deleted_at: null };
-    }
-    return d;
-  });
-  setLocalItem('dd_documents_history_v1', updated);
-  return updated;
-}
-
-// 완전 영구 삭제 (휴지통 비우기)
-async function dbPermanentDeleteDocument(docId) {
-  const sb = getSupabaseClient();
-  const local = getLocalItem('dd_documents_history_v1', DEMO_DOCUMENTS);
-
   if (sb && docId && !String(docId).startsWith('doc_')) {
     try {
       await sb.from('documents').delete().eq('id', docId);
-    } catch (e) { console.error(e); }
+    } catch (e) {}
   }
-
   const updated = local.filter(d => d.id !== docId && d.doc_no !== docId);
   setLocalItem('dd_documents_history_v1', updated);
   return updated;
@@ -4080,7 +3918,6 @@ function AccountingTab({
 
   const filteredDocuments = React.useMemo(() => {
     return documents.filter(doc => {
-      if (doc.is_deleted) return false;
       if (doc.doc_date) {
         const [y, m] = doc.doc_date.split('-');
         if (selectedYear !== 'all' && y !== selectedYear) return false;
@@ -5526,7 +5363,6 @@ function PartsTab({
 function DocHistoryTab({
   onLoadDocument,
   onCopyDocument,
-  onConvertToDoc,
   isConnected,
   selectedSupplierKey
 }) {
@@ -5543,14 +5379,13 @@ function DocHistoryTab({
     }
     return ps;
   }
-
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [activeSubTab, setActiveSubTab] = useState('all'); // all, statement, estimate, invoice, trash
   const [searchCustomer, setSearchCustomer] = useState('');
   const [searchItem, setSearchItem] = useState('');
   const [searchDocNo, setSearchDocNo] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('\uC804\uCCB4');
+  const [docTypeFilter, setDocTypeFilter] = useState('전체');
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
@@ -5559,18 +5394,15 @@ function DocHistoryTab({
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   });
-
   const loadDocs = async () => {
     setLoading(true);
     const data = await dbFetchDocuments();
     setDocuments(data || []);
     setLoading(false);
   };
-
   useEffect(() => {
     loadDocs();
   }, [isConnected, selectedSupplierKey]);
-
   const setPresetDate = type => {
     const today = new Date();
     const endStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -5584,74 +5416,19 @@ function DocHistoryTab({
       const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
       setStartDate(`${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}-01`);
       setEndDate(`${lastMonthEnd.getFullYear()}-${String(lastMonthEnd.getMonth() + 1).padStart(2, '0')}-${String(lastMonthEnd.getDate()).padStart(2, '0')}`);
+    } else if (type === '3months') {
+      const d3 = new Date(today.getFullYear(), today.getMonth() - 3, 1);
+      setStartDate(`${d3.getFullYear()}-${String(d3.getMonth() + 1).padStart(2, '0')}-01`);
     } else if (type === 'all') {
       setStartDate('');
       setEndDate('');
     }
   };
-
-  const calculateTotal = doc => {
-    const items = doc.items || [];
-    const supply = items.reduce((sum, i) => sum + (Number(i.qty) || 0) * (Number(i.price) || 0), 0);
-    const vat = doc.vat_included !== false ? Math.floor(supply * 0.1) : Number(doc.vat) || 0;
-    return supply + vat;
-  };
-
-  // 소프트 삭제 (휴지통 이동)
-  const handleSoftDelete = async doc => {
-    const paidAmt = Number(doc.paid) || 0;
-    let confirmMsg = `[${doc.doc_no || doc.doc_type}] 문서를 휴지통으로 이동하시겠습니까?\n(휴지통에서 언제든 복원할 수 있습니다.)`;
-    if (paidAmt > 0) {
-      confirmMsg = `⚠️ 경고: 본 문서는 이미 ${paidAmt.toLocaleString()}원이 입금 처리된 문서입니다!\n휴지통으로 이동 시 거래처별 미수금 및 입금 잔액이 재계산됩니다.\n\n계속 진행하시겠습니까?`;
-    }
-    if (!confirm(confirmMsg)) return;
-
-    const updated = await dbDeleteDocument(doc.id);
-    setDocuments(updated);
-    alert('✓ 문서가 휴지통으로 안전하게 이동되었습니다.');
-  };
-
-  // 휴지통에서 복원
-  const handleRestore = async doc => {
-    if (!confirm(`[${doc.doc_no || doc.doc_type}] 문서를 원래 목록으로 복원하시겠습니까?`)) return;
-    const updated = await dbRestoreDocument(doc.id);
-    setDocuments(updated);
-    alert('✓ 문서가 성공적으로 복원되었습니다.');
-  };
-
-  // 영구 삭제
-  const handlePermanentDelete = async doc => {
-    if (!confirm(`⚠️ 경고: [${doc.doc_no || doc.doc_type}] 문서를 완전히 영구 삭제하시겠습니까?\n영구 삭제 후에는 절대 복구할 수 없습니다!`)) return;
-    const updated = await dbPermanentDeleteDocument(doc.id);
-    setDocuments(updated);
-    alert('✓ 문서가 완전히 영구 삭제되었습니다.');
-  };
-
-  // 문서 분류별 통계 계산
-  const nonDeletedDocs = documents.filter(d => !d.is_deleted);
-  const trashDocs = documents.filter(d => d.is_deleted);
-
-  const statementDocs = nonDeletedDocs.filter(d => (d.doc_type || '거래명세서') === '거래명세서');
-  const estimateDocs = nonDeletedDocs.filter(d => (d.doc_type || '거래명세서') === '견적서');
-  const invoiceDocs = nonDeletedDocs.filter(d => (d.doc_type || '거래명세서') === '청구서');
-
-  const totalAllSum = nonDeletedDocs.filter(d => (d.doc_type || '거래명세서') !== '견적서').reduce((sum, d) => sum + calculateTotal(d), 0);
-  const totalStatementSum = statementDocs.reduce((sum, d) => sum + calculateTotal(d), 0);
-  const totalEstimateSum = estimateDocs.reduce((sum, d) => sum + calculateTotal(d), 0);
-  const totalInvoiceSum = invoiceDocs.reduce((sum, d) => sum + calculateTotal(d), 0);
-
-  // 현재 활성화된 서브 탭에 따른 1차 필터링
-  let baseTabDocs = nonDeletedDocs;
-  if (activeSubTab === 'statement') baseTabDocs = statementDocs;
-  else if (activeSubTab === 'estimate') baseTabDocs = estimateDocs;
-  else if (activeSubTab === 'invoice') baseTabDocs = invoiceDocs;
-  else if (activeSubTab === 'trash') baseTabDocs = trashDocs;
-
-  // 검색 및 기간 필터링
-  const filtered = baseTabDocs.filter(doc => {
+  const filtered = documents.filter(doc => {
     const date = doc.doc_date || (doc.created_at ? doc.created_at.split('T')[0] : '');
     if (startDate && date < startDate) return false;
     if (endDate && date > endDate) return false;
+    if (docTypeFilter !== '전체' && (doc.doc_type || doc.docType) !== docTypeFilter) return false;
     if (searchCustomer.trim()) {
       const custName = (doc.customer_name || (doc.customer_data == null ? undefined : doc.customer_data.name) || '').toLowerCase();
       if (!custName.includes(searchCustomer.toLowerCase())) return false;
@@ -5670,32 +5447,67 @@ function DocHistoryTab({
     }
     return true;
   });
+  const handleDelete = async doc => {
+    if (!confirm(`[${doc.doc_no || doc.doc_type}] 문서를 삭제하시겠습니까?`)) return;
+    const updated = await dbDeleteDocument(doc.id);
+    setDocuments(updated);
+    alert('✓ 문서가 삭제되었습니다.');
+  };
+  const calculateTotal = doc => {
+    const items = doc.items || [];
+    const supply = items.reduce((sum, i) => sum + (Number(i.qty) || 0) * (Number(i.price) || 0), 0);
+    const vat = doc.vat_included !== false ? Math.floor(supply * 0.1) : Number(doc.vat) || 0;
+    return supply + vat;
+  };
 
-  const tabRealSales = filtered.filter(d => (d.doc_type || '거래명세서') !== '견적서');
-  const tabSalesSum = tabRealSales.reduce((sum, d) => sum + calculateTotal(d), 0);
-  const tabPaidSum = tabRealSales.reduce((sum, d) => sum + (getEffectivePaymentStatus(d) === '입금완료' ? calculateTotal(d) : Number(d.paid) || 0), 0);
-  const tabUnpaidSum = Math.max(0, tabSalesSum - tabPaidSum);
+  // 실제 매출 문서(거래명세서/청구서)와 사전 제안 문서(견적서) 철저 분리
+  const realSalesDocs = filtered.filter(d => (d.doc_type || d.docType) !== '견적서');
+  const estimateDocs = filtered.filter(d => (d.doc_type || d.docType) === '견적서');
+
+  // 실제 발생 매출 합계 (견적서 제외)
+  const totalSumAmount = realSalesDocs.reduce(function(sum, d) { return sum + calculateTotal(d); }, 0);
+  // 견적서 총액
+  const totalEstimateAmount = estimateDocs.reduce(function(sum, d) { return sum + calculateTotal(d); }, 0);
+
+  var totalUnpaid = realSalesDocs.reduce(function(sum, d) {
+    var ps = getEffectivePaymentStatus(d);
+    if (ps === '\uC785\uAE08\uC644\uB8CC') return sum;
+    var total = calculateTotal(d);
+    var paidAmt = Number(d.paid) || 0;
+    return sum + (total - paidAmt);
+  }, 0);
+
+  var totalPaid = realSalesDocs.reduce(function(sum, d) {
+    var ps = getEffectivePaymentStatus(d);
+    if (ps === '\uC785\uAE08\uC644\uB8CC') return sum + calculateTotal(d);
+    return sum + (Number(d.paid) || 0);
+  }, 0);
 
   function getPayBadge(doc) {
     if ((doc.doc_type || doc.docType) === '견적서') {
       return /*#__PURE__*/React.createElement('span', {
-        style: { display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '700', backgroundColor: '#f3e8ff', color: '#6b21a8', border: '1px solid #ddd6fe' }
-      }, '📋 견적제안');
+        style: {
+          display: 'inline-block',
+          padding: '2px 8px',
+          borderRadius: '4px',
+          fontSize: '11px',
+          fontWeight: '700',
+          backgroundColor: '#f1f5f9',
+          color: '#475569',
+          border: '1px solid #cbd5e1'
+        }
+      }, '📋 견적발행');
     }
     var ps = getEffectivePaymentStatus(doc);
     var cls = ps === '\uC785\uAE08\uC644\uB8CC' ? 'paid' : ps === '\uBD80\uBD84\uC785\uAE08' ? 'partial' : 'unpaid';
     var icon = ps === '\uC785\uAE08\uC644\uB8CC' ? '\u2705' : ps === '\uBD80\uBD84\uC785\uAE08' ? '\uD83D\uDFE1' : '\uD83D\uDD34';
     return /*#__PURE__*/React.createElement('span', { className: 'pay-badge ' + cls }, icon + ' ' + ps);
   }
-
   return /*#__PURE__*/React.createElement("div", {
     className: "management-container"
   }, /*#__PURE__*/React.createElement("div", {
     className: "card-box"
-  }, 
-  
-  /* 헤더 바 */
-  /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
     className: "card-box-header"
   }, (function() {
     const sessionRole = sessionStorage.getItem('dd_user_role') || 'supplier';
@@ -5704,139 +5516,161 @@ function DocHistoryTab({
     return /*#__PURE__*/React.createElement("div", {
       style: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }
     }, /*#__PURE__*/React.createElement("h2", {
-      style: { fontSize: '1.125rem', fontWeight: '900', margin: 0 }
-    }, "\uD83D\uDCC1 \uBB38\uC11C \uBC1C\uD589 \uBC0F \uC870\uD68C \uAD00\uB9AC"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: '1.125rem',
+        fontWeight: '900',
+        margin: 0
+      }
+    }, "\uD83D\uDCC1 \uC800\uC7A5\uB41C \uBB38\uC11C \uAE30\uAC04\uBCC4 \uC870\uD68C \uBC0F \uC218\uC815"), /*#__PURE__*/React.createElement("span", {
       style: { fontSize: '11px', color: '#1e40af', backgroundColor: '#dbeafe', padding: '2px 8px', borderRadius: '12px', fontWeight: '700' }
     }, `접속: ${sessionName}`));
   })(), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-outline",
-    style: { fontSize: '0.75rem' },
+    style: {
+      fontSize: '0.75rem'
+    },
     onClick: loadDocs
-  }, "\uD83D\uDD04 \uC0C8\uB85C\uACE0\uCE68")),
-
-  /* 🌟 직관적인 문서별 전용 서브 탭 바 (Segmented Sub-Tabs) */
-  /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDD04 \uC0C8\uB85C\uACE0\uCE68")), /*#__PURE__*/React.createElement("div", {
     style: {
-      display: 'flex',
-      backgroundColor: '#f1f5f9',
-      padding: '6px',
-      gap: '6px',
-      borderBottom: '1px solid #e2e8f0',
-      overflowX: 'auto',
-      flexWrap: 'nowrap'
-    }
-  },
-    [
-      { key: 'all', icon: '📑', label: '전체 문서', count: nonDeletedDocs.length, sum: totalAllSum, color: '#1d6bf3' },
-      { key: 'statement', icon: '📦', label: '거래명세서', count: statementDocs.length, sum: totalStatementSum, color: '#059669' },
-      { key: 'estimate', icon: '📋', label: '견적서', count: estimateDocs.length, sum: totalEstimateSum, color: '#6b21a8' },
-      { key: 'invoice', icon: '🧾', label: '청구서', count: invoiceDocs.length, sum: totalInvoiceSum, color: '#2563eb' },
-      { key: 'trash', icon: '🗑️', label: '휴지통', count: trashDocs.length, sum: null, color: '#dc2626' }
-    ].map(tab => {
-      const isActive = activeSubTab === tab.key;
-      return /*#__PURE__*/React.createElement("button", {
-        key: tab.key,
-        type: "button",
-        style: {
-          flex: '1 0 auto',
-          minWidth: '130px',
-          padding: '8px 12px',
-          borderRadius: '8px',
-          border: isActive ? `2px solid ${tab.color}` : '1px solid #cbd5e1',
-          backgroundColor: isActive ? '#ffffff' : '#f8fafc',
-          boxShadow: isActive ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
-          cursor: 'pointer',
-          textAlign: 'left',
-          transition: 'all 0.15s ease'
-        },
-        onClick: () => setActiveSubTab(tab.key)
-      },
-        /*#__PURE__*/React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' } },
-          /*#__PURE__*/React.createElement("span", { style: { fontWeight: isActive ? '900' : '700', fontSize: '0.875rem', color: isActive ? tab.color : '#334155' } },
-            `${tab.icon} ${tab.label}`
-          ),
-          /*#__PURE__*/React.createElement("span", {
-            style: {
-              fontSize: '11px',
-              padding: '1px 6px',
-              borderRadius: '9999px',
-              backgroundColor: isActive ? tab.color : '#e2e8f0',
-              color: isActive ? '#ffffff' : '#64748b',
-              fontWeight: '800'
-            }
-          }, tab.count)
-        ),
-        tab.sum !== null && /*#__PURE__*/React.createElement("div", { style: { fontSize: '11px', color: '#64748b', fontWeight: '600' } },
-          `${(tab.sum / 10000).toLocaleString(undefined, { maximumFractionDigits: 1 })}만원`
-        )
-      );
-    })
-  ),
-
-  /* 검색 및 기간 필터 영역 */
-  /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '0.875rem 1rem',
-      backgroundColor: activeSubTab === 'trash' ? '#fef2f2' : '#f8fafc',
+      padding: '1rem',
+      backgroundColor: '#f8fafc',
       borderBottom: '1px solid #e2e8f0',
       display: 'flex',
       flexDirection: 'column',
-      gap: '0.625rem'
+      gap: '0.75rem'
     }
-  },
-    activeSubTab === 'trash' && /*#__PURE__*/React.createElement("div", {
-      style: { padding: '6px 12px', backgroundColor: '#fee2e2', color: '#991b1b', borderRadius: '6px', fontSize: '0.8125rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }
-    }, "🗑️ 휴지통에 보관된 삭제 문서 목록입니다. 언제든 [원클릭 복원]을 통해 정상 목록으로 되살릴 수 있습니다."),
-
-    /*#__PURE__*/React.createElement("div", {
-      style: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: '8px'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: '0.8125rem',
+      fontWeight: '700',
+      color: '#334155'
+    }
+  }, "\uD83D\uDDD3\uFE0F \uAE30\uAC04 \uAC80\uC0C9:"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    className: "form-input",
+    style: {
+      width: '130px',
+      fontSize: '0.75rem'
     },
-      /*#__PURE__*/React.createElement("span", { style: { fontSize: '0.8125rem', fontWeight: '700', color: '#334155' } }, "\uD83D\uDDD3\uFE0F \uAE30\uAC04:"),
-      /*#__PURE__*/React.createElement("input", {
-        type: "date", className: "form-input", style: { width: '130px', fontSize: '0.75rem' },
-        value: startDate, onChange: e => setStartDate(e.target.value)
-      }),
-      /*#__PURE__*/React.createElement("span", null, "~"),
-      /*#__PURE__*/React.createElement("input", {
-        type: "date", className: "form-input", style: { width: '130px', fontSize: '0.75rem' },
-        value: endDate, onChange: e => setEndDate(e.target.value)
-      }),
-      /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '4px' } },
-        /*#__PURE__*/React.createElement("button", { className: "btn btn-outline", style: { fontSize: '0.75rem', padding: '0.2rem 0.4rem' }, onClick: () => setPresetDate('today') }, "오늘"),
-        /*#__PURE__*/React.createElement("button", { className: "btn btn-outline", style: { fontSize: '0.75rem', padding: '0.2rem 0.4rem' }, onClick: () => setPresetDate('month') }, "이번달"),
-        /*#__PURE__*/React.createElement("button", { className: "btn btn-outline", style: { fontSize: '0.75rem', padding: '0.2rem 0.4rem' }, onClick: () => setPresetDate('last_month') }, "지난달"),
-        /*#__PURE__*/React.createElement("button", { className: "btn btn-outline", style: { fontSize: '0.75rem', padding: '0.2rem 0.4rem' }, onClick: () => setPresetDate('all') }, "전체")
-      )
-    ),
-
-    /*#__PURE__*/React.createElement("div", {
-      style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '6px' }
+    value: startDate,
+    onChange: e => setStartDate(e.target.value)
+  }), /*#__PURE__*/React.createElement("span", null, "~"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    className: "form-input",
+    style: {
+      width: '130px',
+      fontSize: '0.75rem'
     },
-      activeSubTab !== 'estimate' && activeSubTab !== 'trash' && /*#__PURE__*/React.createElement("select", {
-        className: "form-select",
-        value: paymentFilter,
-        onChange: e => setPaymentFilter(e.target.value)
-      },
-        /*#__PURE__*/React.createElement("option", { value: "\uC804\uCCB4" }, "\uBAA8\uB4E0 \uC785\uAE08\uC0C1\uD0DC"),
-        ['\uBBF8\uC218\uAE08', '\uBD80\uBD84\uC785\uAE08', '\uC785\uAE08\uC644\uB8CC'].map(t => /*#__PURE__*/React.createElement("option", { key: t, value: t }, t))
-      ),
-      /*#__PURE__*/React.createElement("input", {
-        type: "text", className: "form-input", placeholder: "🔍 거래처명 검색...",
-        value: searchCustomer, onChange: e => setSearchCustomer(e.target.value)
-      }),
-      /*#__PURE__*/React.createElement("input", {
-        type: "text", className: "form-input", placeholder: "🔍 품목명 검색...",
-        value: searchItem, onChange: e => setSearchItem(e.target.value)
-      }),
-      /*#__PURE__*/React.createElement("input", {
-        type: "text", className: "form-input", placeholder: "🔍 문서번호 검색...",
-        value: searchDocNo, onChange: e => setSearchDocNo(e.target.value)
-      })
-    )
+    value: endDate,
+    onChange: e => setEndDate(e.target.value)
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: '4px'
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline",
+    style: {
+      fontSize: '0.75rem',
+      padding: '0.25rem 0.5rem'
+    },
+    onClick: () => setPresetDate('today')
+  }, "\uC624\uB298"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline",
+    style: {
+      fontSize: '0.75rem',
+      padding: '0.25rem 0.5rem'
+    },
+    onClick: () => setPresetDate('month')
+  }, "\uC774\uBC88\uB2EC"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline",
+    style: {
+      fontSize: '0.75rem',
+      padding: '0.25rem 0.5rem'
+    },
+    onClick: () => setPresetDate('last_month')
+  }, "\uC9C0\uB09C\uB2EC"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline",
+    style: {
+      fontSize: '0.75rem',
+      padding: '0.25rem 0.5rem'
+    },
+    onClick: () => setPresetDate('3months')
+  }, "3\uAC1C\uC644"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline",
+    style: {
+      fontSize: '0.75rem',
+      padding: '0.25rem 0.5rem'
+    },
+    onClick: () => setPresetDate('all')
+  }, "\uC804\uCCB4"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+      gap: '8px'
+    }
+  }, /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '4px' } },
+    /*#__PURE__*/React.createElement("select", {
+      className: "form-select",
+      value: docTypeFilter,
+      onChange: e => setDocTypeFilter(e.target.value)
+    }, /*#__PURE__*/React.createElement("option", {
+      value: "\uC804\uCCB4"
+    }, "\uBAA8\uB4E0 \uBB38\uC11C \uC885\uB958"), DOC_TYPES.map(t => /*#__PURE__*/React.createElement("option", {
+      key: t,
+      value: t
+    }, t))),
+    /*#__PURE__*/React.createElement("select", {
+      className: "form-select",
+      value: paymentFilter,
+      onChange: e => setPaymentFilter(e.target.value)
+    }, /*#__PURE__*/React.createElement("option", {
+      value: "\uC804\uCCB4"
+    }, "\uBAA8\uB4E0 \uC785\uAE08\uC0C1\uD0DC"), ['\uBBF8\uC218\uAE08', '\uBD80\uBD84\uC785\uAE08', '\uC785\uAE08\uC644\uB8CC'].map(t => /*#__PURE__*/React.createElement("option", {
+      key: t,
+      value: t
+    }, t)))
   ),
-
-  /* 통계 요약 바 */
-  activeSubTab !== 'trash' && /*#__PURE__*/React.createElement("div", {
+  /*#__PURE__*/React.createElement("div", {
+    style: { display: 'flex', flexDirection: 'column', gap: '6px' }
+  },
+    /*#__PURE__*/React.createElement("label", { style: { fontSize: '0.75rem', fontWeight: '700', color: '#475569' } }, "\uAC70\uB798\uCC98\uBA85"),
+    /*#__PURE__*/React.createElement("input", {
+      type: "text", className: "form-input",
+      placeholder: "\uAC70\uB798\uCC98\uBA85 \uC785\uB825...",
+      value: searchCustomer,
+      onChange: function(e) { setSearchCustomer(e.target.value); }
+    })
+  ),
+  /*#__PURE__*/React.createElement("div", {
+    style: { display: 'flex', flexDirection: 'column', gap: '6px' }
+  },
+    /*#__PURE__*/React.createElement("label", { style: { fontSize: '0.75rem', fontWeight: '700', color: '#475569' } }, "\uD488\uBAA9\uBA85"),
+    /*#__PURE__*/React.createElement("input", {
+      type: "text", className: "form-input",
+      placeholder: "\uD488\uBAA9\uBA85 \uC785\uB825...",
+      value: searchItem,
+      onChange: function(e) { setSearchItem(e.target.value); }
+    })
+  ),
+  /*#__PURE__*/React.createElement("div", {
+    style: { display: 'flex', flexDirection: 'column', gap: '6px' }
+  },
+    /*#__PURE__*/React.createElement("label", { style: { fontSize: '0.75rem', fontWeight: '700', color: '#475569' } }, "\uBB38\uC11C\uBC88\uD638"),
+    /*#__PURE__*/React.createElement("input", {
+      type: "text", className: "form-input",
+      placeholder: "\uBB38\uC11C\uBC88\uD638 \uC785\uB825...",
+      value: searchDocNo,
+      onChange: function(e) { setSearchDocNo(e.target.value); }
+    })
+  ))), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0.75rem 1rem',
       backgroundColor: '#eff6ff',
@@ -5850,212 +5684,236 @@ function DocHistoryTab({
       flexWrap: 'wrap',
       gap: '8px'
     }
-  },
-    /*#__PURE__*/React.createElement("span", null, `📊 현재 탭 조회: ${filtered.length}건`),
-    activeSubTab === 'estimate' ? 
-      /*#__PURE__*/React.createElement("span", null, "📋 견적 합계: ", /*#__PURE__*/React.createElement("strong", { style: { color: '#6b21a8' } }, filtered.reduce((s, d) => s + calculateTotal(d), 0).toLocaleString(), "원")) :
-      /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '12px' } },
-        /*#__PURE__*/React.createElement("span", null, "매출: ", /*#__PURE__*/React.createElement("strong", { style: { color: '#1d6bf3' } }, tabSalesSum.toLocaleString(), "원")),
-        /*#__PURE__*/React.createElement("span", null, "입금: ", /*#__PURE__*/React.createElement("strong", { style: { color: '#15803d' } }, tabPaidSum.toLocaleString(), "원")),
-        /*#__PURE__*/React.createElement("span", null, "미수: ", /*#__PURE__*/React.createElement("strong", { style: { color: '#b91c1c' } }, tabUnpaidSum.toLocaleString(), "원"))
-      )
+  }, /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '8px', alignItems: 'center' } },
+    /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCCA \uC870\uD68C \uACB0\uACFC: ", /*#__PURE__*/React.createElement("strong", { style: { color: '#1d6bf3' } }, filtered.length, "\uAC74")),
+    estimateDocs.length > 0 && /*#__PURE__*/React.createElement("span", { style: { fontSize: '11px', color: '#64748b' } }, `(실매출 ${realSalesDocs.length}건 / 견적 ${estimateDocs.length}건)`)
+  ), /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '12px', alignItems: 'center' } },
+    docTypeFilter === '견적서' ? /*#__PURE__*/React.createElement("span", null, "📋 총 견적합계: ", /*#__PURE__*/React.createElement("strong", { style: { color: '#4f46e5', fontFamily: 'monospace' } }, totalEstimateAmount.toLocaleString(), "\uC6D0")) :
+    /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCB0 \uCD1D \uB9E4\uCD9C \uD569\uACC4: ", /*#__PURE__*/React.createElement("strong", { style: { color: '#1d6bf3', fontFamily: 'monospace' } }, totalSumAmount.toLocaleString(), "\uC6D0"))
+  )),
+  
+  /*#__PURE__*/React.createElement("div", { className: "accounting-summary-bar" },
+    /*#__PURE__*/React.createElement("div", { className: "accounting-summary-item" },
+      /*#__PURE__*/React.createElement("div", { className: "accounting-summary-label" }, "\uCD1D \uBBF8\uC218\uAE08 (견적 제외)"),
+      /*#__PURE__*/React.createElement("div", { className: "accounting-summary-value unpaid-val" }, totalUnpaid.toLocaleString(), "\uC6D0")
+    ),
+    /*#__PURE__*/React.createElement("div", { className: "accounting-summary-item" },
+      /*#__PURE__*/React.createElement("div", { className: "accounting-summary-label" }, "\uCD1D \uC785\uAE08\uC561"),
+      /*#__PURE__*/React.createElement("div", { className: "accounting-summary-value paid-val" }, totalPaid.toLocaleString(), "\uC6D0")
+    )
   ),
-
-  /* 데이터 테이블 / 카드 목록 */
+  
   loading ? /*#__PURE__*/React.createElement("div", {
-    style: { padding: '2rem', textAlign: 'center', color: '#64748b' }
-  }, "\uBB38\uC11C\uB97C \uBD88\uB7EC\uC624\uB294 \uC911\uC785\uB2C8\uB2E4...") : filtered.length === 0 ? /*#__PURE__*/React.createElement("div", {
-    style: { padding: '3rem', textAlign: 'center', color: '#94a3b8' }
-  },
-    /*#__PURE__*/React.createElement("div", { style: { fontSize: '2rem', marginBottom: '0.5rem' } }, activeSubTab === 'trash' ? '🗑️' : '📄'),
-    activeSubTab === 'trash' ? '휴지통이 비어 있습니다.' : '해당 조건의 저장된 문서가 없습니다.'
-  ) : /*#__PURE__*/React.createElement(React.Fragment, null,
-    /* 데스크톱 테이블 뷰 */
-    /*#__PURE__*/React.createElement("div", {
-      className: "desktop-table-view"
-    }, /*#__PURE__*/React.createElement("table", {
-      className: "data-table"
-    }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null,
-      /*#__PURE__*/React.createElement("th", null, "\uBC1C\uD589\uC77C\uC790 / \uBC88\uD638"),
-      /*#__PURE__*/React.createElement("th", null, "\uC885\uB958"),
-      /*#__PURE__*/React.createElement("th", null, "\uACF5\uAE09\uBC1B\uB294\uC790 (\uAC70\uB798\uCC98)"),
-      /*#__PURE__*/React.createElement("th", null, "\uD488\uBAA9 \uC694\uC57D"),
-      /*#__PURE__*/React.createElement("th", null, "\uD569\uACC4\uAE08\uC561"),
-      /*#__PURE__*/React.createElement("th", null, "\uC791\uC5C5")
-    )), /*#__PURE__*/React.createElement("tbody", null, filtered.map(doc => {
-      const items = doc.items || [];
-      const firstItemName = (items[0] == null ? undefined : items[0].name) || '품목 없음';
-      const itemSummary = items.length > 1 ? `${firstItemName} 외 ${items.length - 1}건` : firstItemName;
-      const total = calculateTotal(doc);
-      const custName = doc.customer_name || (doc.customer_data == null ? undefined : doc.customer_data.name) || '-';
-      const custMachine = (doc.customer_data == null ? undefined : doc.customer_data.selectedMachine) ? ` (${doc.customer_data.selectedMachine})` : '';
-      const currentDocType = doc.doc_type || '거래명세서';
-
-      return /*#__PURE__*/React.createElement("tr", {
-        key: doc.id || doc.doc_no,
-        style: { backgroundColor: doc.is_deleted ? '#fff1f2' : undefined }
+    style: {
+      padding: '2rem',
+      textAlign: 'center',
+      color: '#64748b'
+    }
+  }, "\uBB38\uC11C\uB97C \uBD88\uB7EC\uC624\uBB49 \uC911\uC785\uB2C8\uB2E4...") : filtered.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '2.5rem',
+      textAlign: 'center',
+      color: '#94a3b8'
+    }
+  }, /*#__PURE__*/React.createElement("div", null, "\uD83D\uDCED \uD574\uB2F9 \uC870\uAC74\uC758 \uC800\uC7A5\uB41C \uBB38\uC11C\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: '0.75rem',
+      marginTop: '4px'
+    }
+  }, "\uAE30\uAC04\uC774\uB098 \uAC80\uC0C9\uC5B4\uB97C \uBCC0\uACBD\uD574 \uBCF4\uC138\uC694.")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "desktop-table-view"
+  }, /*#__PURE__*/React.createElement("table", {
+    className: "data-table"
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "\uBC1C\uD589\uC77C\uC790 / \uBC88\uD638"), /*#__PURE__*/React.createElement("th", null, "\uC885\uB958"), /*#__PURE__*/React.createElement("th", null, "\uACF5\uAE09\uBC1B\uB294\uC790 (\uAC70\uB798\uCC98)"), /*#__PURE__*/React.createElement("th", null, "\uD488\uBAA9 \uC694\uC57D"), /*#__PURE__*/React.createElement("th", null, "\uD569\uACC4\uAE08\uC561"), /*#__PURE__*/React.createElement("th", null, "\uC791\uC5C5"))), /*#__PURE__*/React.createElement("tbody", null, filtered.map(doc => {
+    const items = doc.items || [];
+    const firstItemName = (items[0] == null ? undefined : items[0].name) || '품목 없음';
+    const itemSummary = items.length > 1 ? `${firstItemName} 외 ${items.length - 1}건` : firstItemName;
+    const total = calculateTotal(doc);
+    const custName = doc.customer_name || (doc.customer_data == null ? undefined : doc.customer_data.name) || '-';
+    const custMachine = (doc.customer_data == null ? undefined : doc.customer_data.selectedMachine) ? ` (${doc.customer_data.selectedMachine})` : '';
+    const currentDocType = doc.doc_type || '거래명세서';
+    return /*#__PURE__*/React.createElement("tr", {
+      key: doc.id || doc.doc_no
+    }, /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: '700'
+      }
+    }, doc.doc_date || (doc.created_at == null ? undefined : doc.created_at.split)('T')[0]), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: '11px',
+        color: '#64748b',
+        fontFamily: 'monospace'
+      }
+    }, doc.doc_no)), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
+      style: {
+        padding: '2px 8px',
+        borderRadius: '4px',
+        backgroundColor: '#f1f5f9',
+        color: '#334155',
+        fontWeight: '700',
+        fontSize: '11px'
+      }
+    }, doc.doc_type || '거래명세서')), /*#__PURE__*/React.createElement("td", {
+      style: {
+        fontWeight: '700',
+        color: '#0f172a'
+      }
+    }, custName, /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: '#1d6bf3',
+        fontSize: '11px'
+      }
+    }, custMachine)), /*#__PURE__*/React.createElement("td", {
+      style: {
+        fontSize: '12px',
+        color: '#475569'
+      }
+    }, itemSummary), /*#__PURE__*/React.createElement("td", {
+      style: {
+        fontWeight: '900',
+        fontFamily: 'monospace',
+        color: '#1d6bf3'
+      }
+    }, total.toLocaleString(), "\uC6D0", /*#__PURE__*/React.createElement("br", null), getPayBadge(doc)), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        gap: '4px',
+        flexWrap: 'wrap'
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-primary",
+      style: {
+        padding: '3px 7px',
+        fontSize: '11px'
       },
-        /*#__PURE__*/React.createElement("td", null,
-          /*#__PURE__*/React.createElement("div", { style: { fontWeight: '700' } }, doc.doc_date || '-'),
-          /*#__PURE__*/React.createElement("div", { style: { fontSize: '11px', color: '#64748b', fontFamily: 'monospace' } }, doc.doc_no),
-          (doc.revision > 0) && /*#__PURE__*/React.createElement("span", { style: { fontSize: '10px', color: '#2563eb', backgroundColor: '#eff6ff', padding: '1px 4px', borderRadius: '4px' } }, `Rev.${doc.revision}`)
-        ),
-        /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
-          style: {
-            padding: '2px 8px',
-            borderRadius: '4px',
-            backgroundColor: currentDocType === '견적서' ? '#f3e8ff' : (currentDocType === '청구서' ? '#eff6ff' : '#f1f5f9'),
-            color: currentDocType === '견적서' ? '#6b21a8' : (currentDocType === '청구서' ? '#1d4ed8' : '#334155'),
-            fontWeight: '700',
-            fontSize: '11px'
-          }
-        }, currentDocType)),
-        /*#__PURE__*/React.createElement("td", { style: { fontWeight: '700', color: '#0f172a' } },
-          custName,
-          custMachine && /*#__PURE__*/React.createElement("span", { style: { color: '#1d6bf3', fontSize: '11px' } }, custMachine)
-        ),
-        /*#__PURE__*/React.createElement("td", { style: { fontSize: '12px', color: '#475569' } }, itemSummary),
-        /*#__PURE__*/React.createElement("td", { style: { fontWeight: '900', fontFamily: 'monospace', color: '#1d6bf3' } },
-          total.toLocaleString(), "\uC6D0",
-          !doc.is_deleted && /*#__PURE__*/React.createElement("br", null),
-          !doc.is_deleted && getPayBadge(doc)
-        ),
-        /*#__PURE__*/React.createElement("td", null,
-          doc.is_deleted ? /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '4px' } },
-            /*#__PURE__*/React.createElement("button", {
-              className: "btn btn-primary",
-              style: { padding: '4px 10px', fontSize: '11px', backgroundColor: '#10b981', borderColor: '#10b981' },
-              onClick: () => handleRestore(doc)
-            }, "🔄 복원하기"),
-            /*#__PURE__*/React.createElement("button", {
-              className: "btn btn-red-outline",
-              style: { padding: '4px 8px', fontSize: '11px' },
-              onClick: () => handlePermanentDelete(doc)
-            }, "❌ 영구삭제")
-          ) : /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '4px', flexWrap: 'wrap' } },
-            /*#__PURE__*/React.createElement("button", {
-              className: "btn btn-primary",
-              style: { padding: '3px 7px', fontSize: '11px' },
-              onClick: () => onLoadDocument(doc)
-            }, "\uD83D\uDCE5 \uBD88\uB7EC\uC624\uAE30"),
-            
-            currentDocType === '견적서' ? /*#__PURE__*/React.createElement("button", {
-              className: "btn btn-primary",
-              style: { padding: '3px 7px', fontSize: '11px', backgroundColor: '#059669', borderColor: '#059669' },
-              onClick: () => onConvertToDoc && onConvertToDoc(doc, '거래명세서')
-            }, "📦 명세서로") : /*#__PURE__*/React.createElement("button", {
-              className: "btn btn-primary",
-              style: { padding: '3px 7px', fontSize: '11px', backgroundColor: '#4f46e5', borderColor: '#4f46e5' },
-              onClick: () => onConvertToDoc && onConvertToDoc(doc, '견적서')
-            }, "📋 견적서로"),
-
-            /*#__PURE__*/React.createElement("button", {
-              className: "btn btn-primary",
-              style: { padding: '3px 7px', fontSize: '11px', backgroundColor: '#10b981', borderColor: '#10b981' },
-              onClick: () => onCopyDocument(doc)
-            }, "\uD83D\uDCCB \uBCF5\uC0AC"),
-
-            /*#__PURE__*/React.createElement("button", {
-              className: "btn btn-red-outline",
-              style: { padding: '3px 7px', fontSize: '11px' },
-              onClick: () => handleSoftDelete(doc)
-            }, "🗑️ \uC0AD\uC81C")
-          )
-        )
-      );
-    })))),
-
-    /* 모바일 카드 뷰 */
-    /*#__PURE__*/React.createElement("div", {
-      className: "mobile-cards-view"
-    }, filtered.map(doc => {
-      const items = doc.items || [];
-      const firstItemName = (items[0] == null ? undefined : items[0].name) || '품목 없음';
-      const itemSummary = items.length > 1 ? `${firstItemName} 외 ${items.length - 1}건` : firstItemName;
-      const total = calculateTotal(doc);
-      const custName = doc.customer_name || (doc.customer_data == null ? undefined : doc.customer_data.name) || '-';
-      const custMachine = (doc.customer_data == null ? undefined : doc.customer_data.selectedMachine) ? ` (${doc.customer_data.selectedMachine})` : '';
-      const currentDocType = doc.doc_type || '거래명세서';
-
-      return /*#__PURE__*/React.createElement("div", {
-        key: doc.id || doc.doc_no,
-        className: "mobile-data-card",
-        style: { borderLeft: doc.is_deleted ? '4px solid #ef4444' : undefined }
+      onClick: () => onLoadDocument(doc)
+    }, "\uD83D\uDCE5 \uBD88\uB7EC\uC624\uAE30"),
+    (doc.doc_type || '거래명세서') === '견적서' ? /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-primary",
+      style: { padding: '3px 7px', fontSize: '11px', backgroundColor: '#059669', borderColor: '#059669' },
+      onClick: () => onConvertToDoc && onConvertToDoc(doc, '거래명세서')
+    }, "📦 명세서로") : /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-primary",
+      style: { padding: '3px 7px', fontSize: '11px', backgroundColor: '#4f46e5', borderColor: '#4f46e5' },
+      onClick: () => onConvertToDoc && onConvertToDoc(doc, '견적서')
+    }, "📋 견적서로"),
+    /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-primary",
+      style: {
+        padding: '3px 7px',
+        fontSize: '11px',
+        backgroundColor: '#10b981',
+        borderColor: '#10b981'
       },
-        /*#__PURE__*/React.createElement("div", {
-          style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }
-        },
-          /*#__PURE__*/React.createElement("span", {
-            style: {
-              padding: '2px 6px',
-              borderRadius: '4px',
-              backgroundColor: currentDocType === '견적서' ? '#f3e8ff' : (currentDocType === '청구서' ? '#eff6ff' : '#f1f5f9'),
-              color: currentDocType === '견적서' ? '#6b21a8' : (currentDocType === '청구서' ? '#1d4ed8' : '#334155'),
-              fontWeight: '800',
-              fontSize: '10px'
-            }
-          }, currentDocType),
-          /*#__PURE__*/React.createElement("span", {
-            style: { fontSize: '11px', color: '#64748b', fontFamily: 'monospace' }
-          }, doc.doc_no, doc.revision > 0 && ` (Rev.${doc.revision})`)
-        ),
-        /*#__PURE__*/React.createElement("div", {
-          style: { fontWeight: '800', fontSize: '0.9375rem', marginBottom: '2px' }
-        }, custName, custMachine && /*#__PURE__*/React.createElement("span", { style: { color: '#1d6bf3', fontSize: '11px' } }, custMachine)),
-        /*#__PURE__*/React.createElement("div", {
-          style: { fontSize: '0.75rem', color: '#64748b', marginBottom: '6px' }
-        },
-          /*#__PURE__*/React.createElement("div", null, "\uC77C\uC790: ", doc.doc_date || '-', " | \uD488\uBAA9: ", itemSummary),
-          /*#__PURE__*/React.createElement("div", {
-            style: { fontSize: '0.875rem', fontWeight: '900', color: '#1d6bf3', marginTop: '2px' }
-          }, "\uD569\uACC4: ", total.toLocaleString(), "\uC6D0")
-        ),
-        /*#__PURE__*/React.createElement("div", {
-          style: { display: 'flex', gap: '4px', flexWrap: 'wrap' }
-        },
-          doc.is_deleted ? /*#__PURE__*/React.createElement(React.Fragment, null,
-            /*#__PURE__*/React.createElement("button", {
-              className: "btn btn-primary",
-              style: { flex: 1, minHeight: '32px', fontSize: '0.75rem', backgroundColor: '#10b981', borderColor: '#10b981' },
-              onClick: () => handleRestore(doc)
-            }, "🔄 복원하기"),
-            /*#__PURE__*/React.createElement("button", {
-              className: "btn btn-red-outline",
-              style: { minHeight: '32px', fontSize: '0.75rem', padding: '0 10px' },
-              onClick: () => handlePermanentDelete(doc)
-            }, "❌ 영구삭제")
-          ) : /*#__PURE__*/React.createElement(React.Fragment, null,
-            /*#__PURE__*/React.createElement("button", {
-              className: "btn btn-primary",
-              style: { flex: 1, minHeight: '32px', fontSize: '0.75rem' },
-              onClick: () => onLoadDocument(doc)
-            }, "\uD83D\uDCE5 \uBD88\uB7EC\uC624\uAE30"),
-            
-            currentDocType === '견적서' ? /*#__PURE__*/React.createElement("button", {
-              className: "btn btn-primary",
-              style: { flex: 1, minHeight: '32px', fontSize: '0.75rem', backgroundColor: '#059669', borderColor: '#059669' },
-              onClick: () => onConvertToDoc && onConvertToDoc(doc, '거래명세서')
-            }, "📦 명세서로") : /*#__PURE__*/React.createElement("button", {
-              className: "btn btn-primary",
-              style: { flex: 1, minHeight: '32px', fontSize: '0.75rem', backgroundColor: '#4f46e5', borderColor: '#4f46e5' },
-              onClick: () => onConvertToDoc && onConvertToDoc(doc, '견적서')
-            }, "📋 견적서로"),
-
-            /*#__PURE__*/React.createElement("button", {
-              className: "btn btn-primary",
-              style: { padding: '3px 8px', fontSize: '11px', backgroundColor: '#10b981', borderColor: '#10b981' },
-              onClick: () => onCopyDocument(doc)
-            }, "\uD83D\uDCCB \uBCF5\uC0AC"),
-            /*#__PURE__*/React.createElement("button", {
-              className: "btn btn-red-outline",
-              style: { padding: '3px 8px', fontSize: '11px' },
-              onClick: () => handleSoftDelete(doc)
-            }, "🗑️")
-          )
-        )
-      );
-    }))
-  )));
+      onClick: () => onCopyDocument(doc)
+    }, "\uD83D\uDCCB \uBCF5\uC0AC"), /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-red-outline",
+      style: {
+        padding: '3px 7px',
+        fontSize: '11px'
+      },
+      onClick: () => handleDelete(doc)
+    }, "\uD83D\uDDD1\uFE0F \uC0AD\uC81C"))));
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "mobile-cards-view"
+  }, filtered.map(doc => {
+    const items = doc.items || [];
+    const firstItemName = (items[0] == null ? undefined : items[0].name) || '품목 없음';
+    const itemSummary = items.length > 1 ? `${firstItemName} 외 ${items.length - 1}건` : firstItemName;
+    const total = calculateTotal(doc);
+    const custName = doc.customer_name || (doc.customer_data == null ? undefined : doc.customer_data.name) || '-';
+    const custMachine = (doc.customer_data == null ? undefined : doc.customer_data.selectedMachine) ? ` (${doc.customer_data.selectedMachine})` : '';
+    return /*#__PURE__*/React.createElement("div", {
+      key: doc.id || doc.doc_no,
+      className: "mobile-data-card"
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '4px'
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        padding: '2px 6px',
+        borderRadius: '4px',
+        backgroundColor: '#eff6ff',
+        color: '#1d6bf3',
+        fontWeight: '800',
+        fontSize: '10px'
+      }
+    }, doc.doc_type || '거래명세서'), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: '11px',
+        color: '#64748b',
+        fontFamily: 'monospace'
+      }
+    }, doc.doc_no)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: '800',
+        fontSize: '0.9375rem',
+        marginBottom: '2px'
+      }
+    }, custName, /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: '#1d6bf3',
+        fontSize: '11px'
+      }
+    }, custMachine)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: '0.75rem',
+        color: '#64748b',
+        marginBottom: '6px'
+      }
+    }, /*#__PURE__*/React.createElement("div", null, "\uC77C\uC790: ", doc.doc_date || '-', " | \uD488\uBAA9: ", itemSummary), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: '0.875rem',
+        fontWeight: '900',
+        color: '#1d6bf3',
+        marginTop: '2px'
+      }
+    }, "\uD569\uACC4: ", total.toLocaleString(), "\uC6D0")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        gap: '4px',
+        flexWrap: 'wrap'
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-primary",
+      style: {
+        flex: 1,
+        minHeight: '32px',
+        fontSize: '0.75rem'
+      },
+      onClick: () => onLoadDocument(doc)
+    }, "\uD83D\uDCE5 \uBD88\uB7EC\uC624\uAE30"),
+    (doc.doc_type || '거래명세서') === '견적서' ? /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-primary",
+      style: { flex: 1, minHeight: '32px', fontSize: '0.75rem', backgroundColor: '#059669', borderColor: '#059669' },
+      onClick: () => onConvertToDoc && onConvertToDoc(doc, '거래명세서')
+    }, "📦 명세서로") : /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-primary",
+      style: { flex: 1, minHeight: '32px', fontSize: '0.75rem', backgroundColor: '#4f46e5', borderColor: '#4f46e5' },
+      onClick: () => onConvertToDoc && onConvertToDoc(doc, '견적서')
+    }, "📋 견적서로"),
+    /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-primary",
+      style: {
+        padding: '3px 8px',
+        fontSize: '11px',
+        backgroundColor: '#10b981',
+        borderColor: '#10b981'
+      },
+      onClick: () => onCopyDocument(doc)
+    }, "\uD83D\uDCCB \uBCF5\uC0AC"), /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-red-outline",
+      style: {
+        padding: '3px 8px',
+        fontSize: '11px'
+      },
+      onClick: () => handleDelete(doc)
+    }, "\uD83D\uDDD1\uFE0F")));
+  })))));
 }
 
 // ── Splash / Login Screen Component ─────────────────────────────────────────
@@ -7182,7 +7040,7 @@ function App() {
     }
 
     // 2. 문서 저장
-    const saveRes = await dbSaveDocument({
+    await dbSaveDocument({
       id: editingDocId,
       docType,
       docNo,
@@ -7208,10 +7066,8 @@ function App() {
       receiveDate,
       remark
     });
-    const finalSavedNo = saveRes && saveRes.docNo ? saveRes.docNo : docNo;
-    setDocNo(finalSavedNo);
     setIsSavedThisSession(true);
-    alert(`✓ ${docType} (번호: ${finalSavedNo}) 저장/수정 완료!`);
+    alert(`✓ ${docType} (번호: ${docNo}) 저장/수정 완료!`);
     handleReloadDocuments();
   };
 
@@ -7223,24 +7079,20 @@ function App() {
   const handleCopyDocument = doc => {
     handleLoadDocument(doc);
     setEditingDocId(null);
+    setDocNo('');
     const d = new Date();
-    const todayStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-    setDocDate(todayStr);
+    setDocDate(d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'));
     setDocTime(String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'));
-    const nextNo = generateNextDocNo(todayStr, documentsList);
-    setDocNo(nextNo);
   };
 
   const handleConvertToDocument = (doc, targetType) => {
     handleLoadDocument(doc);
     setDocType(targetType);
     setEditingDocId(null);
+    setDocNo('');
     const d = new Date();
-    const todayStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-    setDocDate(todayStr);
+    setDocDate(d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'));
     setDocTime(String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'));
-    const nextNo = generateNextDocNo(todayStr, documentsList);
-    setDocNo(nextNo);
     setActiveTab('doc');
   };
 
