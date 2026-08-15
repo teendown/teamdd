@@ -3082,7 +3082,6 @@ function StatementTab({
   onSaveDocument,
   onAddNewCustomer,
   onOpenEstimateModal,
-  onOpenPastStatementModal,
   editingDocId,
   documentsList = [],
   onLoadDocument,
@@ -3365,44 +3364,24 @@ function StatementTab({
         },
         onClick: () => onAddNewCustomer(customer.name || '')
       }, "+ \uC2E0\uADDC \uAC70\uB798\uCC98 \uB4F1\uB85D"),
-      docType === '거래명세서' && React.createElement(React.Fragment, null,
-        React.createElement("button", {
-          type: "button",
-          className: "btn btn-secondary",
-          style: {
-            fontSize: '11px',
-            padding: '6px 4px',
-            backgroundColor: '#059669',
-            color: '#ffffff',
-            border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '4px',
-            fontWeight: '700',
-            borderRadius: '6px'
-          },
-          onClick: () => onOpenPastStatementModal && onOpenPastStatementModal()
-        }, "📂 지난 명세서 불러오기"),
-        React.createElement("button", {
-          type: "button",
-          className: "btn btn-secondary",
-          style: {
-            fontSize: '11px',
-            padding: '6px 4px',
-            backgroundColor: '#6366f1',
-            color: '#ffffff',
-            border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '4px',
-            fontWeight: '700',
-            borderRadius: '6px'
-          },
-          onClick: () => onOpenEstimateModal && onOpenEstimateModal('convert_to_statement')
-        }, "📑 견적서 가져오기")
-      ),
+      docType === '거래명세서' && React.createElement("button", {
+        type: "button",
+        className: "btn btn-secondary",
+        style: {
+          fontSize: '11px',
+          padding: '6px 4px',
+          backgroundColor: '#059669',
+          color: '#ffffff',
+          border: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '4px',
+          fontWeight: '700',
+          borderRadius: '6px'
+        },
+        onClick: () => onOpenEstimateModal && onOpenEstimateModal('convert_to_statement')
+      }, "📑 견적서 가져오기"),
       docType === '견적서' && React.createElement("button", {
         type: "button",
         className: "btn btn-secondary",
@@ -6387,220 +6366,6 @@ function EstimateImportModal({
   ));
 }
 
-function PastStatementImportModal({
-  isOpen,
-  onClose,
-  initialCustomerName = '',
-  selectedSupplierKey = '',
-  onApplyStatement
-}) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterCustomerOnly, setFilterCustomerOnly] = useState(true);
-  const [statements, setStatements] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      if (initialCustomerName && initialCustomerName.trim() !== '') {
-        setSearchQuery(initialCustomerName.trim());
-        setFilterCustomerOnly(true);
-      } else {
-        setSearchQuery('');
-        setFilterCustomerOnly(false);
-      }
-      loadStatements();
-    }
-  }, [isOpen, initialCustomerName]);
-
-  const loadStatements = async () => {
-    setIsLoading(true);
-    try {
-      const allDocs = await dbFetchDocuments();
-      const filtered = allDocs.filter(d => 
-        (d.doc_type || '거래명세서') === '거래명세서' &&
-        areSupplierKeysEquivalent(d.supplier_key, selectedSupplierKey)
-      );
-      filtered.sort((a, b) => new Date(b.doc_date || b.created_at) - new Date(a.doc_date || a.created_at));
-      setStatements(filtered);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const displayedStatements = statements.filter(doc => {
-    const custName = (doc.customer_name || doc.customer_data?.name || '').toLowerCase();
-    const docNo = (doc.doc_no || '').toLowerCase();
-    const itemsText = (doc.items || []).map(i => i.name || '').join(' ').toLowerCase();
-    const q = searchQuery.trim().toLowerCase();
-
-    if (filterCustomerOnly && initialCustomerName && initialCustomerName.trim() !== '') {
-      if (!custName.includes(initialCustomerName.trim().toLowerCase())) return false;
-    }
-
-    if (!q) return true;
-    return custName.includes(q) || docNo.includes(q) || itemsText.includes(q);
-  });
-
-  if (!isOpen) return null;
-
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'fixed',
-      top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.6)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 9999,
-      padding: '1rem'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      backgroundColor: '#ffffff',
-      borderRadius: '12px',
-      width: '100%',
-      maxWidth: '680px',
-      maxHeight: '90vh',
-      display: 'flex',
-      flexDirection: 'column',
-      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
-      padding: '1.25rem'
-    }
-  },
-    /*#__PURE__*/React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid #e2e8f0' } },
-      /*#__PURE__*/React.createElement("h3", { style: { margin: 0, fontSize: '1.125rem', fontWeight: '900', color: '#1e293b' } },
-        '📂 지난 거래명세서 검색 및 불러오기'
-      ),
-      /*#__PURE__*/React.createElement("button", { type: "button", onClick: onClose, style: { background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#94a3b8' } }, "✕")
-    ),
-
-    /*#__PURE__*/React.createElement("div", { style: { backgroundColor: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '8px', marginBottom: '1rem', border: '1px solid #e2e8f0' } },
-      /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' } },
-        /*#__PURE__*/React.createElement("input", {
-          type: "text",
-          className: "form-input",
-          style: { flex: 1, minWidth: '180px' },
-          placeholder: "🔍 거래처명, 품목명, 문서번호 검색...",
-          value: searchQuery,
-          onChange: e => setSearchQuery(e.target.value)
-        }),
-        initialCustomerName && initialCustomerName.trim() !== '' && /*#__PURE__*/React.createElement("label", { style: { display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', fontWeight: '700', color: '#334155', cursor: 'pointer', whiteSpace: 'nowrap' } },
-          /*#__PURE__*/React.createElement("input", {
-            type: "checkbox",
-            checked: filterCustomerOnly,
-            onChange: e => setFilterCustomerOnly(e.target.checked)
-          }),
-          `"${initialCustomerName}" 거래처만 보기`
-        ),
-        /*#__PURE__*/React.createElement("button", {
-          type: "button",
-          className: "btn btn-outline",
-          style: { fontSize: '0.75rem', padding: '0.35rem 0.6rem' },
-          onClick: () => { setSearchQuery(''); setFilterCustomerOnly(false); }
-        }, "전체보기")
-      )
-    ),
-
-    /*#__PURE__*/React.createElement("div", { style: { flex: 1, overflowY: 'auto', minHeight: '200px', maxHeight: '50vh', paddingRight: '4px' } },
-      isLoading ? /*#__PURE__*/React.createElement("div", { style: { textAlign: 'center', padding: '40px', color: '#64748b' } }, "명세서 내역을 불러오는 중...") :
-      displayedStatements.length === 0 ? /*#__PURE__*/React.createElement("div", { style: { textAlign: 'center', padding: '40px', color: '#94a3b8' } },
-        /*#__PURE__*/React.createElement("div", { style: { fontSize: '2rem', marginBottom: '0.5rem' } }, "📦"),
-        "조건에 일치하는 지난 거래명세서가 없습니다.",
-        initialCustomerName && filterCustomerOnly && /*#__PURE__*/React.createElement("div", { style: { marginTop: '8px' } },
-          /*#__PURE__*/React.createElement("button", {
-            type: "button",
-            className: "btn btn-outline",
-            style: { fontSize: '11px' },
-            onClick: () => setFilterCustomerOnly(false)
-          }, "타 거래처 명세서 전체 보기")
-        )
-      ) :
-      displayedStatements.map(doc => {
-        const items = doc.items || [];
-        const validItems = items.filter(i => (i.name && i.name.trim() !== '') || (i.price || 0) > 0);
-        const totalSupply = items.reduce((sum, item) => sum + (Number(item.qty) || 0) * (Number(item.price) || 0), 0);
-        const vat = doc.vat_included !== false ? Math.floor(totalSupply * 0.1) : 0;
-        const grandTotal = totalSupply + vat;
-        const custName = doc.customer_name || (doc.customer_data ? doc.customer_data.name : '') || '-';
-        const custMachine = (doc.customer_data && doc.customer_data.selectedMachine) ? ` (${doc.customer_data.selectedMachine})` : '';
-
-        return /*#__PURE__*/React.createElement("div", {
-          key: doc.id || doc.doc_no,
-          style: {
-            border: '1px solid #e2e8f0',
-            borderRadius: '8px',
-            padding: '0.75rem 1rem',
-            marginBottom: '0.75rem',
-            backgroundColor: '#ffffff',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '1rem',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-          }
-        },
-          /*#__PURE__*/React.createElement("div", { style: { flex: 1, minWidth: 0 } },
-            /*#__PURE__*/React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' } },
-              /*#__PURE__*/React.createElement("span", { style: { fontWeight: '800', fontSize: '0.9375rem', color: '#0f172a' } }, custName),
-              custMachine && /*#__PURE__*/React.createElement("span", { style: { fontSize: '11px', color: '#1d6bf3', fontWeight: '700' } }, custMachine),
-              /*#__PURE__*/React.createElement("span", { style: { fontSize: '11px', color: '#64748b', fontFamily: 'monospace', marginLeft: 'auto' } }, `일자: ${doc.doc_date || '-'} | 번호: ${doc.doc_no || '-'}`)
-            ),
-            /*#__PURE__*/React.createElement("div", { style: { fontSize: '0.8125rem', color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '4px' } },
-              `품목(${validItems.length}건): ${validItems.map(i => i.name).join(', ')}`
-            ),
-            /*#__PURE__*/React.createElement("div", { style: { fontSize: '0.875rem', fontWeight: '900', color: '#1d6bf3' } },
-              `합계금액: ${grandTotal.toLocaleString()}원`
-            )
-          ),
-          /*#__PURE__*/React.createElement("div", { style: { display: 'flex', flexDirection: 'column', gap: '4px', flexShrink: 0 } },
-            /*#__PURE__*/React.createElement("button", {
-              type: "button",
-              className: "btn btn-primary",
-              style: {
-                fontSize: '0.75rem',
-                padding: '6px 12px',
-                backgroundColor: '#10b981',
-                borderColor: '#10b981',
-                fontWeight: '700',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              },
-              onClick: () => {
-                onApplyStatement(doc, 'copy_to_new');
-                onClose();
-              }
-            }, "✨ 새 명세서로 복사"),
-            /*#__PURE__*/React.createElement("button", {
-              type: "button",
-              className: "btn btn-outline",
-              style: {
-                fontSize: '0.75rem',
-                padding: '4px 8px',
-                color: '#475569'
-              },
-              onClick: () => {
-                onApplyStatement(doc, 'edit_original');
-                onClose();
-              }
-            }, "✏️ 원본 수정")
-          )
-        );
-      })
-    ),
-
-    /*#__PURE__*/React.createElement("div", { style: { display: 'flex', justifyContent: 'flex-end', marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0' } },
-      /*#__PURE__*/React.createElement("button", {
-        type: "button",
-        className: "btn btn-outline",
-        onClick: onClose
-      }, "닫기")
-    )
-  ));
-}
-
 
 function App() {
   const [activeTab, setActiveTab] = useState('doc');
@@ -6739,49 +6504,8 @@ function App() {
   const [estimateModalTargetMode, setEstimateModalTargetMode] = useState('convert_to_statement');
   const [quickCustomerModalOpen, setQuickCustomerModalOpen] = useState(false);
   const [quickCustomerInitialName, setQuickCustomerInitialName] = useState('');
-  const [isPastStatementModalOpen, setIsPastStatementModalOpen] = useState(false);
   const [pendingTab, setPendingTab] = useState(null);
   const [pendingReset, setPendingReset] = useState(false);
-
-  // 지난 거래명세서 불러오기 (새 명세서 복사 또는 원본 수정)
-  const handleApplyPastStatement = (doc, actionType) => {
-    if (actionType === 'copy_to_new') {
-      setDocType('거래명세서');
-      const custData = doc.customer_data || {};
-      setCustomer({
-        name: doc.customer_name || custData.name || '',
-        person: custData.person || '',
-        phone: custData.phone || '',
-        addr: custData.addr || '',
-        bizno: custData.bizno || '',
-        selectedMachine: custData.selectedMachine || ''
-      });
-      // 품목 복사 (고유 ID 재생성)
-      const importedItems = (doc.items || []).map(i => ({
-        ...i,
-        id: Date.now().toString() + Math.random().toString().slice(2, 6)
-      }));
-      setItems(importedItems.length > 0 ? importedItems : [{ id: Date.now().toString(), code: '', name: '', unit: 'EA', qty: 1, price: 0 }]);
-      setVatIncluded(doc.vat_included !== false);
-      setVat(doc.vat || 0);
-      setPaid(0);
-      setPaymentStatus('미수금');
-      // 오늘 날짜 및 신규 명세서 번호 채번
-      const now = new Date();
-      setDocNo('' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '-001');
-      setDocDate(now.toISOString().split('T')[0]);
-      setDocTime(String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0'));
-      setRemark(doc.remark || '');
-      setEditingDocId(null);
-      setIsSavedThisSession(false);
-      alert(`✓ 지난 명세서(${doc.doc_no})의 품목과 거래처를 새 거래명세서로 성공적으로 복사했습니다.`);
-    } else {
-      // 원본 수정 모드
-      setDocType('거래명세서');
-      handleLoadDocument(doc);
-      alert(`✓ 지난 명세서(${doc.doc_no})를 수정 모드로 불러왔습니다.`);
-    }
-  };
 
   // 견적서 불러오기 또는 거래명세서 변환 적용 핸들러
   const handleApplyEstimate = (doc, actionType) => {
@@ -7263,12 +6987,6 @@ function App() {
     initialCustomerName: customer.name || '',
     selectedSupplierKey: selectedSupplierKey,
     onApplyEstimate: handleApplyEstimate
-  }), /*#__PURE__*/React.createElement(PastStatementImportModal, {
-    isOpen: isPastStatementModalOpen,
-    onClose: () => setIsPastStatementModalOpen(false),
-    initialCustomerName: customer.name || '',
-    selectedSupplierKey: selectedSupplierKey,
-    onApplyStatement: handleApplyPastStatement
   }), /*#__PURE__*/React.createElement("main", {
     className: "main-content"
   }, activeTab === 'doc' && /*#__PURE__*/React.createElement(StatementTab, {
@@ -7295,7 +7013,6 @@ function App() {
       setEstimateModalTargetMode(mode);
       setIsEstimateModalOpen(true);
     },
-    onOpenPastStatementModal: () => setIsPastStatementModalOpen(true),
     vat: vat,
     setVat: setVat,
     vatIncluded: vatIncluded,
