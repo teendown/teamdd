@@ -1714,23 +1714,28 @@ async function dbDeleteDocument(docId) {
   const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || localStorage.getItem('selected_supplier_key') || 'sejin';
   const local = getLocalItem('dd_documents_history_v1', DEMO_DOCUMENTS);
   
-  if (userRole === 'supplier') {
-    const found = local.find(d => d.id === docId || d.doc_no === docId);
-    if (found && found.supplier_key && !areSupplierKeysEquivalent(found.supplier_key, selectedSupplierKey)) {
+  const found = local.find(d => String(d.id) === String(docId) || d.doc_no === docId);
+  if (userRole === 'supplier' && found && found.supplier_key) {
+    if (!areSupplierKeysEquivalent(found.supplier_key, selectedSupplierKey)) {
       alert('해당 문서를 삭제할 권한이 없습니다.');
       return local.filter(d => areSupplierKeysEquivalent(d.supplier_key, selectedSupplierKey));
     }
   }
 
   const deletedAt = new Date().toISOString();
-  if (sb && docId && !String(docId).startsWith('doc_')) {
+
+  // Supabase 동기화: packRow를 통해 remark 필드 내 ---EXT---에 is_deleted 패킹
+  if (sb && found && found.id && !String(found.id).startsWith('doc_')) {
     try {
-      await sb.from('documents').update({ is_deleted: true, deleted_at: deletedAt }).eq('id', docId);
-    } catch (e) { console.error(e); }
+      const updatedFound = { ...found, is_deleted: true, deleted_at: deletedAt };
+      const packed = packRow(updatedFound, 'documents');
+      const { error } = await sb.from('documents').update({ remark: packed.remark }).eq('id', found.id);
+      if (error) console.error('Supabase soft delete error:', error);
+    } catch (e) { console.error('Error updating soft delete in Supabase:', e); }
   }
 
   const updated = local.map(d => {
-    if (d.id === docId || d.doc_no === docId) {
+    if (String(d.id) === String(docId) || d.doc_no === docId) {
       return { ...d, is_deleted: true, deleted_at: deletedAt };
     }
     return d;
@@ -1750,14 +1755,20 @@ async function dbRestoreDocument(docId) {
   const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || localStorage.getItem('selected_supplier_key') || 'sejin';
   const local = getLocalItem('dd_documents_history_v1', DEMO_DOCUMENTS);
 
-  if (sb && docId && !String(docId).startsWith('doc_')) {
+  const found = local.find(d => String(d.id) === String(docId) || d.doc_no === docId);
+
+  // Supabase 동기화: packRow를 통해 remark 필드 내 ---EXT---에 is_deleted: false 패킹
+  if (sb && found && found.id && !String(found.id).startsWith('doc_')) {
     try {
-      await sb.from('documents').update({ is_deleted: false, deleted_at: null }).eq('id', docId);
-    } catch (e) { console.error(e); }
+      const updatedFound = { ...found, is_deleted: false, deleted_at: null };
+      const packed = packRow(updatedFound, 'documents');
+      const { error } = await sb.from('documents').update({ remark: packed.remark }).eq('id', found.id);
+      if (error) console.error('Supabase restore error:', error);
+    } catch (e) { console.error('Error restoring document in Supabase:', e); }
   }
 
   const updated = local.map(d => {
-    if (d.id === docId || d.doc_no === docId) {
+    if (String(d.id) === String(docId) || d.doc_no === docId) {
       return { ...d, is_deleted: false, deleted_at: null };
     }
     return d;
@@ -1777,13 +1788,17 @@ async function dbPermanentDeleteDocument(docId) {
   const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || localStorage.getItem('selected_supplier_key') || 'sejin';
   const local = getLocalItem('dd_documents_history_v1', DEMO_DOCUMENTS);
 
-  if (sb && docId && !String(docId).startsWith('doc_')) {
+  const found = local.find(d => String(d.id) === String(docId) || d.doc_no === docId);
+  const targetId = found ? found.id : docId;
+
+  if (sb && targetId && !String(targetId).startsWith('doc_')) {
     try {
-      await sb.from('documents').delete().eq('id', docId);
-    } catch (e) { console.error(e); }
+      const { error } = await sb.from('documents').delete().eq('id', targetId);
+      if (error) console.error('Supabase permanent delete error:', error);
+    } catch (e) { console.error('Error permanently deleting in Supabase:', e); }
   }
 
-  const updated = local.filter(d => d.id !== docId && d.doc_no !== docId);
+  const updated = local.filter(d => String(d.id) !== String(docId) && d.doc_no !== docId);
   setLocalItem('dd_documents_history_v1', updated);
 
   if (userRole === 'supplier') {
