@@ -7010,30 +7010,61 @@ async function parseBusinessCardOrRegImage(base64Data, mimeType, apiKey) {
     }
   };
 
-  // 시도할 Gemini Vision 모델 후보 목록 (우선순위 순서)
-  const candidateModels = [
-    'gemini-1.5-flash-latest',
-    'gemini-1.5-flash',
-    'gemini-2.0-flash',
-    'gemini-2.0-flash-exp',
-    'gemini-1.5-flash-8b',
-    'gemini-1.5-pro-latest',
-    'gemini-1.5-pro'
+  // 1. ModelService.ListModels를 통해 현재 API 키에서 실제 지원하는 모델 목록 실시간 탐색
+  let dynamicEndpoints = [];
+  try {
+    const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey.trim()}`);
+    if (listRes.ok) {
+      const listData = await listRes.json();
+      const models = listData.models || [];
+      const usable = models.filter(m => 
+        m.supportedGenerationMethods && 
+        m.supportedGenerationMethods.includes('generateContent') &&
+        (m.name.includes('flash') || m.name.includes('pro') || m.name.includes('gemini'))
+      );
+      
+      // flash 모델 우선 정렬
+      usable.sort((a, b) => {
+        if (a.name.includes('flash') && !b.name.includes('flash')) return -1;
+        if (!a.name.includes('flash') && b.name.includes('flash')) return 1;
+        return 0;
+      });
+
+      dynamicEndpoints = usable.map(m => `https://generativelanguage.googleapis.com/v1beta/${m.name}:generateContent?key=${apiKey.trim()}`);
+    }
+  } catch (e) {
+    console.warn('ModelService.ListModels 탐색 실패, 기본 엔드포인트 목록 사용:', e);
+  }
+
+  // 2. 기본 후보 엔드포인트 목록 (v1beta 및 v1 모두 지원)
+  const defaultEndpoints = [
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey.trim()}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey.trim()}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`,
+    `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent?key=${apiKey.trim()}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-002:generateContent?key=${apiKey.trim()}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey.trim()}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=${apiKey.trim()}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${apiKey.trim()}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey.trim()}`,
+    `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key=${apiKey.trim()}`
   ];
+
+  // 실시간 탐색된 엔드포인트를 최우선으로 배치하고 중복 제거
+  const allEndpoints = Array.from(new Set([...dynamicEndpoints, ...defaultEndpoints]));
 
   let lastError = null;
 
-  for (const model of candidateModels) {
+  for (const endpoint of allEndpoints) {
     try {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`;
-      
       let response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payloadWithJsonMode)
       });
 
-      // 만약 json_mode 미지원 에러인 경우 일반 payload로 재시도
+      // json_mode 400 에러 시 표준 페이로드로 재시도
       if (!response.ok && response.status === 400) {
         response = await fetch(endpoint, {
           method: 'POST',
@@ -7044,19 +7075,19 @@ async function parseBusinessCardOrRegImage(base64Data, mimeType, apiKey) {
 
       if (!response.ok) {
         const errText = await response.text();
-        let errMsg = `[${model}] 실패 (${response.status})`;
+        let errMsg = `호출 실패 (${response.status})`;
         try {
           const errJson = JSON.parse(errText);
           if (errJson.error && errJson.error.message) errMsg = errJson.error.message;
         } catch (e) {}
         lastError = new Error(errMsg);
-        continue; // 다음 모델로 자동 시도!
+        continue; // 다음 엔드포인트로 자동 시도!
       }
 
       const result = await response.json();
       const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!text) {
-        lastError = new Error(`[${model}] 응답 텍스트 없음`);
+        lastError = new Error('응답 텍스트 없음');
         continue;
       }
 
@@ -7074,14 +7105,13 @@ async function parseBusinessCardOrRegImage(base64Data, mimeType, apiKey) {
       }
 
       const parsed = JSON.parse(cleanedText);
-      return parsed; // 성공적으로 파싱 완료!
+      return parsed; // 파싱 성공!
     } catch (err) {
       lastError = err;
-      // 다음 모델로 자동 전환
     }
   }
 
-  throw lastError || new Error('모든 Gemini AI 모델 호출에 실패했습니다. API 키와 네트워크를 확인해 주세요.');
+  throw lastError || new Error('모든 Gemini AI 모델 엔드포인트 호출에 실패했습니다. API 키를 확인해 주세요.');
 }
 
 // ── OCR 고객 등록 및 사전 검수(Human-in-the-Loop) 모달 ──────────────────────────────
