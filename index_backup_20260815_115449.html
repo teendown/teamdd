@@ -3448,9 +3448,7 @@ function StatementTab({
       fontWeight: '700',
       color: vatIncluded ? '#1d6bf3' : '#64748b'
     }
-  }, "\uBD80\uAC00\uC138 \uC801\uC6A9 (10%)"))), 
-  
-  docType !== '견적서' && /*#__PURE__*/React.createElement("div", {
+  }, "\uBD80\uAC00\uC138 \uC801\uC6A9 (10%)"))), /*#__PURE__*/React.createElement("div", {
     className: "form-section"
   }, /*#__PURE__*/React.createElement("div", {
     className: "section-title"
@@ -3486,20 +3484,13 @@ function StatementTab({
         }
       })
     ),
-    /* 입금방법 및 일자 */
-    /*#__PURE__*/React.createElement("div", { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' } },
+    (paid > 0) && /*#__PURE__*/React.createElement("div", { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' } },
       /*#__PURE__*/React.createElement("div", { className: "form-group" },
         /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uC785\uAE08\uBC29\uBC95"),
         /*#__PURE__*/React.createElement("select", {
           className: "form-select",
           value: paymentMethod,
-          onChange: function(e) {
-            var m = e.target.value;
-            setPaymentMethod(m);
-            if (m === '카드' || m === '신용카드' || m === '세금계산서') {
-              setVatIncluded(true);
-            }
-          }
+          onChange: function(e) { setPaymentMethod(e.target.value); }
         },
           ["\uACC4\uC88C\uC774\uCCB4", "\uD604\uAE08", "\uCE74\uB4DC", "\uC5B4\uC74C", "\uAE30\uD0C0"].map(function(m) {
             return /*#__PURE__*/React.createElement("option", { key: m, value: m }, m);
@@ -3511,6 +3502,14 @@ function StatementTab({
         /*#__PURE__*/React.createElement("input", {
           type: "date", className: "form-input",
           value: paymentDate,
+      validityPeriod,
+      deliveryDate,
+      deliveryLocation,
+      paymentTerms,
+      bankAccount,
+      dueDate,
+      receiverName,
+      receiveDate,
           onChange: function(e) { setPaymentDate(e.target.value); }
         })
       )
@@ -3661,22 +3660,14 @@ function AccountingTab({
   }, [documents, selectedYear, selectedMonth, selectedCustomer, selectedSupplier, docTypeFilter, searchQuery]);
 
   const statistics = React.useMemo(() => {
-    let totalSales = 0, totalPaid = 0, totalUnpaid = 0, totalDocsCount = 0;
-    let totalEstimate = 0, estimateDocsCount = 0;
+    let totalSales = 0, totalPaid = 0, totalUnpaid = 0, totalDocsCount = filteredDocuments.length;
     filteredDocuments.forEach(doc => {
-      const isEstimate = (doc.doc_type || doc.docType) === '견적서';
       const { grandTotal, paid, balance } = getDocTotals(doc);
-      if (isEstimate) {
-        totalEstimate += grandTotal;
-        estimateDocsCount += 1;
-      } else {
-        totalSales += grandTotal;
-        totalPaid += paid;
-        totalUnpaid += balance;
-        totalDocsCount += 1;
-      }
+      totalSales += grandTotal;
+      totalPaid += paid;
+      totalUnpaid += balance;
     });
-    return { totalSales, totalPaid, totalUnpaid, totalDocsCount, totalEstimate, estimateDocsCount };
+    return { totalSales, totalPaid, totalUnpaid, totalDocsCount };
   }, [filteredDocuments]);
 
   const customerSummaries = React.useMemo(() => {
@@ -3694,9 +3685,6 @@ function AccountingTab({
     });
 
     documents.forEach(doc => {
-      // 견적서는 거래처별 매출 및 미수금 장부에서 100% 제외 (단순 사전제안)
-      if ((doc.doc_type || doc.docType) === '견적서') return;
-
       const rawName = (doc.customer_name || doc.customer_data?.name || '').trim();
       if (!rawName || rawName === '미지정') return;
 
@@ -5100,47 +5088,20 @@ function DocHistoryTab({
     const vat = doc.vat_included !== false ? Math.floor(supply * 0.1) : Number(doc.vat) || 0;
     return supply + vat;
   };
-
-  // 실제 매출 문서(거래명세서/청구서)와 사전 제안 문서(견적서) 철저 분리
-  const realSalesDocs = filtered.filter(d => (d.doc_type || d.docType) !== '견적서');
-  const estimateDocs = filtered.filter(d => (d.doc_type || d.docType) === '견적서');
-
-  // 실제 발생 매출 합계 (견적서 제외)
-  const totalSumAmount = realSalesDocs.reduce(function(sum, d) { return sum + calculateTotal(d); }, 0);
-  // 견적서 총액
-  const totalEstimateAmount = estimateDocs.reduce(function(sum, d) { return sum + calculateTotal(d); }, 0);
-
-  // 총 미수금 (견적서는 100% 제외)
-  var totalUnpaid = realSalesDocs.reduce(function(sum, d) {
+  const totalSumAmount = filtered.reduce(function(sum, d) { return sum + calculateTotal(d); }, 0);
+  var totalUnpaid = filtered.reduce(function(sum, d) {
     var ps = getEffectivePaymentStatus(d);
     if (ps === '\uC785\uAE08\uC644\uB8CC') return sum;
     var total = calculateTotal(d);
     var paidAmt = Number(d.paid) || 0;
     return sum + (total - paidAmt);
   }, 0);
-
-  // 총 입금액 (견적서는 100% 제외)
-  var totalPaid = realSalesDocs.reduce(function(sum, d) {
+  var totalPaid = filtered.reduce(function(sum, d) {
     var ps = getEffectivePaymentStatus(d);
     if (ps === '\uC785\uAE08\uC644\uB8CC') return sum + calculateTotal(d);
     return sum + (Number(d.paid) || 0);
   }, 0);
-
   function getPayBadge(doc) {
-    if ((doc.doc_type || doc.docType) === '견적서') {
-      return /*#__PURE__*/React.createElement('span', {
-        style: {
-          display: 'inline-block',
-          padding: '2px 8px',
-          borderRadius: '4px',
-          fontSize: '11px',
-          fontWeight: '700',
-          backgroundColor: '#f1f5f9',
-          color: '#475569',
-          border: '1px solid #cbd5e1'
-        }
-      }, '📋 견적발행');
-    }
     var ps = getEffectivePaymentStatus(doc);
     var cls = ps === '\uC785\uAE08\uC644\uB8CC' ? 'paid' : ps === '\uBD80\uBD84\uC785\uAE08' ? 'partial' : 'unpaid';
     var icon = ps === '\uC785\uAE08\uC644\uB8CC' ? '\u2705' : ps === '\uBD80\uBD84\uC785\uAE08' ? '\uD83D\uDFE1' : '\uD83D\uDD34';
@@ -5199,58 +5160,63 @@ function DocHistoryTab({
     type: "date",
     className: "form-input",
     style: {
-      width: '130px',
-      fontSize: '0.75rem'
+      width: 'auto',
+      minWidth: '130px'
     },
     value: startDate,
     onChange: e => setStartDate(e.target.value)
-  }), /*#__PURE__*/React.createElement("span", null, "~"), /*#__PURE__*/React.createElement("input", {
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: '#64748b'
+    }
+  }, "~"), /*#__PURE__*/React.createElement("input", {
     type: "date",
     className: "form-input",
     style: {
-      width: '130px',
-      fontSize: '0.75rem'
+      width: 'auto',
+      minWidth: '130px'
     },
     value: endDate,
     onChange: e => setEndDate(e.target.value)
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
-      gap: '4px'
+      gap: '4px',
+      flexWrap: 'wrap'
     }
   }, /*#__PURE__*/React.createElement("button", {
     className: "btn btn-outline",
     style: {
-      fontSize: '0.75rem',
-      padding: '0.25rem 0.5rem'
+      padding: '2px 8px',
+      fontSize: '11px'
     },
     onClick: () => setPresetDate('today')
   }, "\uC624\uB298"), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-outline",
     style: {
-      fontSize: '0.75rem',
-      padding: '0.25rem 0.5rem'
+      padding: '2px 8px',
+      fontSize: '11px'
     },
     onClick: () => setPresetDate('month')
   }, "\uC774\uBC88\uB2EC"), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-outline",
     style: {
-      fontSize: '0.75rem',
-      padding: '0.25rem 0.5rem'
+      padding: '2px 8px',
+      fontSize: '11px'
     },
     onClick: () => setPresetDate('last_month')
   }, "\uC9C0\uB09C\uB2EC"), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-outline",
     style: {
-      fontSize: '0.75rem',
-      padding: '0.25rem 0.5rem'
+      padding: '2px 8px',
+      fontSize: '11px'
     },
     onClick: () => setPresetDate('3months')
-  }, "3\uAC1C\uC644"), /*#__PURE__*/React.createElement("button", {
+  }, "3\uAC1C\uC6D4"), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-outline",
     style: {
-      fontSize: '0.75rem',
-      padding: '0.25rem 0.5rem'
+      padding: '2px 8px',
+      fontSize: '11px'
     },
     onClick: () => setPresetDate('all')
   }, "\uC804\uCCB4"))), /*#__PURE__*/React.createElement("div", {
@@ -5322,21 +5288,25 @@ function DocHistoryTab({
       alignItems: 'center',
       fontSize: '0.8125rem',
       color: '#1e3a8a',
-      fontWeight: '700',
-      flexWrap: 'wrap',
-      gap: '8px'
+      fontWeight: '700'
     }
-  }, /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '8px', alignItems: 'center' } },
-    /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCCA \uC870\uD68C \uACB0\uACFC: ", /*#__PURE__*/React.createElement("strong", { style: { color: '#1d6bf3' } }, filtered.length, "\uAC74")),
-    estimateDocs.length > 0 && /*#__PURE__*/React.createElement("span", { style: { fontSize: '11px', color: '#64748b' } }, `(실매출 ${realSalesDocs.length}건 / 견적 ${estimateDocs.length}건)`)
-  ), /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '12px', alignItems: 'center' } },
-    docTypeFilter === '견적서' ? /*#__PURE__*/React.createElement("span", null, "📋 총 견적합계: ", /*#__PURE__*/React.createElement("strong", { style: { color: '#4f46e5', fontFamily: 'monospace' } }, totalEstimateAmount.toLocaleString(), "\uC6D0")) :
-    /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCB0 \uCD1D \uB9E4\uCD9C \uD569\uACC4: ", /*#__PURE__*/React.createElement("strong", { style: { color: '#1d6bf3', fontFamily: 'monospace' } }, totalSumAmount.toLocaleString(), "\uC6D0"))
-  )),
+  }, /*#__PURE__*/React.createElement("div", null, "\uD83D\uDCCA \uC870\uD68C \uACB0\uACFC: ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: '#1d6bf3',
+      fontWeight: '900'
+    }
+  }, filtered.length, "\uAC74")), /*#__PURE__*/React.createElement("div", null, "\uD83D\uDCB0 \uCD1D \uD569\uACC4\uAE08\uC561: ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: '#1d6bf3',
+      fontWeight: '900',
+      fontFamily: 'monospace',
+      fontSize: '0.9375rem'
+    }
+  }, totalSumAmount.toLocaleString(), "\uC6D0"))),
   
   /*#__PURE__*/React.createElement("div", { className: "accounting-summary-bar" },
     /*#__PURE__*/React.createElement("div", { className: "accounting-summary-item" },
-      /*#__PURE__*/React.createElement("div", { className: "accounting-summary-label" }, "\uCD1D \uBBF8\uC218\uAE08 (견적 제외)"),
+      /*#__PURE__*/React.createElement("div", { className: "accounting-summary-label" }, "\uCD1D \uBBF8\uC218\uAE08"),
       /*#__PURE__*/React.createElement("div", { className: "accounting-summary-value unpaid-val" }, totalUnpaid.toLocaleString(), "\uC6D0")
     ),
     /*#__PURE__*/React.createElement("div", { className: "accounting-summary-item" },
