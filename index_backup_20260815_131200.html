@@ -3236,45 +3236,8 @@ function StatementTab({
     className: "form-section"
   }, /*#__PURE__*/React.createElement("div", {
     className: "section-title",
-    style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }
-  }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCC4 " + docType + " \uAE30\uBCF8 \uC124\uC815"),
-     /*#__PURE__*/React.createElement("span", { style: { fontSize: '11px', color: '#64748b', fontWeight: 'normal' } }, "⚡ 원클릭 양식 전환")),
-  
-  /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      backgroundColor: '#f1f5f9',
-      padding: '4px',
-      borderRadius: '8px',
-      marginBottom: '1rem',
-      border: '1px solid #e2e8f0'
-    }
-  },
-    ['거래명세서', '견적서', '청구서'].map(type => /*#__PURE__*/React.createElement("button", {
-      key: type,
-      type: 'button',
-      style: {
-        flex: 1,
-        padding: '6px 8px',
-        fontSize: '0.8125rem',
-        fontWeight: docType === type ? '800' : '600',
-        backgroundColor: docType === type ? '#ffffff' : 'transparent',
-        color: docType === type ? '#1d6bf3' : '#64748b',
-        borderRadius: '6px',
-        border: 'none',
-        boxShadow: docType === type ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-        cursor: 'pointer',
-        transition: 'all 0.2s',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '4px'
-      },
-      onClick: () => setDocType(type)
-    }, type === '거래명세서' ? '📦 거래명세서' : (type === '견적서' ? '📋 견적서' : '🧾 청구서')))
-  ),
-
-  /*#__PURE__*/React.createElement("div", {
+    style: { display: 'flex', justifyContent: 'space-between' }
+  }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCC4 " + docType + " \uAE30\uBCF8 \uC124\uC815")), /*#__PURE__*/React.createElement("div", {
     className: "grid-2"
   }, /*#__PURE__*/React.createElement("div", {
     className: "form-group"
@@ -4492,51 +4455,31 @@ function CustomerEditModal({
       )
     ),
     /*#__PURE__*/React.createElement("div", { className: "form-group" },
-      /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uAE30\uC885 (\uBCF4\uC720 \uC7A5\uBE44 \uBAA9\uB85D)"),
-      currentMode === 'view' ? (
-        machineList && machineList.length > 0 ? /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' } },
-          machineList.map((m, idx) => /*#__PURE__*/React.createElement("span", {
-            key: idx,
-            style: {
-              backgroundColor: '#eff6ff',
-              color: '#1d4ed8',
-              border: '1px solid #93c5fd',
-              padding: '4px 10px',
-              borderRadius: '6px',
-              fontSize: '0.8125rem',
-              fontWeight: '700',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px'
-            }
-          }, `🚜 ${m}`))
-        ) : /*#__PURE__*/React.createElement("div", { className: "view-value", style: { color: '#94a3b8' } }, "- (등록된 보유 기종 없음)")
-      ) : /*#__PURE__*/React.createElement(React.Fragment, null,
-        /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '4px', marginBottom: '8px', flexWrap: 'wrap' } },
-          machineList.map((m, idx) => /*#__PURE__*/React.createElement("span", {
-            key: idx,
-            style: {
-              backgroundColor: '#eff6ff',
-              color: '#1d4ed8',
-              border: '1px solid #bfdbfe',
-              padding: '2px 8px',
-              borderRadius: '9999px',
-              fontSize: '0.75rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }
-          }, m, /*#__PURE__*/React.createElement("button", {
-            type: "button",
-            style: { background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontWeight: 'bold' },
-            onClick: () => handleRemoveMachine(idx)
-          }, "\xD7")))
-        ),
-        /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '4px', marginTop: '8px' } },
-          /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", style: { flex: 1 }, placeholder: "\uAE30\uC885\uBA85 (\uC608: DX140W)", value: machineInput, onChange: e => setMachineInput(e.target.value), onKeyDown: e => e.key === 'Enter' && handleAddMachine() }),
-          /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", style: { flex: 1 }, placeholder: "\uD638\uAE30\uC218 (\uC608: 1\uD638\uAE30)", value: machineNoInput, onChange: e => setMachineNoInput(e.target.value), onKeyDown: e => e.key === 'Enter' && handleAddMachine() }),
-          /*#__PURE__*/React.createElement("button", { type: "button", className: "btn btn-outline", onClick: handleAddMachine }, "\uCD94\uAC00")
-        )
+      /*#__PURE__*/React.createElement("label", { className: "form-label" }, "\uAE30\uC885 (\uC7A5\uBE44 \uBAA9\uB85D)"),
+      /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '4px', marginBottom: currentMode === 'view' ? '0' : '8px', flexWrap: 'wrap' } },
+        machineList.map((m, idx) => /*#__PURE__*/React.createElement("span", {
+          key: idx,
+          style: {
+            backgroundColor: '#eff6ff',
+            color: '#1d4ed8',
+            border: '1px solid #bfdbfe',
+            padding: '2px 8px',
+            borderRadius: '9999px',
+            fontSize: '0.75rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
+          }
+        }, m, currentMode !== 'view' && /*#__PURE__*/React.createElement("button", {
+          type: "button",
+          style: { background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontWeight: 'bold' },
+          onClick: () => handleRemoveMachine(idx)
+        }, "\xD7")))
+      ),
+      currentMode !== 'view' && /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '4px', marginTop: '8px' } },
+        /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", style: { flex: 1 }, placeholder: "\uAE30\uC885\uBA85 (\uC608: DX140W)", value: machineInput, onChange: e => setMachineInput(e.target.value), onKeyDown: e => e.key === 'Enter' && handleAddMachine() }),
+        /*#__PURE__*/React.createElement("input", { type: "text", className: "form-input", style: { flex: 1 }, placeholder: "\uD638\uAE30\uC218 (\uC608: 1\uD638\uAE30)", value: machineNoInput, onChange: e => setMachineNoInput(e.target.value), onKeyDown: e => e.key === 'Enter' && handleAddMachine() }),
+        /*#__PURE__*/React.createElement("button", { type: "button", className: "btn btn-outline", onClick: handleAddMachine }, "\uCD94\uAC00")
       )
     )
   ),
@@ -5448,6 +5391,7 @@ function DocHistoryTab({
   // 견적서 총액
   const totalEstimateAmount = estimateDocs.reduce(function(sum, d) { return sum + calculateTotal(d); }, 0);
 
+  // 총 미수금 (견적서는 100% 제외)
   var totalUnpaid = realSalesDocs.reduce(function(sum, d) {
     var ps = getEffectivePaymentStatus(d);
     if (ps === '\uC785\uAE08\uC644\uB8CC') return sum;
@@ -5456,6 +5400,7 @@ function DocHistoryTab({
     return sum + (total - paidAmt);
   }, 0);
 
+  // 총 입금액 (견적서는 100% 제외)
   var totalPaid = realSalesDocs.reduce(function(sum, d) {
     var ps = getEffectivePaymentStatus(d);
     if (ps === '\uC785\uAE08\uC644\uB8CC') return sum + calculateTotal(d);
@@ -5616,8 +5561,7 @@ function DocHistoryTab({
       key: t,
       value: t
     }, t)))
-  ),
-  /*#__PURE__*/React.createElement("div", {
+  ), /*#__PURE__*/React.createElement("div", {
     style: { display: 'flex', flexDirection: 'column', gap: '6px' }
   },
     /*#__PURE__*/React.createElement("label", { style: { fontSize: '0.75rem', fontWeight: '700', color: '#475569' } }, "\uAC70\uB798\uCC98\uBA85"),
@@ -5688,7 +5632,7 @@ function DocHistoryTab({
       textAlign: 'center',
       color: '#64748b'
     }
-  }, "\uBB38\uC11C\uB97C \uBD88\uB7EC\uC624\uBB49 \uC911\uC785\uB2C8\uB2E4...") : filtered.length === 0 ? /*#__PURE__*/React.createElement("div", {
+  }, "\uBB38\uC11C\uB97C \uBD88\uB7EC\uC624\uB294 \uC911\uC785\uB2C8\uB2E4...") : filtered.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '2.5rem',
       textAlign: 'center',
@@ -5710,7 +5654,6 @@ function DocHistoryTab({
     const total = calculateTotal(doc);
     const custName = doc.customer_name || (doc.customer_data == null ? undefined : doc.customer_data.name) || '-';
     const custMachine = (doc.customer_data == null ? undefined : doc.customer_data.selectedMachine) ? ` (${doc.customer_data.selectedMachine})` : '';
-    const currentDocType = doc.doc_type || '거래명세서';
     return /*#__PURE__*/React.createElement("tr", {
       key: doc.id || doc.doc_no
     }, /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {
@@ -5756,39 +5699,28 @@ function DocHistoryTab({
     }, total.toLocaleString(), "\uC6D0", /*#__PURE__*/React.createElement("br", null), getPayBadge(doc)), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
-        gap: '4px',
-        flexWrap: 'wrap'
+        gap: '4px'
       }
     }, /*#__PURE__*/React.createElement("button", {
       className: "btn btn-primary",
       style: {
-        padding: '3px 7px',
+        padding: '3px 8px',
         fontSize: '11px'
       },
       onClick: () => onLoadDocument(doc)
-    }, "\uD83D\uDCE5 \uBD88\uB7EC\uC624\uAE30"),
-    (doc.doc_type || '거래명세서') === '견적서' ? /*#__PURE__*/React.createElement("button", {
-      className: "btn btn-primary",
-      style: { padding: '3px 7px', fontSize: '11px', backgroundColor: '#059669', borderColor: '#059669' },
-      onClick: () => onConvertToDoc && onConvertToDoc(doc, '거래명세서')
-    }, "📦 명세서로") : /*#__PURE__*/React.createElement("button", {
-      className: "btn btn-primary",
-      style: { padding: '3px 7px', fontSize: '11px', backgroundColor: '#4f46e5', borderColor: '#4f46e5' },
-      onClick: () => onConvertToDoc && onConvertToDoc(doc, '견적서')
-    }, "📋 견적서로"),
-    /*#__PURE__*/React.createElement("button", {
+    }, "\uD83D\uDCE5 \uBD88\uB7EC\uC624\uAE30/\uC218\uC815"), /*#__PURE__*/React.createElement("button", {
       className: "btn btn-primary",
       style: {
-        padding: '3px 7px',
+        padding: '3px 8px',
         fontSize: '11px',
         backgroundColor: '#10b981',
         borderColor: '#10b981'
       },
       onClick: () => onCopyDocument(doc)
-    }, "\uD83D\uDCCB \uBCF5\uC0AC"), /*#__PURE__*/React.createElement("button", {
+    }, "\uD83D\uDCCB \uC0C8 \uBB38\uC11C\uB85C \uBCF5\uC0AC"), /*#__PURE__*/React.createElement("button", {
       className: "btn btn-red-outline",
       style: {
-        padding: '3px 7px',
+        padding: '3px 8px',
         fontSize: '11px'
       },
       onClick: () => handleDelete(doc)
@@ -5854,8 +5786,7 @@ function DocHistoryTab({
     }, "\uD569\uACC4: ", total.toLocaleString(), "\uC6D0")), /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
-        gap: '4px',
-        flexWrap: 'wrap'
+        gap: '4px'
       }
     }, /*#__PURE__*/React.createElement("button", {
       className: "btn btn-primary",
@@ -5865,17 +5796,7 @@ function DocHistoryTab({
         fontSize: '0.75rem'
       },
       onClick: () => onLoadDocument(doc)
-    }, "\uD83D\uDCE5 \uBD88\uB7EC\uC624\uAE30"),
-    (doc.doc_type || '거래명세서') === '견적서' ? /*#__PURE__*/React.createElement("button", {
-      className: "btn btn-primary",
-      style: { flex: 1, minHeight: '32px', fontSize: '0.75rem', backgroundColor: '#059669', borderColor: '#059669' },
-      onClick: () => onConvertToDoc && onConvertToDoc(doc, '거래명세서')
-    }, "📦 명세서로") : /*#__PURE__*/React.createElement("button", {
-      className: "btn btn-primary",
-      style: { flex: 1, minHeight: '32px', fontSize: '0.75rem', backgroundColor: '#4f46e5', borderColor: '#4f46e5' },
-      onClick: () => onConvertToDoc && onConvertToDoc(doc, '견적서')
-    }, "📋 견적서로"),
-    /*#__PURE__*/React.createElement("button", {
+    }, "\uD83D\uDCE5 \uBD88\uB7EC\uC624\uAE30/\uC218\uC815"), /*#__PURE__*/React.createElement("button", {
       className: "btn btn-primary",
       style: {
         padding: '3px 8px',
@@ -5884,14 +5805,15 @@ function DocHistoryTab({
         borderColor: '#10b981'
       },
       onClick: () => onCopyDocument(doc)
-    }, "\uD83D\uDCCB \uBCF5\uC0AC"), /*#__PURE__*/React.createElement("button", {
+    }, "\uD83D\uDCCB \uC0C8 \uBB38\uC11C\uB85C \uBCF5\uC0AC"), /*#__PURE__*/React.createElement("button", {
       className: "btn btn-red-outline",
       style: {
-        padding: '3px 8px',
-        fontSize: '11px'
+        flex: 1,
+        minHeight: '32px',
+        fontSize: '0.75rem'
       },
       onClick: () => handleDelete(doc)
-    }, "\uD83D\uDDD1\uFE0F")));
+    }, "\uD83D\uDDD1\uFE0F \uC0AD\uC81C")));
   })))));
 }
 
@@ -6809,17 +6731,6 @@ function App() {
     setDocTime(String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'));
   };
 
-  const handleConvertToDocument = (doc, targetType) => {
-    handleLoadDocument(doc);
-    setDocType(targetType);
-    setEditingDocId(null);
-    setDocNo('');
-    const d = new Date();
-    setDocDate(d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'));
-    setDocTime(String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'));
-    setActiveTab('doc');
-  };
-
   const handleLoadDocument = doc => {
     setDocType(doc.doc_type || doc.docType || '거래명세서');
     setDocNo(doc.doc_no || doc.docNo || '');
@@ -7056,7 +6967,6 @@ function App() {
   }), activeTab === 'history' && /*#__PURE__*/React.createElement(DocHistoryTab, {
     onLoadDocument: handleLoadDocument,
     onCopyDocument: handleCopyDocument,
-    onConvertToDoc: handleConvertToDocument,
     isConnected: isConnected,
     selectedSupplierKey: selectedSupplierKey
   }), activeTab === 'accounting' && /*#__PURE__*/React.createElement(AccountingTab, {
