@@ -6788,25 +6788,25 @@ async function parseBusinessCardOrRegImage(base64Data, mimeType, apiKey) {
   const prompt = `당신은 한국의 명함 및 사업자등록증 전문 OCR 및 정형 데이터 추출 AI입니다.
 주어진 이미지를 분석하여 문서 유형을 식별하고, 다음 JSON 스키마에 맞게 정확한 정보를 추출해 주세요.
 
-규칙:
-1. 문서 유형(docType)은 'business_card'(명함) 또는 'business_registration'(사업자등록증)으로 식별하세요.
-2. name: 회사명 / 상호명 (법인명)
-3. bizno: 사업자등록번호 (반드시 '000-00-00000' 10자리 하이픈 형식으로 변환)
-4. repName: 대표자명 (사업자등록증의 대표자 또는 명함의 대표 직함)
-5. person: 담당자명 / 성명 (명함 소유자 이름)
-6. phone: 휴대전화 또는 대표 전화번호 ('010-XXXX-XXXX' 또는 '02-XXX-XXXX' 형식)
-7. email: 이메일 주소
-8. fax: 팩스 번호
-9. addr: 사업장 소재지 주소 (도로명 또는 지번 주소)
-10. bizType: 업태 (사업자등록증에 기재된 업태)
-11. bizItem: 종목 (사업자등록증에 기재된 종목)
-12. memo: 직함/부서/개업일 등 추가 중요 정보
-
-반드시 순수 JSON 객체만 반환하세요.`;
+반드시 다음 JSON 형식으로만 응답하세요:
+{
+  "docType": "business_card 또는 business_registration",
+  "name": "회사명 또는 상호명",
+  "bizno": "사업자등록번호(000-00-00000 10자리 형식)",
+  "repName": "대표자명",
+  "person": "담당자명 또는 명함 소유자 성명",
+  "phone": "전화번호 또는 휴대전화번호",
+  "email": "이메일 주소",
+  "fax": "팩스번호",
+  "addr": "사업장 주소",
+  "bizType": "업태",
+  "bizItem": "종목",
+  "memo": "직함/부서/참고사항"
+}`;
 
   const cleanBase64 = base64Data.replace(/^data:image\/[a-z]+;base64,/, '');
 
-  const payload = {
+  const payloadWithJsonMode = {
     contents: [
       {
         parts: [
@@ -6826,33 +6826,97 @@ async function parseBusinessCardOrRegImage(base64Data, mimeType, apiKey) {
     }
   };
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`;
+  const payloadStandard = {
+    contents: [
+      {
+        parts: [
+          { text: prompt },
+          {
+            inline_data: {
+              mime_type: mimeType || 'image/jpeg',
+              data: cleanBase64
+            }
+          }
+        ]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.1
+    }
+  };
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
+  // 시도할 Gemini Vision 모델 후보 목록 (우선순위 순서)
+  const candidateModels = [
+    'gemini-1.5-flash-latest',
+    'gemini-1.5-flash',
+    'gemini-2.0-flash',
+    'gemini-2.0-flash-exp',
+    'gemini-1.5-flash-8b',
+    'gemini-1.5-pro-latest',
+    'gemini-1.5-pro'
+  ];
 
-  if (!response.ok) {
-    const errText = await response.text();
-    let errMsg = `API 호출 실패 (${response.status})`;
+  let lastError = null;
+
+  for (const model of candidateModels) {
     try {
-      const errJson = JSON.parse(errText);
-      if (errJson.error && errJson.error.message) errMsg = errJson.error.message;
-    } catch (e) {}
-    throw new Error(errMsg);
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`;
+      
+      let response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payloadWithJsonMode)
+      });
+
+      // 만약 json_mode 미지원 에러인 경우 일반 payload로 재시도
+      if (!response.ok && response.status === 400) {
+        response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payloadStandard)
+        });
+      }
+
+      if (!response.ok) {
+        const errText = await response.text();
+        let errMsg = `[${model}] 실패 (${response.status})`;
+        try {
+          const errJson = JSON.parse(errText);
+          if (errJson.error && errJson.error.message) errMsg = errJson.error.message;
+        } catch (e) {}
+        lastError = new Error(errMsg);
+        continue; // 다음 모델로 자동 시도!
+      }
+
+      const result = await response.json();
+      const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) {
+        lastError = new Error(`[${model}] 응답 텍스트 없음`);
+        continue;
+      }
+
+      // JSON 추출 로직 (순수 JSON 또는 마크다운 코드블록 대응)
+      let cleanedText = text.trim();
+      if (cleanedText.startsWith('```json')) {
+        cleanedText = cleanedText.replace(/^```json\s*/i, '').replace(/\s*```$/, '');
+      } else if (cleanedText.startsWith('```')) {
+        cleanedText = cleanedText.replace(/^```\s*/i, '').replace(/\s*```$/, '');
+      }
+
+      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        cleanedText = jsonMatch[0];
+      }
+
+      const parsed = JSON.parse(cleanedText);
+      return parsed; // 성공적으로 파싱 완료!
+    } catch (err) {
+      lastError = err;
+      // 다음 모델로 자동 전환
+    }
   }
 
-  const result = await response.json();
-  const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error('AI로부터 추출된 텍스트 응답이 없습니다.');
-
-  try {
-    return JSON.parse(text);
-  } catch (e) {
-    throw new Error('AI 응답 JSON 파싱 실패: ' + text);
-  }
+  throw lastError || new Error('모든 Gemini AI 모델 호출에 실패했습니다. API 키와 네트워크를 확인해 주세요.');
 }
 
 // ── OCR 고객 등록 및 사전 검수(Human-in-the-Loop) 모달 ──────────────────────────────
