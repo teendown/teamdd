@@ -3052,7 +3052,8 @@ function Header({
   docType,
   setDocType,
   userRole,
-  onLogout
+  onLogout,
+  onOpenDesktopShortcutModal
 }) {
   const [showConfig, setShowConfig] = React.useState(false);
   const [copiedSQL, setCopiedSQL] = React.useState(false);
@@ -3071,8 +3072,12 @@ function Header({
   }, "TEAM D.D"), /*#__PURE__*/React.createElement("span", {
     className: "brand-sub"
   }, "\uB300\uD55C\uBBFC\uAD6D \uAC74\uC124\uAE30\uACC4 \uC815\uBE44 1\uB4F1")), /*#__PURE__*/React.createElement("div", {
-    style: { display: 'flex', alignItems: 'center', gap: '0.5rem' }
-  }, /*#__PURE__*/React.createElement("span", {
+    style: { display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: onOpenDesktopShortcutModal,
+    style: { padding: '4px 10px', background: '#eff6ff', border: '1px solid #93c5fd', borderRadius: '6px', fontSize: '11px', color: '#1d4ed8', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }
+  }, "🖥️ 바탕화면 아이콘"), /*#__PURE__*/React.createElement("span", {
     style: { fontSize: '11px', color: '#4b5563', fontWeight: '700', backgroundColor: '#e2e8f0', padding: '2px 8px', borderRadius: '4px' }
   }, userRole === 'admin' ? '👑 관리자' : '👤 공급자'), /*#__PURE__*/React.createElement("button", {
     type: "button",
@@ -3196,7 +3201,17 @@ function Header({
   }, "\uD83C\uDFE2 \uACF5\uAE09\uC790"), /*#__PURE__*/React.createElement("button", {
     className: `tab-btn ${activeTab === 'parts' ? 'active' : ''}`,
     onClick: () => setActiveTab('parts')
-  }, "\uD83D\uDEE0\uFE0F \uBD80\uD488\uAD00\uB9AC"))));
+  }, "\uD83D\uDEE0\uFE0F \uBD80\uD488\uAD00\uB9AC"), /*#__PURE__*/React.createElement("button", {
+    className: "tab-btn",
+    style: {
+      marginLeft: 'auto',
+      backgroundColor: '#eff6ff',
+      color: '#1d4ed8',
+      borderColor: '#bfdbfe',
+      fontWeight: '800'
+    },
+    onClick: onOpenDesktopShortcutModal
+  }, "🖥️ 바탕화면 바로가기"))));
 }
 function StatementTab({
   docType,
@@ -6779,6 +6794,156 @@ function PastStatementImportModal({
   ));
 }
 
+// ── PC 바탕화면 바로가기(.url) 생성 및 다운로드 함수 ────────────────────────────
+function downloadDesktopShortcut() {
+  const currentUrl = window.location.origin + window.location.pathname;
+  const shortcutContent = `[InternetShortcut]\r\nURL=${currentUrl}\r\nIconIndex=0\r\nIconFile=${currentUrl}favicon.ico\r\n`;
+  const blob = new Blob([shortcutContent], { type: 'application/octet-stream' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'TEAM_DD_관리프로그램.url';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+// ── PC 바탕화면 아이콘 만들기 안내 및 설치 모달 ──────────────────────────────────
+function DesktopShortcutModal({ isOpen, onClose }) {
+  if (!isOpen) return null;
+
+  const [installPrompt, setInstallPrompt] = React.useState(null);
+  const [downloaded, setDownloaded] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleBeforeInstall = (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+  }, []);
+
+  const handleDownload = () => {
+    downloadDesktopShortcut();
+    setDownloaded(true);
+    setTimeout(() => setDownloaded(false), 4000);
+  };
+
+  const handlePwaInstall = async () => {
+    if (installPrompt) {
+      installPrompt.prompt();
+      const choice = await installPrompt.userChoice;
+      if (choice.outcome === 'accepted') {
+        alert('✓ TEAM D.D 프로그램이 PC 데스크톱 앱으로 설치되었습니다!');
+        onClose();
+      }
+    } else {
+      alert('브라우저 주소창 우측의 [컴퓨터/설치 아이콘 💻] 또는 브라우저 메뉴(⋮) ➡️ [바로가기 만들기/앱 설치]를 클릭해 주세요.');
+    }
+  };
+
+  return /*#__PURE__*/React.createElement("div", {
+    className: "modal-overlay",
+    style: { zIndex: 1060 }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "modal-content",
+    style: { maxWidth: '580px', width: '95%', padding: '1.5rem', display: 'flex', flexDirection: 'column' }
+  },
+    /* 헤더 */
+    /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '2px solid #2563eb', paddingBottom: '0.75rem' }
+    },
+      /*#__PURE__*/React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '8px' } },
+        /*#__PURE__*/React.createElement("span", { style: { fontSize: '1.5rem' } }, "🖥️"),
+        /*#__PURE__*/React.createElement("h3", { style: { margin: 0, fontSize: '1.125rem', fontWeight: '900', color: '#1e293b' } },
+          "PC 바탕화면에 아이콘 만들기"
+        )
+      ),
+      /*#__PURE__*/React.createElement("button", {
+        type: "button",
+        onClick: onClose,
+        style: { background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#94a3b8' }
+      }, "✕")
+    ),
+
+    /* 방법 1: 원클릭 바로가기 파일 다운로드 (가장 간편한 방법) */
+    /*#__PURE__*/React.createElement("div", {
+      style: {
+        backgroundColor: '#eff6ff',
+        border: '1.5px solid #93c5fd',
+        borderRadius: '12px',
+        padding: '1.25rem',
+        marginBottom: '1rem',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.75rem'
+      }
+    },
+      /*#__PURE__*/React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '6px' } },
+        /*#__PURE__*/React.createElement("span", { style: { backgroundColor: '#2563eb', color: '#fff', fontSize: '11px', fontWeight: '800', padding: '2px 8px', borderRadius: '9999px' } }, "추천 1"),
+        /*#__PURE__*/React.createElement("strong", { style: { fontSize: '0.9375rem', color: '#1e3a8a' } }, "바탕화면 바로가기 파일 즉시 다운로드")
+      ),
+      /*#__PURE__*/React.createElement("p", { style: { margin: 0, fontSize: '0.8125rem', color: '#475569', lineHeight: '1.5' } },
+        "아래 버튼을 누르면 바로가기 파일이 다운로드됩니다. 다운로드된 ",
+        /*#__PURE__*/React.createElement("strong", { style: { color: '#2563eb' } }, "'TEAM_DD_관리프로그램.url'"),
+        " 파일을 바탕화면으로 드래그하시면 언제든 더블클릭으로 즉시 실행됩니다!"
+      ),
+      /*#__PURE__*/React.createElement("button", {
+        type: "button",
+        className: "btn btn-primary",
+        style: {
+          padding: '10px 16px',
+          fontSize: '0.875rem',
+          fontWeight: '900',
+          backgroundColor: '#1d4ed8',
+          borderColor: '#1d4ed8',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          boxShadow: '0 2px 4px rgba(29, 78, 216, 0.25)'
+        },
+        onClick: handleDownload
+      }, downloaded ? "✓ 다운로드 완료! (바탕화면으로 드래그하세요)" : "📥 바탕화면 바로가기 파일 다운로드 (.url)")
+    ),
+
+    /* 방법 2: 크롬 / 엣지 브라우저 앱으로 바탕화면 생성 */
+    /*#__PURE__*/React.createElement("div", {
+      style: {
+        backgroundColor: '#f8fafc',
+        border: '1px solid #e2e8f0',
+        borderRadius: '12px',
+        padding: '1.25rem',
+        marginBottom: '1rem',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.75rem'
+      }
+    },
+      /*#__PURE__*/React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '6px' } },
+        /*#__PURE__*/React.createElement("span", { style: { backgroundColor: '#64748b', color: '#fff', fontSize: '11px', fontWeight: '800', padding: '2px 8px', borderRadius: '9999px' } }, "방법 2"),
+        /*#__PURE__*/React.createElement("strong", { style: { fontSize: '0.9375rem', color: '#334155' } }, "브라우저 메뉴에서 바로가기 만들기 (Chrome / Edge / Whale)")
+      ),
+      /*#__PURE__*/React.createElement("div", { style: { fontSize: '0.8125rem', color: '#475569', lineHeight: '1.6' } },
+        /*#__PURE__*/React.createElement("div", { style: { marginBottom: '4px' } }, "1. 브라우저 우측 상단의 점 3개 메뉴(⋮) 클릭"),
+        /*#__PURE__*/React.createElement("div", { style: { marginBottom: '4px' } }, "2. ", /*#__PURE__*/React.createElement("strong", null, "[저장 및 공유]"), " 또는 ", /*#__PURE__*/React.createElement("strong", null, "[도구 더보기]"), " ➡️ ", /*#__PURE__*/React.createElement("strong", { style: { color: '#2563eb' } }, "[바로가기 만들기...]"), " 클릭"),
+        /*#__PURE__*/React.createElement("div", null, "3. ", /*#__PURE__*/React.createElement("strong", null, "'창으로 열기'"), "에 체크한 후 [만들기]를 누르면 전용 프로그램처럼 바탕화면에 설치됩니다!")
+      )
+    ),
+
+    /* 닫기 버튼 */
+    /*#__PURE__*/React.createElement("div", { style: { display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0', paddingTop: '0.75rem' } },
+      /*#__PURE__*/React.createElement("button", {
+        type: "button",
+        className: "btn btn-outline",
+        onClick: onClose
+      }, "닫기")
+    )
+  ));
+}
+
 // ── Gemini Vision AI 기반 명함/사업자등록증 OCR 파싱 엔진 ─────────────────────────
 async function parseBusinessCardOrRegImage(base64Data, mimeType, apiKey) {
   if (!apiKey || apiKey.trim() === '') {
@@ -7628,6 +7793,7 @@ function App() {
   const [quickCustomerInitialName, setQuickCustomerInitialName] = useState('');
   const [isPastStatementModalOpen, setIsPastStatementModalOpen] = useState(false);
   const [isOcrModalOpen, setIsOcrModalOpen] = useState(false);
+  const [isDesktopShortcutModalOpen, setIsDesktopShortcutModalOpen] = useState(false);
   const [pendingTab, setPendingTab] = useState(null);
   const [pendingReset, setPendingReset] = useState(false);
 
@@ -8106,7 +8272,11 @@ function App() {
     docType: docType,
     setDocType: handleDocTypeChange,
     userRole: userRole,
-    onLogout: handleLogout
+    onLogout: handleLogout,
+    onOpenDesktopShortcutModal: () => setIsDesktopShortcutModalOpen(true)
+  }), /*#__PURE__*/React.createElement(DesktopShortcutModal, {
+    isOpen: isDesktopShortcutModalOpen,
+    onClose: () => setIsDesktopShortcutModalOpen(false)
   }), /*#__PURE__*/React.createElement(StatementAggregationModal, {
     isOpen: isAggregationModalOpen,
     onClose: () => setIsAggregationModalOpen(false),
