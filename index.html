@@ -2878,6 +2878,7 @@ function StatementTab({
   onResetForm,
   onSaveDocument,
   onAddNewCustomer,
+  onOpenEstimateModal,
   editingDocId,
   documentsList = [],
   onLoadDocument,
@@ -3074,13 +3075,25 @@ function StatementTab({
     className: "section-title",
     style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }
   }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDC65 \uACF5\uAE09\uBC1B\uB294\uC790 (\uAC70\uB798\uCC98)"), 
-    React.createElement("div", { style: { display: 'flex', gap: '6px' } },
+    React.createElement("div", { style: { display: 'flex', gap: '6px', flexWrap: 'wrap' } },
       React.createElement("button", {
         type: "button",
         className: "btn btn-outline",
         style: { fontSize: '11px', padding: '4px 8px', color: '#2563eb', borderColor: '#bfdbfe', backgroundColor: '#eff6ff' },
         onClick: () => onAddNewCustomer(customer.name || '')
       }, "+ \uC2E0\uADDC \uAC70\uB798\uCC98 \uB4F1\uB85D"),
+      docType === '거래명세서' && React.createElement("button", {
+        type: "button",
+        className: "btn btn-secondary",
+        style: { fontSize: '11px', padding: '4px 8px', backgroundColor: '#059669', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', gap: '4px' },
+        onClick: () => onOpenEstimateModal && onOpenEstimateModal('convert_to_statement')
+      }, "📑 견적서 불러와 작성"),
+      docType === '견적서' && React.createElement("button", {
+        type: "button",
+        className: "btn btn-secondary",
+        style: { fontSize: '11px', padding: '4px 8px', backgroundColor: '#4f46e5', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', gap: '4px' },
+        onClick: () => onOpenEstimateModal && onOpenEstimateModal('import_estimate')
+      }, "📂 과거 견적서 목록"),
       docType === '청구서' && React.createElement("button", {
         type: "button",
         className: "btn btn-secondary",
@@ -5722,6 +5735,194 @@ function StatementAggregationModal({ isOpen, onClose, customer, selectedSupplier
   ));
 }
 
+function EstimateImportModal({
+  isOpen,
+  onClose,
+  targetMode = 'convert_to_statement',
+  initialCustomerName = '',
+  selectedSupplierKey = '',
+  onApplyEstimate
+}) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterCustomerOnly, setFilterCustomerOnly] = useState(true);
+  const [estimates, setEstimates] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      if (initialCustomerName && initialCustomerName.trim() !== '') {
+        setSearchQuery(initialCustomerName.trim());
+        setFilterCustomerOnly(true);
+      } else {
+        setSearchQuery('');
+        setFilterCustomerOnly(false);
+      }
+      loadEstimates();
+    }
+  }, [isOpen, initialCustomerName]);
+
+  const loadEstimates = async () => {
+    setIsLoading(true);
+    try {
+      const allDocs = await dbFetchDocuments();
+      const filtered = allDocs.filter(d => 
+        d.doc_type === '견적서' &&
+        areSupplierKeysEquivalent(d.supplier_key, selectedSupplierKey)
+      );
+      filtered.sort((a, b) => new Date(b.doc_date || b.created_at) - new Date(a.doc_date || a.created_at));
+      setEstimates(filtered);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const displayedEstimates = estimates.filter(doc => {
+    const custName = (doc.customer_name || doc.customer_data?.name || '').toLowerCase();
+    const docNo = (doc.doc_no || '').toLowerCase();
+    const itemsText = (doc.items || []).map(i => i.name || '').join(' ').toLowerCase();
+    const q = searchQuery.trim().toLowerCase();
+
+    if (filterCustomerOnly && initialCustomerName && initialCustomerName.trim() !== '') {
+      if (!custName.includes(initialCustomerName.trim().toLowerCase())) return false;
+    }
+
+    if (!q) return true;
+    return custName.includes(q) || docNo.includes(q) || itemsText.includes(q);
+  });
+
+  if (!isOpen) return null;
+
+  const isConverting = targetMode === 'convert_to_statement';
+
+  return /*#__PURE__*/React.createElement("div", {
+    className: "modal-overlay",
+    style: { zIndex: 1050 }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "modal-content",
+    style: { maxWidth: '680px', width: '95%', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }
+  },
+    /*#__PURE__*/React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '2px solid #3b82f6', paddingBottom: '0.75rem' } },
+      /*#__PURE__*/React.createElement("h3", { style: { margin: 0, fontSize: '1.125rem', fontWeight: '900', color: '#1e293b' } },
+        isConverting ? '📑 견적서 선택 ➡️ 거래명세서로 가져오기' : '📂 과거 견적서 목록 / 불러오기'
+      ),
+      /*#__PURE__*/React.createElement("button", { type: "button", onClick: onClose, style: { background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#94a3b8' } }, "✕")
+    ),
+
+    /*#__PURE__*/React.createElement("div", { style: { backgroundColor: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '8px', marginBottom: '1rem', border: '1px solid #e2e8f0' } },
+      /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' } },
+        /*#__PURE__*/React.createElement("input", {
+          type: "text",
+          className: "form-input",
+          style: { flex: 1, minWidth: '180px' },
+          placeholder: "🔍 거래처명, 문서번호, 품목 검색...",
+          value: searchQuery,
+          onChange: e => setSearchQuery(e.target.value)
+        }),
+        initialCustomerName && initialCustomerName.trim() !== '' && /*#__PURE__*/React.createElement("label", { style: { display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', fontWeight: '700', color: '#334155', cursor: 'pointer', whiteSpace: 'nowrap' } },
+          /*#__PURE__*/React.createElement("input", {
+            type: "checkbox",
+            checked: filterCustomerOnly,
+            onChange: e => setFilterCustomerOnly(e.target.checked)
+          }),
+          `"${initialCustomerName}" 거래처만 보기`
+        ),
+        /*#__PURE__*/React.createElement("button", {
+          type: "button",
+          className: "btn btn-outline",
+          style: { fontSize: '0.75rem', padding: '0.35rem 0.6rem' },
+          onClick: () => { setSearchQuery(''); setFilterCustomerOnly(false); }
+        }, "전체보기")
+      )
+    ),
+
+    /*#__PURE__*/React.createElement("div", { style: { flex: 1, overflowY: 'auto', minHeight: '200px', maxHeight: '50vh', paddingRight: '4px' } },
+      isLoading ? /*#__PURE__*/React.createElement("div", { style: { textAlign: 'center', padding: '40px', color: '#64748b' } }, "견적서 내역을 불러오는 중...") :
+      displayedEstimates.length === 0 ? /*#__PURE__*/React.createElement("div", { style: { textAlign: 'center', padding: '40px', color: '#94a3b8' } },
+        /*#__PURE__*/React.createElement("div", { style: { fontSize: '2rem', marginBottom: '0.5rem' } }, "📄"),
+        "조건에 일치하는 과거 견적서가 없습니다.",
+        initialCustomerName && filterCustomerOnly && /*#__PURE__*/React.createElement("div", { style: { marginTop: '8px' } },
+          /*#__PURE__*/React.createElement("button", {
+            type: "button",
+            className: "btn btn-outline",
+            style: { fontSize: '11px' },
+            onClick: () => setFilterCustomerOnly(false)
+          }, "타 거래처 견적서 전체 보기")
+        )
+      ) :
+      displayedEstimates.map(doc => {
+        const items = doc.items || [];
+        const validItems = items.filter(i => (i.name && i.name.trim() !== '') || (i.price || 0) > 0);
+        const totalSupply = items.reduce((sum, item) => sum + (Number(item.qty) || 0) * (Number(item.price) || 0), 0);
+        const vatAmount = doc.vat_included !== false ? Math.floor(totalSupply * 0.1) : (Number(doc.vat) || 0);
+        const grandTotal = totalSupply + vatAmount;
+        const custName = doc.customer_name || doc.customer_data?.name || '미지정 거래처';
+        const docDate = doc.doc_date || '-';
+
+        return /*#__PURE__*/React.createElement("div", {
+          key: doc.id,
+          style: {
+            border: '1px solid #e2e8f0',
+            borderRadius: '10px',
+            padding: '0.875rem',
+            marginBottom: '0.75rem',
+            backgroundColor: '#ffffff',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+            transition: 'border-color 0.15s ease'
+          }
+        },
+          /*#__PURE__*/React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '4px' } },
+            /*#__PURE__*/React.createElement("div", null,
+              /*#__PURE__*/React.createElement("span", { style: { fontWeight: '900', fontSize: '0.9375rem', color: '#0f172a', marginRight: '8px' } }, custName),
+              /*#__PURE__*/React.createElement("span", { style: { fontSize: '0.75rem', color: '#64748b', fontFamily: 'monospace' } }, doc.doc_no)
+            ),
+            /*#__PURE__*/React.createElement("span", { style: { fontSize: '0.75rem', color: '#64748b' } }, `📅 견적일자: ${docDate}`)
+          ),
+
+          /*#__PURE__*/React.createElement("div", { style: { backgroundColor: '#f8fafc', padding: '0.5rem 0.75rem', borderRadius: '6px', fontSize: '0.75rem', color: '#475569', marginBottom: '0.5rem' } },
+            /*#__PURE__*/React.createElement("div", { style: { fontWeight: '700', marginBottom: '2px' } }, `품목 (${validItems.length}건):`),
+            /*#__PURE__*/React.createElement("div", { style: { color: '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } },
+              validItems.map(i => `${i.name || '품목'}(${i.qty || 1}${i.unit || 'EA'})`).join(', ') || '등록된 품목 없음'
+            )
+          ),
+
+          /*#__PURE__*/React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' } },
+            /*#__PURE__*/React.createElement("div", { style: { fontSize: '0.8125rem' } },
+              /*#__PURE__*/React.createElement("span", { style: { color: '#64748b' } }, "견적합계: "),
+              /*#__PURE__*/React.createElement("span", { style: { fontWeight: '800', color: '#1d4ed8' } }, `${grandTotal.toLocaleString()} 원`)
+            ),
+            /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '6px' } },
+              /*#__PURE__*/React.createElement("button", {
+                type: "button",
+                className: "btn btn-primary",
+                style: { fontSize: '0.75rem', padding: '0.35rem 0.75rem', backgroundColor: '#059669', borderColor: '#059669' },
+                onClick: () => {
+                  onApplyEstimate(doc, 'convert_to_statement');
+                  onClose();
+                }
+              }, "📋 거래명세서로 작성"),
+              /*#__PURE__*/React.createElement("button", {
+                type: "button",
+                className: "btn btn-outline",
+                style: { fontSize: '0.75rem', padding: '0.35rem 0.75rem', color: '#4338ca', borderColor: '#c7d2fe' },
+                onClick: () => {
+                  onApplyEstimate(doc, 'load_as_estimate');
+                  onClose();
+                }
+              }, "📂 견적서 불러오기")
+            )
+          )
+        );
+      })
+    ),
+
+    /*#__PURE__*/React.createElement("div", { style: { display: 'flex', justifyContent: 'flex-end', marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0' } },
+      /*#__PURE__*/React.createElement("button", { type: "button", className: "btn btn-outline", onClick: onClose }, "닫기")
+    )
+  ));
+}
+
 
 function App() {
   const [activeTab, setActiveTab] = useState('doc');
@@ -5856,10 +6057,51 @@ function App() {
   // 미저장 변경사항 상태 관리
   const [isSavedThisSession, setIsSavedThisSession] = useState(true);
   const [isAggregationModalOpen, setIsAggregationModalOpen] = useState(false);
+  const [isEstimateModalOpen, setIsEstimateModalOpen] = useState(false);
+  const [estimateModalTargetMode, setEstimateModalTargetMode] = useState('convert_to_statement');
   const [quickCustomerModalOpen, setQuickCustomerModalOpen] = useState(false);
   const [quickCustomerInitialName, setQuickCustomerInitialName] = useState('');
   const [pendingTab, setPendingTab] = useState(null);
   const [pendingReset, setPendingReset] = useState(false);
+
+  // 견적서 불러오기 또는 거래명세서 변환 적용 핸들러
+  const handleApplyEstimate = (doc, actionType) => {
+    if (actionType === 'convert_to_statement') {
+      setDocType('거래명세서');
+      const custData = doc.customer_data || {};
+      setCustomer({
+        name: doc.customer_name || custData.name || '',
+        person: custData.person || '',
+        phone: custData.phone || '',
+        addr: custData.addr || '',
+        selectedMachine: custData.selectedMachine || ''
+      });
+      // 품목 복사 (고유 ID 재생성)
+      const importedItems = (doc.items || []).map(i => ({
+        ...i,
+        id: Date.now().toString() + Math.random().toString().slice(2, 6)
+      }));
+      setItems(importedItems.length > 0 ? importedItems : [{ id: Date.now().toString(), code: '', name: '', unit: 'EA', qty: 1, price: 0 }]);
+      setVatIncluded(doc.vat_included !== false);
+      setVat(doc.vat || 0);
+      setPaid(0);
+      setPaymentStatus('미수금');
+      // 신규 거래명세서 번호 채번
+      const now = new Date();
+      setDocNo('' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '-001');
+      setDocDate(now.toISOString().split('T')[0]);
+      setDocTime(String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0'));
+      setRemark(doc.remark ? `${doc.remark} (견적서 ${doc.doc_no} 기반)` : `(견적서 ${doc.doc_no} 기반)`);
+      setEditingDocId(null);
+      setIsSavedThisSession(false);
+      alert(`✓ 견적서(${doc.doc_no}) 내용을 거래명세서로 성공적으로 가져왔습니다.`);
+    } else {
+      // 견적서 그대로 불러오기
+      setDocType('견적서');
+      handleLoadDocument(doc);
+      alert(`✓ 견적서(${doc.doc_no})를 성공적으로 불러왔습니다.`);
+    }
+  };
   const isDocumentDirty = React.useMemo(() => {
     if (isSavedThisSession) return false;
     const hasCustomer = (customer.name || '').trim().length > 0;
@@ -6231,6 +6473,13 @@ function App() {
         });
       }
     }
+  }), /*#__PURE__*/React.createElement(EstimateImportModal, {
+    isOpen: isEstimateModalOpen,
+    onClose: () => setIsEstimateModalOpen(false),
+    targetMode: estimateModalTargetMode,
+    initialCustomerName: customer.name || '',
+    selectedSupplierKey: selectedSupplierKey,
+    onApplyEstimate: handleApplyEstimate
   }), /*#__PURE__*/React.createElement("main", {
     className: "main-content"
   }, activeTab === 'doc' && /*#__PURE__*/React.createElement(StatementTab, {
@@ -6253,6 +6502,10 @@ function App() {
     items: items,
     setItems: setItems,
     onAggregateOpen: () => setIsAggregationModalOpen(true),
+    onOpenEstimateModal: mode => {
+      setEstimateModalTargetMode(mode);
+      setIsEstimateModalOpen(true);
+    },
     vat: vat,
     setVat: setVat,
     vatIncluded: vatIncluded,
