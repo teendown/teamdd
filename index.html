@@ -6476,21 +6476,29 @@ function App() {
   };
 
   const [documentsList, setDocumentsList] = useState([]);
+  const hasSyncedCustRef = React.useRef(false);
 
   const handleReloadDocuments = useCallback(() => {
-    dbFetchDocuments().then(async data => {
+    dbFetchDocuments().then(data => {
       setDocumentsList(data);
-      // 문서 속 거래처(남원국토 등)를 customers 고객 마스터로 전수 자동 동기화
-      const synced = await syncCustomersFromDocuments(customersList, data);
-      if (synced && synced.length > 0) {
-        setCustomersList(synced);
-      }
     });
-  }, [selectedSupplierKey, customersList]);
+  }, [selectedSupplierKey]);
 
   useEffect(() => {
     handleReloadDocuments();
-  }, []);
+  }, [handleReloadDocuments]);
+
+  // 문서 로드 완료 시 1회만 안전하게 거래처 마스터 동기화 실행 (무한 루프 방지)
+  useEffect(() => {
+    if (documentsList.length > 0 && !hasSyncedCustRef.current) {
+      hasSyncedCustRef.current = true;
+      syncCustomersFromDocuments(customersList, documentsList).then(synced => {
+        if (synced && synced.length > 0 && synced.length !== customersList.length) {
+          setCustomersList(synced);
+        }
+      });
+    }
+  }, [documentsList]);
 
   // 로그인 상태 또는 공급자 변경 시 전체 데이터 리로드
   useEffect(() => {
