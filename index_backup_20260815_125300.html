@@ -1248,11 +1248,6 @@ async function dbFetch(table, fallback, orderCol = 'code') {
         let unpacked = data.map(unpackRow);
         setLocalItem('dd_' + table + '_list_v1', unpacked);
         
-        // 고객 목록 중복 제거 및 DB 정리
-        if (table === 'customers') {
-          unpacked = await deduplicateCustomers(unpacked);
-        }
-        
         // 공급자별 격리 필터 (거래처 customers는 전체 공급자 공유)
         if (userRole === 'supplier') {
           if (table === 'parts') {
@@ -1265,66 +1260,12 @@ async function dbFetch(table, fallback, orderCol = 'code') {
   }
   
   let list = getLocalItem('dd_' + table + '_list_v1', fallback).map(unpackRow);
-  if (table === 'customers') {
-    list = await deduplicateCustomers(list);
-  }
   if (userRole === 'supplier') {
     if (table === 'parts') {
       list = list.filter(item => !item.supplier_key || areSupplierKeysEquivalent(item.supplier_key, selectedSupplierKey));
     }
   }
   return list;
-}
-
-// 고객 목록 중복 자동 제거 및 Supabase DB 정리
-async function deduplicateCustomers(custList) {
-  if (!custList || custList.length === 0) return custList;
-  
-  const map = new Map();
-  const duplicateIdsToDelete = [];
-
-  custList.forEach(c => {
-    if (!c || !c.name || !c.name.trim() || c.name.trim() === '미지정') return;
-    const key = c.name.trim().toLowerCase();
-    
-    if (!map.has(key)) {
-      map.set(key, { ...c });
-    } else {
-      // 중복 발견! 정보 병합 후 중복 ID 수집
-      const existing = map.get(key);
-      if (c.id && c.id !== existing.id) {
-        duplicateIdsToDelete.push(c.id);
-      }
-      if (!existing.phone && c.phone) existing.phone = c.phone;
-      if (!existing.person && c.person) existing.person = c.person;
-      if (!existing.addr && c.addr) existing.addr = c.addr;
-      if (!existing.bizno && c.bizno) existing.bizno = c.bizno;
-      if (!existing.machine && c.machine) existing.machine = c.machine;
-    }
-  });
-
-  // 코드 번호 순차 정렬 및 부여
-  const cleaned = Array.from(map.values()).map((c, idx) => ({
-    ...c,
-    code: `C${String(idx + 1).padStart(4, '0')}`
-  }));
-
-  setLocalItem('dd_customers_list_v1', cleaned);
-
-  // Supabase 원격 DB에서 중복 레코드 삭제
-  if (duplicateIdsToDelete.length > 0) {
-    const sb = getSupabaseClient();
-    if (sb) {
-      try {
-        await sb.from('customers').delete().in('id', duplicateIdsToDelete);
-        console.log(`Cleaned up ${duplicateIdsToDelete.length} duplicate customers from Supabase.`);
-      } catch (e) {
-        console.error('Failed to clean up duplicate customers from Supabase:', e);
-      }
-    }
-  }
-
-  return cleaned;
 }
 
 // 과거 및 현재 모든 문서에 등장하는 거래처를 customers 고객 마스터로 전수 자동 등록 및 통합
@@ -1379,12 +1320,14 @@ async function syncCustomersFromDocuments(currentCusts, currentDocs) {
     }
   });
 
-  let mergedList = Array.from(custMap.values());
-  mergedList = await deduplicateCustomers(mergedList);
+  const mergedList = Array.from(custMap.values());
 
-  if (hasNew && newCustsToSave.length > 0) {
+  if (hasNew) {
+    // 로컬 스토리지에 즉시 최신 반영
+    setLocalItem('dd_customers_list_v1', mergedList);
+    // Supabase DB에도 신규 고객들 비동기 백그라운드 저장
     const sb = getSupabaseClient();
-    if (sb) {
+    if (sb && newCustsToSave.length > 0) {
       try {
         for (const nc of newCustsToSave) {
           const packed = packRow(nc, 'customers');
@@ -4567,21 +4510,7 @@ function CustomerTab({
   const [selectMachineCustomer, setSelectMachineCustomer] = useState(null);
   const [isSyncing, setIsSyncing] = useState(false);
   
-  const uniqueCustomers = React.useMemo(() => {
-    const seen = new Set();
-    const list = [];
-    (customers || []).forEach(c => {
-      if (!c || !c.name || !c.name.trim() || c.name.trim() === '미지정') return;
-      const key = c.name.trim().toLowerCase();
-      if (!seen.has(key)) {
-        seen.add(key);
-        list.push(c);
-      }
-    });
-    return list;
-  }, [customers]);
-
-  const filtered = uniqueCustomers.filter(c => {
+  const filtered = customers.filter(c => {
     if (!c || !c.name) return false;
     if (!search.trim()) return true;
     const q = search.trim().toLowerCase();
