@@ -3943,7 +3943,34 @@ function AccountingTab({
           React.createElement("button", { onClick: () => setEditingDoc(null), style: { background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#9ca3af' } }, "✕")
         ),
         React.createElement("div", { style: { backgroundColor: '#f9fafb', padding: '0.875rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.8125rem' } },
-          React.createElement("div", { style: function CustomerEditModal({
+          React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' } }, React.createElement("span", { style: { color: '#6b7280' } }, "거래처:"), React.createElement("span", { style: { fontWeight: '700', color: '#111827' } }, editingDoc.customer_name || editingDoc.customer_data?.name || '-')),
+          React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' } }, React.createElement("span", { style: { color: '#6b7280' } }, "문서번호/일자:"), React.createElement("span", null, editingDoc.doc_no + " (" + editingDoc.doc_date + ")")),
+          React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' } }, React.createElement("span", { style: { color: '#6b7280' } }, "총 청구금액:"), React.createElement("span", { style: { fontWeight: '800', color: '#111827' } }, getDocTotals(editingDoc).grandTotal.toLocaleString() + " 원")),
+          React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between' } }, React.createElement("span", { style: { color: '#6b7280' } }, "현재 미수잔액:"), React.createElement("span", { style: { fontWeight: '800', color: '#dc2626' } }, getDocTotals(editingDoc).balance.toLocaleString() + " 원"))
+        ),
+        React.createElement("div", { style: { display: 'flex', gap: '0.5rem', marginBottom: '1rem' } },
+          React.createElement("button", { type: "button", className: "btn btn-green", style: { flex: 1, fontSize: '0.75rem', padding: '0.4rem' }, onClick: () => setInputPaid(getDocTotals(editingDoc).grandTotal) }, "✓ 전액 완납 (" + getDocTotals(editingDoc).grandTotal.toLocaleString() + "원)"),
+          React.createElement("button", { type: "button", className: "btn btn-outline", style: { flex: 1, fontSize: '0.75rem', padding: '0.4rem', color: '#dc2626', borderColor: '#fca5a5' }, onClick: () => setInputPaid(0) }, "✕ 전액 미수 (0원)")
+        ),
+        React.createElement("div", { style: { marginBottom: '1rem' } },
+          React.createElement("label", { className: "form-label" }, "수금 / 입금액 (원)"),
+          React.createElement("input", { type: "number", className: "form-input", style: { fontSize: '1.125rem', fontWeight: '700', textAlign: 'right' }, value: inputPaid, onChange: e => setInputPaid(Number(e.target.value)) }),
+          React.createElement("div", { style: { fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem', textAlign: 'right' } }, "변경 후 미수잔액: " + (getDocTotals(editingDoc).grandTotal - inputPaid).toLocaleString() + " 원")
+        ),
+        React.createElement("div", { style: { marginBottom: '1.25rem' } },
+          React.createElement("label", { className: "form-label" }, "수금 관련 비고 / 메모"),
+          React.createElement("input", { type: "text", className: "form-input", placeholder: "예: 8/13 계좌이체 완납, 현금 수금 등", value: inputRemark, onChange: e => setInputRemark(e.target.value) })
+        ),
+        React.createElement("div", { style: { display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' } },
+          React.createElement("button", { className: "btn btn-outline", onClick: () => setEditingDoc(null) }, "취소"),
+          React.createElement("button", { className: "btn btn-green", onClick: handleSavePaidModal }, "💾 수금 내역 저장")
+        )
+      )
+    )
+  );
+}
+
+function CustomerEditModal({
   isOpen,
   onClose,
   modalMode = 'add',
