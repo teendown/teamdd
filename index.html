@@ -3073,31 +3073,86 @@ function StatementTab({
     className: "form-section"
   }, /*#__PURE__*/React.createElement("div", {
     className: "section-title",
-    style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }
-  }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDC65 \uACF5\uAE09\uBC1B\uB294\uC790 (\uAC70\uB798\uCC98)"), 
-    React.createElement("div", { style: { display: 'flex', gap: '6px', flexWrap: 'wrap' } },
+    style: { marginBottom: '0.625rem' }
+  }, /*#__PURE__*/React.createElement("span", { style: { fontWeight: '800', fontSize: '0.9375rem', color: '#1e293b' } }, "\uD83D\uDC65 \uACF5\uAE09\uBC1B\uB294\uC790 (\uAC70\uB798\uCC98)")), 
+    React.createElement("div", {
+      style: {
+        display: 'grid',
+        gridTemplateColumns: (docType === '거래명세서' || docType === '견적서' || docType === '청구서') ? '1fr 1fr' : '1fr',
+        gap: '6px',
+        marginBottom: '0.75rem'
+      }
+    },
       React.createElement("button", {
         type: "button",
         className: "btn btn-outline",
-        style: { fontSize: '11px', padding: '4px 8px', color: '#2563eb', borderColor: '#bfdbfe', backgroundColor: '#eff6ff' },
+        style: {
+          fontSize: '11px',
+          padding: '6px 4px',
+          color: '#1d4ed8',
+          borderColor: '#93c5fd',
+          backgroundColor: '#eff6ff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '4px',
+          fontWeight: '700',
+          borderRadius: '6px'
+        },
         onClick: () => onAddNewCustomer(customer.name || '')
       }, "+ \uC2E0\uADDC \uAC70\uB798\uCC98 \uB4F1\uB85D"),
       docType === '거래명세서' && React.createElement("button", {
         type: "button",
         className: "btn btn-secondary",
-        style: { fontSize: '11px', padding: '4px 8px', backgroundColor: '#059669', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', gap: '4px' },
+        style: {
+          fontSize: '11px',
+          padding: '6px 4px',
+          backgroundColor: '#059669',
+          color: '#ffffff',
+          border: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '4px',
+          fontWeight: '700',
+          borderRadius: '6px'
+        },
         onClick: () => onOpenEstimateModal && onOpenEstimateModal('convert_to_statement')
-      }, "📑 견적서 불러와 작성"),
+      }, "📑 견적서 가져오기"),
       docType === '견적서' && React.createElement("button", {
         type: "button",
         className: "btn btn-secondary",
-        style: { fontSize: '11px', padding: '4px 8px', backgroundColor: '#4f46e5', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', gap: '4px' },
+        style: {
+          fontSize: '11px',
+          padding: '6px 4px',
+          backgroundColor: '#4f46e5',
+          color: '#ffffff',
+          border: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '4px',
+          fontWeight: '700',
+          borderRadius: '6px'
+        },
         onClick: () => onOpenEstimateModal && onOpenEstimateModal('import_estimate')
-      }, "📂 과거 견적서 목록"),
+      }, "📂 견적서 목록"),
       docType === '청구서' && React.createElement("button", {
         type: "button",
         className: "btn btn-secondary",
-        style: { fontSize: '11px', padding: '4px 8px', backgroundColor: '#3b82f6', color: '#fff', border: 'none' },
+        style: {
+          fontSize: '11px',
+          padding: '6px 4px',
+          backgroundColor: '#2563eb',
+          color: '#ffffff',
+          border: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '4px',
+          fontWeight: '700',
+          borderRadius: '6px'
+        },
         onClick: () => {
           if (!customer || !customer.name) {
             alert('먼저 거래처를 검색하거나 입력해주세요.');
@@ -3105,9 +3160,8 @@ function StatementTab({
           }
           onAggregateOpen();
         }
-      }, "🧾 기간별 명세서 취합")
-    )
-  ), /*#__PURE__*/React.createElement("div", {
+      }, "🧾 명세서 취합")
+    ), /*#__PURE__*/React.createElement("div", {
     className: "form-group",
     style: {
       position: 'relative'
