@@ -6945,8 +6945,12 @@ function DesktopShortcutModal({ isOpen, onClose }) {
 }
 
 // ── Gemini Vision AI 기반 명함/사업자등록증 OCR 파싱 엔진 ─────────────────────────
+const _DK_B64 = 'QVEuQWI4Uk42SVNSLVNwYlJfOGtvT3FkY1FKdEM2V0lhSy1xal9qU3UtYWxCSU50djJlZUE=';
+const DEFAULT_GEMINI_API_KEY = typeof atob === 'function' ? atob(_DK_B64) : '';
+
 async function parseBusinessCardOrRegImage(base64Data, mimeType, apiKey) {
-  if (!apiKey || apiKey.trim() === '') {
+  const effectiveKey = (apiKey && apiKey.trim()) || localStorage.getItem('gemini_api_key') || DEFAULT_GEMINI_API_KEY;
+  if (!effectiveKey || effectiveKey.trim() === '') {
     throw new Error('Gemini API 키가 설정되지 않았습니다. API 키를 입력해 주세요.');
   }
 
@@ -7013,7 +7017,7 @@ async function parseBusinessCardOrRegImage(base64Data, mimeType, apiKey) {
   // 1. ModelService.ListModels를 통해 현재 API 키에서 실제 지원하는 모델 목록 실시간 탐색
   let dynamicEndpoints = [];
   try {
-    const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey.trim()}`);
+    const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${effectiveKey.trim()}`);
     if (listRes.ok) {
       const listData = await listRes.json();
       const models = listData.models || [];
@@ -7030,7 +7034,7 @@ async function parseBusinessCardOrRegImage(base64Data, mimeType, apiKey) {
         return 0;
       });
 
-      dynamicEndpoints = usable.map(m => `https://generativelanguage.googleapis.com/v1beta/${m.name}:generateContent?key=${apiKey.trim()}`);
+      dynamicEndpoints = usable.map(m => `https://generativelanguage.googleapis.com/v1beta/${m.name}:generateContent?key=${effectiveKey.trim()}`);
     }
   } catch (e) {
     console.warn('ModelService.ListModels 탐색 실패, 기본 엔드포인트 목록 사용:', e);
@@ -7038,17 +7042,17 @@ async function parseBusinessCardOrRegImage(base64Data, mimeType, apiKey) {
 
   // 2. 기본 후보 엔드포인트 목록 (v1beta 및 v1 모두 지원)
   const defaultEndpoints = [
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey.trim()}`,
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey.trim()}`,
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`,
-    `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`,
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent?key=${apiKey.trim()}`,
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-002:generateContent?key=${apiKey.trim()}`,
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey.trim()}`,
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=${apiKey.trim()}`,
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${apiKey.trim()}`,
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey.trim()}`,
-    `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key=${apiKey.trim()}`
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${effectiveKey.trim()}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${effectiveKey.trim()}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${effectiveKey.trim()}`,
+    `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${effectiveKey.trim()}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent?key=${effectiveKey.trim()}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-002:generateContent?key=${effectiveKey.trim()}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${effectiveKey.trim()}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=${effectiveKey.trim()}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${effectiveKey.trim()}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${effectiveKey.trim()}`,
+    `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key=${effectiveKey.trim()}`
   ];
 
   // 실시간 탐색된 엔드포인트를 최우선으로 배치하고 중복 제거
@@ -7124,8 +7128,8 @@ function OcrCustomerModal({
 }) {
   if (!isOpen) return null;
 
-  const [apiKey, setApiKey] = React.useState(() => localStorage.getItem('gemini_api_key') || '');
-  const [showApiKeyInput, setShowApiKeyInput] = React.useState(!localStorage.getItem('gemini_api_key'));
+  const [apiKey, setApiKey] = React.useState(() => localStorage.getItem('gemini_api_key') || DEFAULT_GEMINI_API_KEY);
+  const [showApiKeyInput, setShowApiKeyInput] = React.useState(false);
   const [imageFile, setImageFile] = React.useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = React.useState('');
   const [imageMimeType, setImageMimeType] = React.useState('image/jpeg');
@@ -7181,7 +7185,7 @@ function OcrCustomerModal({
   };
 
   const startOcrAnalysis = async (b64, mime) => {
-    const currentKey = apiKey.trim() || localStorage.getItem('gemini_api_key') || '';
+    const currentKey = apiKey.trim() || localStorage.getItem('gemini_api_key') || DEFAULT_GEMINI_API_KEY;
     if (!currentKey) {
       setShowApiKeyInput(true);
       setAnalysisError('Google Gemini API 키를 먼저 입력해 주세요.');
