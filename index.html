@@ -1468,9 +1468,15 @@ async function sbTestConnection(url, key) {
 }
 
 // ── DB CRUD helpers ────────────────────────────────────────────────────────
+function isValidUUID(str) {
+  return typeof str === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+}
+
 function packRow(r, table) {
   if (table !== 'customers' && table !== 'suppliers' && table !== 'documents' && table !== 'schedules' && table !== 'parts') return { ...r };
   let standardCols = [];
+  const payload = { ...r };
+
   if (table === 'customers') {
     standardCols = ['id', 'created_at', 'code', 'name', 'bizno', 'person', 'phone', 'addr', 'machine', 'memo'];
   } else if (table === 'suppliers') {
@@ -1478,11 +1484,17 @@ function packRow(r, table) {
   } else if (table === 'documents') {
     standardCols = ['id', 'created_at', 'doc_type', 'doc_no', 'doc_date', 'doc_time', 'customer_name', 'customer_data', 'supplier_key', 'supplier_data', 'items', 'vat', 'vat_included', 'paid', 'remark', 'is_shared'];
   } else if (table === 'schedules') {
-    standardCols = ['id', 'created_at', 'title', 'start_date', 'end_date', 'schedule_time', 'category', 'customer_name', 'phone', 'machine', 'amount', 'memo', 'is_shared', 'supplier_key', 'date', 'time'];
+    standardCols = ['id', 'created_at', 'title', 'start_date', 'end_date', 'schedule_time', 'category', 'customer_name', 'phone', 'machine', 'amount', 'memo', 'is_shared', 'supplier_key'];
+    // 폼 필드 호환 매핑
+    if (!payload.start_date && payload.event_date) payload.start_date = payload.event_date;
+    if (!payload.end_date && (payload.event_date || payload.start_date)) payload.end_date = payload.start_date || payload.event_date;
+    if (!payload.schedule_time && payload.event_time) payload.schedule_time = payload.event_time;
+    if (!payload.phone && payload.customer_phone) payload.phone = payload.customer_phone;
+    if (!payload.machine && payload.machine_info) payload.machine = payload.machine_info;
   } else if (table === 'parts') {
     standardCols = ['id', 'created_at', 'code', 'name', 'category', 'unit', 'price', 'stock', 'min_stock', 'location', 'memo', 'supplier_key'];
   }
-  const payload = { ...r };
+
   const extraFields = {};
   for (const key of Object.keys(payload)) {
     if (!standardCols.includes(key)) {
@@ -1512,6 +1524,11 @@ function unpackRow(r) {
     r.remark = parts[0];
     try { Object.assign(r, JSON.parse(parts[1])); } catch(e) {}
   }
+  // schedules 화면 호환 필드 매핑
+  if (r.start_date && !r.event_date) r.event_date = r.start_date;
+  if (r.schedule_time && !r.event_time) r.event_time = r.schedule_time;
+  if (r.phone && !r.customer_phone) r.customer_phone = r.phone;
+  if (r.machine && !r.machine_info) r.machine_info = r.machine;
   return r;
 }
 
@@ -1525,19 +1542,23 @@ function areSupplierKeysEquivalent(key1, key2) {
   return false;
 }
 
-async function dbFetch(table, fallback, orderCol = 'code') {
+async function dbFetch(table, fallback, customOrderCol = null) {
   const sb = getSupabaseClient();
   const userRole = sessionStorage.getItem('dd_user_role') || 'supplier';
   const selectedSupplierKey = sessionStorage.getItem('selected_supplier_key') || localStorage.getItem('selected_supplier_key') || 'sejin';
+
+  // 테이블별 올바른 정렬 컬럼 자동 결정
+  let orderCol = customOrderCol;
+  if (!orderCol) {
+    if (table === 'schedules') orderCol = 'start_date';
+    else if (table === 'documents') orderCol = 'doc_date';
+    else orderCol = 'code';
+  }
+
   if (sb) {
     try {
-      const {
-        data,
-        error
-      } = await sb.from(table).select('*').order(orderCol, {
-        ascending: true
-      });
-      if (!error && Array.isArray(data) && data.length > 0) {
+      const { data, error } = await sb.from(table).select('*').order(orderCol, { ascending: true });
+      if (!error && Array.isArray(data)) {
         let unpacked = data.map(unpackRow);
         setLocalItem('dd_' + table + '_list_v1', unpacked);
         
@@ -1546,13 +1567,18 @@ async function dbFetch(table, fallback, orderCol = 'code') {
           unpacked = await deduplicateCustomers(unpacked);
         }
         
-        // 공급자별 격리 필터 (거래처 customers는 전체 공급자 공유)
+        // 공급자별 격리 필터
         if (userRole === 'supplier') {
           if (table === 'parts') {
             unpacked = unpacked.filter(item => !item.supplier_key || areSupplierKeysEquivalent(item.supplier_key, selectedSupplierKey));
+          } else if (table === 'schedules') {
+            // 본인 일정이거나 다른 공급자의 공개 일정
+            unpacked = unpacked.filter(item => item.is_shared === true || !item.supplier_key || areSupplierKeysEquivalent(item.supplier_key, selectedSupplierKey));
           }
         }
         return unpacked;
+      } else if (error) {
+        console.warn(`[Supabase 조회 경고 (${table})]:`, error.message);
       }
     } catch (e) { console.error(e); }
   }
@@ -1564,6 +1590,8 @@ async function dbFetch(table, fallback, orderCol = 'code') {
   if (userRole === 'supplier') {
     if (table === 'parts') {
       list = list.filter(item => !item.supplier_key || areSupplierKeysEquivalent(item.supplier_key, selectedSupplierKey));
+    } else if (table === 'schedules') {
+      list = list.filter(item => item.is_shared === true || !item.supplier_key || areSupplierKeysEquivalent(item.supplier_key, selectedSupplierKey));
     }
   }
   return list;
@@ -1719,27 +1747,24 @@ async function dbSave(table, rowData, isEdit = false, currentList = []) {
   if (sb) {
     try {
       const packedData = packRow(rowData, table);
-      if (isEdit && rowData.id) {
+      const isRealUUID = isValidUUID(packedData.id);
+
+      if (isEdit && isRealUUID) {
         const { id, created_at, ...payload } = packedData;
         const { data, error } = await sb.from(table).update(payload).eq('id', id).select().single();
-        if (!error) {
+        if (!error && data) {
           serverRow = unpackRow(data);
-        } else {
+        } else if (error) {
           console.warn(`[Supabase 수정 경고 (${table})]:`, error.message || error);
-          if (error.code !== '42P01' && !(error.message && (error.message.includes('does not exist') || error.message.includes('schema cache')))) {
-            console.error('Supabase update error:', error);
-          }
         }
       } else {
+        // UUID가 아니거나(임시 ID) 신규 등록인 경우 id를 제외하고 insert 실행 (Supabase가 새 UUID 발급)
         const { id, created_at, ...payload } = packedData;
         const { data, error } = await sb.from(table).insert(payload).select().single();
-        if (!error) {
+        if (!error && data) {
           serverRow = unpackRow(data);
-        } else {
+        } else if (error) {
           console.warn(`[Supabase 등록 경고 (${table})]:`, error.message || error);
-          if (error.code !== '42P01' && !(error.message && (error.message.includes('does not exist') || error.message.includes('schema cache')))) {
-            console.error('Supabase insert error:', error);
-          }
         }
       }
     } catch (e) { console.error('Supabase operation exception:', e); }
@@ -1774,7 +1799,7 @@ async function dbDelete(table, rowId, currentList = []) {
     }
   }
 
-  if (sb) {
+  if (sb && isValidUUID(rowId)) {
     try {
       await sb.from(table).delete().eq('id', rowId);
     } catch (e) {}
