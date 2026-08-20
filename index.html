@@ -1537,11 +1537,15 @@ function unpackRow(r) {
 
 function areSupplierKeysEquivalent(key1, key2) {
   if (!key1 || !key2) return false;
-  if (key1 === key2) return true;
-  const sejinKeys = ['sejin', 'cc76e46a-935a-455b-9070-0a4465035c19'];
-  const gimjeKeys = ['ds_gimje', '767fd9c8-d5e9-46b0-a7c4-713dac601ae4'];
-  if (sejinKeys.includes(key1) && sejinKeys.includes(key2)) return true;
-  if (gimjeKeys.includes(key1) && gimjeKeys.includes(key2)) return true;
+  const k1 = String(key1).toLowerCase().trim();
+  const k2 = String(key2).toLowerCase().trim();
+  if (k1 === k2) return true;
+  const sejinKeys = ['sejin', 'cc76e46a-935a-455b-9070-0a4465035c19', '세진중기', '세진'];
+  const dsKeys = ['ds', 'ds_gimje', '767fd9c8-d5e9-46b0-a7c4-713dac601ae4', '디에스', '디에스건설기계', '디에스건설'];
+  const daeseongKeys = ['daeseong', '대성', '대성건설기계', '대성건설'];
+  if (sejinKeys.includes(k1) && sejinKeys.includes(k2)) return true;
+  if (dsKeys.includes(k1) && dsKeys.includes(k2)) return true;
+  if (daeseongKeys.includes(k1) && daeseongKeys.includes(k2)) return true;
   return false;
 }
 
@@ -5090,10 +5094,11 @@ function ScheduleTab({
 
   // 1. 보안 필터링 적용된 등록 일정 목록
   const filteredSchedules = useMemo(() => {
+    const userRole = sessionStorage.getItem('dd_user_role') || 'supplier';
     return (schedules || []).filter(item => {
-      const isMine = areSupplierKeysEquivalent(item.supplier_key, selectedSupplierKey);
+      const isMine = userRole === 'admin' || areSupplierKeysEquivalent(item.supplier_key, selectedSupplierKey);
       const isPublic = item.is_shared === true;
-      if (!isMine && !isPublic) return false;
+      if (userRole !== 'admin' && !isMine && !isPublic) return false;
 
       if (privacyFilter === 'private' && (!isMine || isPublic)) return false;
       if (privacyFilter === 'my_public' && (!isMine || !isPublic)) return false;
@@ -5105,7 +5110,7 @@ function ScheduleTab({
         const q = searchQuery.toLowerCase();
         const t = (item.title || '').toLowerCase();
         const c = (item.customer_name || '').toLowerCase();
-        const m = (item.machine_info || '').toLowerCase();
+        const m = (item.machine_info || item.machine || '').toLowerCase();
         const memo = (item.memo || '').toLowerCase();
         if (!t.includes(q) && !c.includes(q) && !m.includes(q) && !memo.includes(q)) return false;
       }
@@ -5115,12 +5120,13 @@ function ScheduleTab({
 
   // 2. 보안 필터링 적용된 문서(명세서/결제일/견적서) 연동 일정
   const documentEvents = useMemo(() => {
+    const userRole = sessionStorage.getItem('dd_user_role') || 'supplier';
     const events = [];
     (documentsList || []).forEach(doc => {
       if (doc.is_deleted) return;
-      const isMine = areSupplierKeysEquivalent(doc.supplier_key, selectedSupplierKey);
+      const isMine = userRole === 'admin' || areSupplierKeysEquivalent(doc.supplier_key, selectedSupplierKey);
       const isDocPublic = doc.is_shared === true;
-      if (!isMine && !isDocPublic) return;
+      if (userRole !== 'admin' && !isMine && !isDocPublic) return;
 
       const custName = doc.customer_name || doc.customer_data?.name || '고객';
       const machine = doc.customer_data?.selectedMachine || '';
@@ -5179,14 +5185,15 @@ function ScheduleTab({
     return events;
   }, [documentsList, selectedSupplierKey, categoryFilter]);
 
-  // 3. 날짜별 일정 매핑 (🌟 기간 일정 멀티데이 연속 표시 지원)
+  // 3. 날짜별 일정 매핑 (🌟 start_date 및 기간 일정 멀티데이 연속 표시)
   const eventsByDate = useMemo(() => {
     const map = {};
     filteredSchedules.forEach(sch => {
-      const start = sch.event_date;
-      const end = sch.end_date || sch.event_date;
+      const start = sch.start_date || sch.event_date || sch.date;
+      if (!start) return;
+      const end = sch.end_date || start;
       const isPeriod = end && end > start;
-      const dateList = isPeriod ? getDatesInRange(start, end) : (start ? [start] : []);
+      const dateList = isPeriod ? getDatesInRange(start, end) : [start];
 
       dateList.forEach((d, idx) => {
         if (!map[d]) map[d] = [];
