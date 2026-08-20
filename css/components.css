@@ -1,0 +1,400 @@
+/* 🎨 TEAM D.D COMPONENTS STYLES */
+.form-section {
+  margin-bottom: 1rem;
+}
+
+.section-title {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  margin-bottom: 0.375rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--c-navy-dark);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.form-label {
+  font-size: 0.75rem;
+  color: var(--c-navy-primary);
+  font-weight: 700;
+}
+
+/* ── 표준 입력창 및 셀렉트 (높이 38px 통일) ── */
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  height: var(--control-height);
+  min-height: var(--control-height);
+  padding: 0 0.75rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  font-family: inherit;
+  background-color: #ffffff;
+  outline: none;
+  color: var(--text-main);
+  transition: all 0.15s ease;
+}
+.form-textarea {
+  height: auto;
+  min-height: 80px;
+  padding: 0.5rem 0.75rem;
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  border-color: var(--c-blue-accent);
+  box-shadow: 0 0 0 3px rgba(1, 138, 190, 0.15);
+}
+
+/* Canvas Direct Cell Editing Inputs */
+.canvas-input {
+  width: 100%;
+  height: 100%;
+  min-height: 20px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+  text-align: inherit;
+  outline: none;
+  padding: 1px 2px;
+  margin: 0;
+  box-sizing: border-box;
+  cursor: text;
+  display: block;
+}
+.canvas-input:hover {
+  background-color: var(--c-blue-light) !important;
+  box-shadow: inset 0 0 0 1px var(--c-blue-accent) !important;
+  border-radius: 2px;
+}
+.canvas-input:focus {
+  background-color: #ffffff !important;
+  box-shadow: inset 0 0 0 2px var(--c-blue-accent) !important;
+  border-radius: 2px;
+}
+
+/* ── 🎨 통일된 버튼 시스템 (높이 38px & 명확한 대비 규칙) ── */
+.btn {
+  height: var(--control-height);
+  min-height: var(--control-height);
+  max-height: var(--control-height);
+  padding: 0 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  touch-action: manipulation;
+  white-space: nowrap;
+}
+
+/* 색상 채움 버튼: 무조건 흰색 글자 */
+.btn-primary, .btn-navy {
+  background-color: var(--c-navy-primary);
+  color: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(2, 69, 122, 0.2);
+}
+.btn-primary:hover, .btn-navy:hover {
+  background-color: var(--c-navy-hover);
+}
+.btn-primary:active, .btn-navy:active {
+  background-color: var(--c-navy-dark);
+}
+
+.btn-blue, .btn-green {
+  background-color: var(--c-blue-accent);
+  color: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(1, 138, 190, 0.2);
+}
+.btn-blue:hover, .btn-green:hover {
+  background-color: var(--c-blue-hover);
+}
+
+/* 흰색/밝은 배경 버튼: 무조건 검정/딥네이비(#001B48) 글자 */
+.btn-outline {
+  background-color: #ffffff;
+  border: 1px solid var(--border-strong);
+  color: var(--c-navy-dark) !important;
+}
+.btn-outline:hover {
+  background-color: var(--c-blue-lightest);
+  border-color: var(--c-blue-accent);
+}
+
+.btn-light {
+  background-color: var(--c-blue-light);
+  border: 1px solid var(--c-blue-soft);
+  color: var(--c-navy-dark) !important;
+}
+.btn-light:hover {
+  background-color: var(--c-blue-soft);
+}
+
+.btn-danger {
+  background-color: var(--accent-red);
+  color: #ffffff !important;
+}
+
+.btn-red-outline {
+  background-color: var(--accent-red-bg);
+  border: 1px solid var(--accent-red-border);
+  color: var(--accent-red) !important;
+}
+.btn-red-outline:hover {
+  background-color: #FEE4E2;
+}
+
+.btn-sm {
+  height: var(--control-height-sm);
+  min-height: var(--control-height-sm);
+  max-height: var(--control-height-sm);
+  padding: 0 0.625rem;
+  font-size: 0.75rem;
+}
+
+.item-card {
+  background-color: var(--bg-muted);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.625rem;
+  margin-bottom: 0.5rem;
+}
+
+.item-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.375rem;
+}
+
+.item-grid {
+  display: grid;
+  grid-template-columns: 65px 1fr 1fr;
+  gap: 0.375rem;
+}
+
+.card-box {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.card-box-header {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .card-box-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+/* Mobile Cards vs Desktop Table */
+.mobile-cards-view {
+  display: block;
+  padding: 0.75rem;
+}
+
+.desktop-table-view {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .mobile-cards-view { display: none; }
+  .desktop-table-view { display: block; }
+}
+
+.mobile-data-card {
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.875rem;
+  margin-bottom: 0.625rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.data-table th {
+  background-color: var(--bg-muted);
+  color: var(--text-secondary);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.data-table td {
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+/* ── Accounting / Payment Status Badges ── */
+.pay-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 7px; border-radius: 20px;
+  font-size: 10.5px; font-weight: 800; white-space: nowrap;
+}
+.pay-badge.unpaid   { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+.pay-badge.partial  { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+.pay-badge.paid     { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+
+.accounting-summary-bar {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px; padding: 0.875rem 1rem;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+  border-radius: 10px; margin: 0.75rem 1rem;
+}
+.accounting-summary-item { text-align: center; }
+.accounting-summary-label { font-size: 10px; color: rgba(255,255,255,0.55); font-weight: 600; margin-bottom: 2px; }
+.accounting-summary-value { font-size: 1rem; font-weight: 900; color: #fff; font-family: monospace; }
+.accounting-summary-value.unpaid-val { color: #f87171; }
+.accounting-summary-value.paid-val { color: #4ade80; }
+
+.payment-section {
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+  padding: 0.875rem; margin-top: 0.75rem;
+}
+.payment-status-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.pay-status-btn {
+  padding: 5px 12px; border-radius: 20px; border: 1.5px solid;
+  font-size: 0.8125rem; font-weight: 700; cursor: pointer;
+  transition: all 0.15s ease; background: transparent;
+}
+.pay-status-btn.active-unpaid   { background: #fef2f2; color: #dc2626; border-color: #dc2626; }
+.pay-status-btn.active-partial  { background: #fffbeb; color: #d97706; border-color: #d97706; }
+.pay-status-btn.active-paid     { background: #f0fdf4; color: #16a34a; border-color: #16a34a; }
+.pay-status-btn.inactive { color: #94a3b8; border-color: #e2e8f0; }
+.pay-status-btn.inactive:hover { border-color: #94a3b8; color: #475569; }
+
+/* 📅 캘린더 모바일/PC 반응형 전용 스타일 (칸 너비 완벽 고정 & 2줄 말줄임) */
+.cal-container {
+  padding: 0.5rem;
+  max-width: 1440px;
+  margin: 0 auto;
+  width: 100%;
+}
+@media (min-width: 768px) {
+  .cal-container {
+    padding: 0.875rem;
+  }
+}
+.cal-grid-header, .cal-cells-container {
+  display: grid !important;
+  grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+  width: 100% !important;
+  box-sizing: border-box;
+}
+.cal-day-cell {
+  min-height: 54px;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  background-color: #ffffff;
+  padding: 4px 3px;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+  transition: all 0.15s ease;
+  overflow: hidden !important;
+  box-sizing: border-box;
+}
+@media (min-width: 768px) {
+  .cal-day-cell {
+    min-height: 110px;
+    padding: 6px 4px;
+  }
+}
+.cal-dot-container {
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 3px;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+@media (min-width: 768px) {
+  .cal-dot-container {
+    display: none !important;
+  }
+}
+.cal-desktop-badges {
+  display: none !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+@media (min-width: 768px) {
+  .cal-desktop-badges {
+    display: flex !important;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+    overflow-y: hidden;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+}
+/* 🌟 달력 뱃지: 2줄까지 자동 줄바꿈, 2줄 초과 시 말줄임표(...)로 뒤는 감춤 */
+.cal-badge-item {
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  word-break: break-all !important;
+  white-space: normal !important;
+  line-height: 1.25 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  padding: 2px 4px !important;
+  border-radius: 4px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.cal-badge-item:hover {
+  opacity: 0.85;
+}
+.cal-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}

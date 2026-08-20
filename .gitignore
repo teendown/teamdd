@@ -5,3 +5,5 @@ dist-ssr
 *.local
 package-lock.json
 test_vite.mjs
+index_backup_*.html
+sync_progress.log

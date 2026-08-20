@@ -1,0 +1,96 @@
+/* 🎨 TEAM D.D UNIFIED DESIGN SYSTEM - BASE & THEME TOKENS */
+:root {
+  --font-main: "Pretendard", -apple-system, BlinkMacSystemFont, "NanumSquare Neo", "NanumSquare", "Malgun Gothic", "맑은 고딕", sans-serif;
+  
+  /* 🎨 5대 핵심 블루/네이비 팔레트 */
+  --c-navy-dark: #001B48;     /* 딥 다크 네이비 (헤더, 타이틀, 본문 볼드 텍스트) */
+  --c-navy-primary: #02457A;  /* 클래식 네이비 (주 버튼, 메인 브랜드 포인트) */
+  --c-navy-hover: #01345D;    /* 네이비 호버 */
+  --c-blue-accent: #018ABE;   /* 오션 블루 (강조 버튼, 액티브 탭, 서브 포인트) */
+  --c-blue-hover: #0175A2;    /* 오션 블루 호버 */
+  --c-blue-soft: #97CADB;     /* 파스텔 스카이 블루 (보더, 호버 배경, 소프트 뱃지) */
+  --c-blue-light: #D6E8EE;    /* 쿨 아이스 블루 (배경 트랙, 칩, 연한 뱃지 배경) */
+  --c-blue-lightest: #F2F7FA; /* 초경량 틴트 배경 */
+
+  /* 기본 배경 및 서피스 */
+  --bg-app: #F4F7F9;
+  --bg-card: #FFFFFF;
+  --bg-muted: #F8FAFC;
+  
+  /* 보더 */
+  --border-color: #D6E8EE;
+  --border-strong: #97CADB;
+  --border-hover: #018ABE;
+  
+  /* 프라이머리 */
+  --primary: #02457A;
+  --primary-hover: #01345D;
+  --primary-dark: #001B48;
+  
+  /* 강조 컬러 */
+  --accent-blue: #018ABE;
+  --accent-blue-bg: #D6E8EE;
+  --accent-blue-border: #97CADB;
+
+  --accent-red: #D92D20;
+  --accent-red-bg: #FEF3F2;
+  --accent-red-border: #FECDCA;
+
+  --accent-green: #028A3E;
+  --accent-green-bg: #E8F8F0;
+  --accent-green-border: #A3E9C4;
+
+  /* 텍스트 */
+  --text-main: #001B48;
+  --text-secondary: #02457A;
+  --text-muted: #64748B;
+  
+  /* 규격 표준화: 모든 버튼 및 인풋 높이 38px 통일 */
+  --control-height: 38px;
+  --control-height-sm: 32px;
+  
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-full: 9999px;
+  
+  --shadow-sm: 0 1px 3px rgba(0, 27, 72, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 27, 72, 0.08);
+  --shadow-lg: 0 10px 24px rgba(0, 27, 72, 0.12);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  letter-spacing: -0.02em;
+}
+
+html, body, #root {
+  min-height: 100vh;
+  font-family: var(--font-main);
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.375rem;
+}
+
+.view-value {
+  padding: 0.5rem;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  color: #334155;
+  font-size: 0.875rem;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+}
