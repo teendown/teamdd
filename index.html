@@ -4527,30 +4527,39 @@ function AccountingTab({
 
   const handlePrint = () => { window.print(); };
 
-  return React.createElement("div", { className: "tab-content print-container" },
-    React.createElement("div", { className: "section-header no-print" },
-      React.createElement("div", null,
-        React.createElement("h2", { style: { fontSize: '1.25rem', fontWeight: '800', color: '#111827', margin: 0 } }, "📊 거래처별 회계 관리 (월별 회계장부)"),
-        React.createElement("p", { style: { fontSize: '0.8125rem', color: '#6b7280', margin: '0.25rem 0 0 0' } }, "발행된 명세서/청구서 기준 월별 매출, 수금, 미수금 현황을 통합 관리합니다.")
-      ),
-      React.createElement("div", { style: { display: 'flex', gap: '0.5rem', flexWrap: 'wrap' } },
-        React.createElement("button", { onClick: handleExportCSV, className: "btn btn-outline", style: { display: 'flex', alignItems: 'center', gap: '0.375rem' } }, "📥 엑셀(CSV) 저장"),
-        React.createElement("button", { onClick: handlePrint, className: "btn btn-green", style: { display: 'flex', alignItems: 'center', gap: '0.375rem' } }, "🖨️ 회계장부 인쇄")
+  return React.createElement("div", { className: "management-container print-container", style: { padding: '0.75rem', maxWidth: '1440px', margin: '0 auto', width: '100%' } },
+    /* Header Card */
+    React.createElement("div", { className: "card-box no-print", style: { marginBottom: '0.75rem', padding: '0.875rem 1rem' } },
+      React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' } },
+        React.createElement("div", null,
+          React.createElement("h2", { style: { fontSize: '1.25rem', fontWeight: '900', color: '#191F28', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' } },
+            React.createElement("span", null, "📊"),
+            "거래처별 회계 관리 (월별 회계장부)"
+          ),
+          React.createElement("p", { style: { fontSize: '0.8125rem', color: '#6B7684', margin: '0.25rem 0 0 0' } }, "발행된 거래명세서/청구서 기준 월별 매출, 수금, 미수금 현황을 통합 관리합니다.")
+        ),
+        React.createElement("div", { style: { display: 'flex', gap: '0.5rem', flexWrap: 'wrap' } },
+          React.createElement("button", { onClick: handleExportCSV, className: "btn btn-outline", style: { fontSize: '0.8125rem', padding: '6px 12px', minHeight: '34px' } }, "📥 엑셀(CSV) 저장"),
+          React.createElement("button", { onClick: handlePrint, className: "btn btn-primary", style: { fontSize: '0.8125rem', padding: '6px 12px', minHeight: '34px' } }, "🖨️ 회계장부 인쇄")
+        )
       )
     ),
-    React.createElement("div", { className: "card no-print", style: { marginBottom: '1.25rem', padding: '1rem' } },
-      React.createElement("div", { style: { display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between' } },
-        React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' } },
-          React.createElement("button", { className: "btn btn-outline", onClick: handlePrevMonth, title: "이전 달" }, "◀ 이전"),
-          React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '0.375rem' } },
-            React.createElement("select", { className: "form-input", style: { width: '100px', fontWeight: '700' }, value: selectedYear, onChange: e => setSelectedYear(e.target.value) },
+
+    /* Filters Card */
+    React.createElement("div", { className: "card-box no-print", style: { marginBottom: '0.75rem', padding: '0.75rem 1rem' } },
+      React.createElement("div", { style: { display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between' } },
+        /* Date Navigation */
+        React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'wrap' } },
+          React.createElement("button", { className: "btn btn-outline", style: { padding: '4px 8px', fontSize: '11px', minHeight: '32px' }, onClick: handlePrevMonth, title: "이전 달" }, "◀ 이전"),
+          React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '0.25rem' } },
+            React.createElement("select", { className: "form-select", style: { width: '105px', fontWeight: '700', minHeight: '34px', padding: '4px 8px', fontSize: '0.8125rem' }, value: selectedYear, onChange: e => setSelectedYear(e.target.value) },
               React.createElement("option", { value: "all" }, "전체 연도"),
               React.createElement("option", { value: "2024" }, "2024년"),
               React.createElement("option", { value: "2025" }, "2025년"),
               React.createElement("option", { value: "2026" }, "2026년"),
               React.createElement("option", { value: "2027" }, "2027년")
             ),
-            React.createElement("select", { className: "form-input", style: { width: '100px', fontWeight: '700' }, value: selectedMonth, onChange: e => setSelectedMonth(e.target.value) },
+            React.createElement("select", { className: "form-select", style: { width: '95px', fontWeight: '700', minHeight: '34px', padding: '4px 8px', fontSize: '0.8125rem' }, value: selectedMonth, onChange: e => setSelectedMonth(e.target.value) },
               React.createElement("option", { value: "all" }, "전체 (월)"),
               Array.from({ length: 12 }, (_, i) => {
                 const mStr = String(i + 1).padStart(2, '0');
@@ -4558,206 +4567,108 @@ function AccountingTab({
               })
             )
           ),
-          React.createElement("button", { className: "btn btn-outline", onClick: handleNextMonth, title: "다음 달" }, "다음 ▶"),
-          React.createElement("button", { className: "btn btn-green", style: { fontSize: '0.75rem', padding: '0.4rem 0.75rem' }, onClick: handleCurrentMonth }, "이번달")
+          React.createElement("button", { className: "btn btn-outline", style: { padding: '4px 8px', fontSize: '11px', minHeight: '32px' }, onClick: handleNextMonth, title: "다음 달" }, "다음 ▶"),
+          React.createElement("button", { className: "btn btn-green", style: { fontSize: '0.75rem', padding: '4px 10px', minHeight: '32px', fontWeight: '800' }, onClick: handleCurrentMonth }, "이번달")
         ),
-        React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' } },
-          React.createElement("select", { className: "form-input", style: { width: '150px' }, value: selectedCustomer, onChange: e => setSelectedCustomer(e.target.value) },
+
+        /* Search & Filters */
+        React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'wrap' } },
+          React.createElement("select", { className: "form-select", style: { width: '140px', minHeight: '34px', padding: '4px 8px', fontSize: '0.8125rem' }, value: selectedCustomer, onChange: e => setSelectedCustomer(e.target.value) },
             React.createElement("option", { value: "all" }, "🏢 전체 거래처"),
             customersList.map(c => React.createElement("option", { key: c.id || c.name, value: c.name }, c.name))
           ),
-          sessionStorage.getItem('dd_user_role') === 'admin' && React.createElement("select", { className: "form-input", style: { width: '140px' }, value: selectedSupplier, onChange: e => setSelectedSupplier(e.target.value) },
+          sessionStorage.getItem('dd_user_role') === 'admin' && React.createElement("select", { className: "form-select", style: { width: '130px', minHeight: '34px', padding: '4px 8px', fontSize: '0.8125rem' }, value: selectedSupplier, onChange: e => setSelectedSupplier(e.target.value) },
             React.createElement("option", { value: "all" }, "🏪 전체 공급자"),
             suppliersList.map(s => React.createElement("option", { key: s.id, value: s.id }, s.name || s.company))
           ),
-          React.createElement("select", { className: "form-input", style: { width: '120px' }, value: docTypeFilter, onChange: e => setDocTypeFilter(e.target.value) },
+          React.createElement("select", { className: "form-select", style: { width: '115px', minHeight: '34px', padding: '4px 8px', fontSize: '0.8125rem' }, value: docTypeFilter, onChange: e => setDocTypeFilter(e.target.value) },
             React.createElement("option", { value: "all" }, "📄 전체 문서"),
             DOC_TYPES.map(t => React.createElement("option", { key: t, value: t }, t))
           ),
-          React.createElement("input", { type: "text", className: "form-input", style: { width: '180px' }, placeholder: "🔍 거래처/문서 검색...", value: searchQuery, onChange: e => setSearchQuery(e.target.value) })
+          React.createElement("input", { type: "text", className: "form-input", style: { width: '170px', minHeight: '34px', padding: '4px 8px', fontSize: '0.8125rem' }, placeholder: "🔍 거래처/품목 검색...", value: searchQuery, onChange: e => setSearchQuery(e.target.value) })
         )
       )
     ),
-    React.createElement("div", { className: "accounting-summary-grid", style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' } },
-      React.createElement("div", { className: "card", style: { padding: '1.25rem', borderLeft: '4px solid #10b981', background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.06)' } },
-        React.createElement("div", { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' } },
-          React.createElement("span", { style: { fontSize: '0.8125rem', fontWeight: '800', color: '#047857' } }, "총 거래금액 (매출액)"),
-          React.createElement("div", { style: { width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' } }, "💵")
+
+    /* Naver Pay Style 4 Summary Metric Cards */
+    React.createElement("div", { className: "accounting-summary-grid", style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' } },
+      /* Total Sales */
+      React.createElement("div", { className: "card-box", style: { padding: '1rem', borderTop: '3px solid #03C75A', backgroundColor: '#ffffff' } },
+        React.createElement("div", { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.375rem' } },
+          React.createElement("span", { style: { fontSize: '0.8125rem', fontWeight: '800', color: '#028A3E' } }, "총 거래금액 (매출액)"),
+          React.createElement("div", { style: { width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#E8F8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.875rem' } }, "💵")
         ),
-        React.createElement("div", { style: { fontSize: '1.625rem', fontWeight: '900', color: '#064e3b', letterSpacing: '-0.02em' } }, statistics.totalSales.toLocaleString(), React.createElement("span", { style: { fontSize: '1rem', fontWeight: '700' } }, " 원")),
-        React.createElement("div", { style: { fontSize: '0.75rem', color: '#6b7280', marginTop: '0.375rem' } }, (selectedYear !== 'all' ? selectedYear + "년 " : '') + (selectedMonth !== 'all' ? selectedMonth + "월" : '전체') + " 기준")
+        React.createElement("div", { style: { fontSize: '1.5rem', fontWeight: '900', color: '#191F28', letterSpacing: '-0.03em' } }, statistics.totalSales.toLocaleString(), React.createElement("span", { style: { fontSize: '0.9375rem', fontWeight: '700', color: '#4E5968' } }, " 원")),
+        React.createElement("div", { style: { fontSize: '0.75rem', color: '#8B95A1', marginTop: '0.25rem' } }, (selectedYear !== 'all' ? selectedYear + "년 " : '') + (selectedMonth !== 'all' ? selectedMonth + "월" : '전체') + " 기준")
       ),
+
+      /* Total Paid */
       (() => {
         const paidPercent = statistics.totalSales > 0 ? ((statistics.totalPaid / statistics.totalSales) * 100).toFixed(1) : 0;
-        return React.createElement("div", { className: "card", style: { padding: '1.25rem', borderLeft: '4px solid #3b82f6', background: 'linear-gradient(135deg, #ffffff 0%, #eff6ff 100%)', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.06)' } },
-          React.createElement("div", { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' } },
-            React.createElement("span", { style: { fontSize: '0.8125rem', fontWeight: '800', color: '#1d4ed8' } }, "수금 / 입금 완료액"),
-            React.createElement("div", { style: { width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' } }, "💳")
+        return React.createElement("div", { className: "card-box", style: { padding: '1rem', borderTop: '3px solid #3182F6', backgroundColor: '#ffffff' } },
+          React.createElement("div", { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.375rem' } },
+            React.createElement("span", { style: { fontSize: '0.8125rem', fontWeight: '800', color: '#1B64DA' } }, "수금 / 입금 완료액"),
+            React.createElement("div", { style: { width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#EFF4FE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.875rem' } }, "💳")
           ),
-          React.createElement("div", { style: { fontSize: '1.625rem', fontWeight: '900', color: '#1e3a8a', letterSpacing: '-0.02em' } }, statistics.totalPaid.toLocaleString(), React.createElement("span", { style: { fontSize: '1rem', fontWeight: '700' } }, " 원")),
-          React.createElement("div", { style: { marginTop: '0.5rem' } },
-            React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#1d4ed8', fontWeight: '700', marginBottom: '0.2rem' } },
+          React.createElement("div", { style: { fontSize: '1.5rem', fontWeight: '900', color: '#191F28', letterSpacing: '-0.03em' } }, statistics.totalPaid.toLocaleString(), React.createElement("span", { style: { fontSize: '0.9375rem', fontWeight: '700', color: '#4E5968' } }, " 원")),
+          React.createElement("div", { style: { marginTop: '0.375rem' } },
+            React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#1B64DA', fontWeight: '700', marginBottom: '0.2rem' } },
               React.createElement("span", null, "수금률"),
               React.createElement("span", null, paidPercent + "%")
             ),
-            React.createElement("div", { style: { height: '5px', backgroundColor: '#bfdbfe', borderRadius: '3px', overflow: 'hidden' } },
-              React.createElement("div", { style: { width: Math.min(paidPercent, 100) + "%", height: '100%', backgroundColor: '#2563eb', transition: 'width 0.3s' } })
+            React.createElement("div", { style: { height: '4px', backgroundColor: '#EFF4FE', borderRadius: '2px', overflow: 'hidden' } },
+              React.createElement("div", { style: { width: Math.min(paidPercent, 100) + "%", height: '100%', backgroundColor: '#3182F6', transition: 'width 0.3s' } })
             )
           )
         );
       })(),
-      React.createElement("div", { className: "card", style: { padding: '1.25rem', borderLeft: "4px solid " + (statistics.totalUnpaid > 0 ? '#ef4444' : '#10b981'), background: statistics.totalUnpaid > 0 ? 'linear-gradient(135deg, #ffffff 0%, #fef2f2 100%)' : 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)', boxShadow: statistics.totalUnpaid > 0 ? '0 4px 12px rgba(239, 68, 68, 0.06)' : '0 4px 12px rgba(16, 185, 129, 0.06)' } },
-        React.createElement("div", { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' } },
-          React.createElement("span", { style: { fontSize: '0.8125rem', fontWeight: '800', color: statistics.totalUnpaid > 0 ? '#b91c1c' : '#047857' } }, "미수금액 (잔액)"),
-          React.createElement("div", { style: { width: '32px', height: '32px', borderRadius: '50%', backgroundColor: statistics.totalUnpaid > 0 ? '#fee2e2' : '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' } }, "⚠️")
+
+      /* Unpaid Balance */
+      React.createElement("div", { className: "card-box", style: { padding: '1rem', borderTop: "3px solid " + (statistics.totalUnpaid > 0 ? '#F04438' : '#03C75A'), backgroundColor: '#ffffff' } },
+        React.createElement("div", { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.375rem' } },
+          React.createElement("span", { style: { fontSize: '0.8125rem', fontWeight: '800', color: statistics.totalUnpaid > 0 ? '#D92D20' : '#028A3E' } }, "미수금액 (잔액)"),
+          React.createElement("div", { style: { width: '28px', height: '28px', borderRadius: '50%', backgroundColor: statistics.totalUnpaid > 0 ? '#FEF3F2' : '#E8F8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.875rem' } }, "⚠️")
         ),
-        React.createElement("div", { style: { fontSize: '1.625rem', fontWeight: '900', color: statistics.totalUnpaid > 0 ? '#991b1b' : '#064e3b', letterSpacing: '-0.02em' } }, statistics.totalUnpaid.toLocaleString(), React.createElement("span", { style: { fontSize: '1rem', fontWeight: '700' } }, " 원")),
-        React.createElement("div", { style: { fontSize: '0.75rem', color: statistics.totalUnpaid > 0 ? '#dc2626' : '#059669', marginTop: '0.375rem', fontWeight: '700' } }, statistics.totalUnpaid > 0 ? '⚠️ 미수 잔액 관리 필요' : '✓ 전액 완납 완료')
+        React.createElement("div", { style: { fontSize: '1.5rem', fontWeight: '900', color: statistics.totalUnpaid > 0 ? '#D92D20' : '#191F28', letterSpacing: '-0.03em' } }, statistics.totalUnpaid.toLocaleString(), React.createElement("span", { style: { fontSize: '0.9375rem', fontWeight: '700', color: '#4E5968' } }, " 원")),
+        React.createElement("div", { style: { fontSize: '0.75rem', color: statistics.totalUnpaid > 0 ? '#D92D20' : '#03C75A', marginTop: '0.25rem', fontWeight: '700' } }, statistics.totalUnpaid > 0 ? '⚠️ 미수 잔액 관리 필요' : '✓ 전액 완납 완료')
       ),
-      React.createElement("div", { className: "card", style: { padding: '1.25rem', borderLeft: '4px solid #8b5cf6', background: 'linear-gradient(135deg, #ffffff 0%, #f5f3ff 100%)', boxShadow: '0 4px 12px rgba(139, 92, 246, 0.06)' } },
-        React.createElement("div", { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' } },
-          React.createElement("span", { style: { fontSize: '0.8125rem', fontWeight: '800', color: '#6d28d9' } }, "발행 문서 건수"),
-          React.createElement("div", { style: { width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#f3e8ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' } }, "📑")
+
+      /* Document Count */
+      React.createElement("div", { className: "card-box", style: { padding: '1rem', borderTop: '3px solid #6366F1', backgroundColor: '#ffffff' } },
+        React.createElement("div", { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.375rem' } },
+          React.createElement("span", { style: { fontSize: '0.8125rem', fontWeight: '800', color: '#4F46E5' } }, "발행 문서 건수"),
+          React.createElement("div", { style: { width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.875rem' } }, "📑")
         ),
-        React.createElement("div", { style: { fontSize: '1.625rem', fontWeight: '900', color: '#4c1d95', letterSpacing: '-0.02em' } }, statistics.totalDocsCount, React.createElement("span", { style: { fontSize: '1rem', fontWeight: '700' } }, " 건")),
-        React.createElement("div", { style: { fontSize: '0.75rem', color: '#6b7280', marginTop: '0.375rem' } }, "조회 조건 기준 내역 수")
+        React.createElement("div", { style: { fontSize: '1.5rem', fontWeight: '900', color: '#191F28', letterSpacing: '-0.03em' } }, statistics.totalDocsCount, React.createElement("span", { style: { fontSize: '0.9375rem', fontWeight: '700', color: '#4E5968' } }, " 건")),
+        React.createElement("div", { style: { fontSize: '0.75rem', color: '#8B95A1', marginTop: '0.25rem' } }, "조회 조건 기준 내역 수")
       )
     ),
-    React.createElement("div", { className: "no-print", style: { display: 'inline-flex', backgroundColor: '#f3f4f6', padding: '4px', borderRadius: '12px', marginBottom: '1.25rem', border: '1px solid #e5e7eb' } },
+
+    /* Sub-tabs Capsule Navigation */
+    React.createElement("div", { className: "no-print", style: { display: 'inline-flex', backgroundColor: '#EEF2F5', padding: '3px', borderRadius: '10px', marginBottom: '0.75rem', border: '1px solid #E5E8EB' } },
       React.createElement("button", {
-        className: "btn",
+        type: "button",
         style: {
-          borderRadius: '8px', fontSize: '0.875rem', fontWeight: '800', padding: '0.4rem 1.125rem',
+          borderRadius: '8px', fontSize: '0.8125rem', fontWeight: '800', padding: '0.35rem 1rem',
           backgroundColor: subTab === 'summary' ? '#ffffff' : 'transparent',
-          color: subTab === 'summary' ? '#059669' : '#6b7280',
-          boxShadow: subTab === 'summary' ? '0 2px 4px rgba(0,0,0,0.06)' : 'none',
-          border: 'none', cursor: 'pointer', transition: 'all 0.2s'
+          color: subTab === 'summary' ? '#028A3E' : '#6B7684',
+          boxShadow: subTab === 'summary' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+          border: 'none', cursor: 'pointer', transition: 'all 0.15s'
         },
         onClick: () => setSubTab('summary')
       }, "🏢 거래처별 현황 요약 (" + customerSummaries.length + ")"),
       React.createElement("button", {
-        className: "btn",
+        type: "button",
         style: {
-          borderRadius: '8px', fontSize: '0.875rem', fontWeight: '800', padding: '0.4rem 1.125rem',
+          borderRadius: '8px', fontSize: '0.8125rem', fontWeight: '800', padding: '0.35rem 1rem',
           backgroundColor: subTab === 'detailed' ? '#ffffff' : 'transparent',
-          color: subTab === 'detailed' ? '#059669' : '#6b7280',
-          boxShadow: subTab === 'detailed' ? '0 2px 4px rgba(0,0,0,0.06)' : 'none',
-          border: 'none', cursor: 'pointer', transition: 'all 0.2s'
+          color: subTab === 'detailed' ? '#028A3E' : '#6B7684',
+          boxShadow: subTab === 'detailed' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+          border: 'none', cursor: 'pointer', transition: 'all 0.15s'
         },
         onClick: () => setSubTab('detailed')
       }, "📋 상세 거래장부 (문서 내역 " + filteredDocuments.length + ")")
     ),
-    React.createElement("div", { className: "print-only-header", style: { display: 'none', marginBottom: '1.5rem', textAlign: 'center' } },
-      React.createElement("h1", { style: { fontSize: '1.5rem', fontWeight: 'bold' } }, "거래처별 월별 회계 장부 (" + selectedYear + "년 " + (selectedMonth === 'all' ? '전체' : selectedMonth + '월') + ")"),
-      React.createElement("p", { style: { fontSize: '0.875rem', color: '#555' } }, "TEAM D.D (세진건설기계 / 디에스건설기계 김제점) | 출력일: " + new Date().toLocaleDateString('ko-KR'))
-    ),
-    subTab === 'summary' && React.createElement("div", { className: "card", style: { padding: '0', overflow: 'hidden' } },
-      React.createElement("div", { style: { overflowX: 'auto' } },
-        React.createElement("table", { className: "parts-table", style: { width: '100%', borderCollapse: 'collapse' } },
-          React.createElement("thead", null,
-            React.createElement("tr", { style: { backgroundColor: '#f9fafb', borderBottom: '2px solid #e5e7eb' } },
-              React.createElement("th", { style: { padding: '0.75rem 1rem', textTransform: 'none', width: '200px' } }, "거래처명"),
-              React.createElement("th", { style: { padding: '0.75rem 1rem', textTransform: 'none' } }, "담당자 / 사업자번호"),
-              React.createElement("th", { style: { padding: '0.75rem 1rem', textTransform: 'none' } }, "연락처"),
-              React.createElement("th", { style: { padding: '0.75rem 1rem', textTransform: 'none', textAlign: 'right' } }, "선택월 매출액"),
-              React.createElement("th", { style: { padding: '0.75rem 1rem', textTransform: 'none', textAlign: 'right' } }, "선택월 수금액"),
-              React.createElement("th", { style: { padding: '0.75rem 1rem', textTransform: 'none', textAlign: 'right' } }, "선택월 미수금"),
-              React.createElement("th", { style: { padding: '0.75rem 1rem', textTransform: 'none', textAlign: 'right' } }, "누적 미수금액"),
-              React.createElement("th", { style: { padding: '0.75rem 1rem', textTransform: 'none', textAlign: 'center', width: '90px' } }, "상태"),
-              React.createElement("th", { className: "no-print", style: { padding: '0.75rem 1rem', textTransform: 'none', textAlign: 'center', width: '100px' } }, "관리")
-            )
-          ),
-          React.createElement("tbody", null,
-            customerSummaries.length === 0 ? React.createElement("tr", null, React.createElement("td", { colSpan: 9, style: { textAlign: 'center', padding: '3rem', color: '#9ca3af' } }, "조건에 해당하는 거래처 회계 데이터가 없습니다.")) :
-            customerSummaries.map(c => {
-              const hasUnpaid = c.monthlyUnpaid > 0 || c.allTimeUnpaid > 0;
-              const initialChar = c.name ? c.name[0] : '🏢';
-              return React.createElement("tr", { key: c.name, style: { borderBottom: '1px solid #f3f4f6' } },
-                React.createElement("td", { style: { padding: '0.75rem 1rem', fontWeight: '700', color: '#111827' } },
-                  React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '0.5rem' } },
-                    React.createElement("div", {
-                      style: {
-                        width: '28px', height: '28px', borderRadius: '50%',
-                        backgroundColor: hasUnpaid ? '#fee2e2' : '#d1fae5',
-                        color: hasUnpaid ? '#b91c1c' : '#047857',
-                        fontWeight: '800', fontSize: '0.75rem',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                      }
-                    }, initialChar),
-                    React.createElement("span", null, c.name)
-                  )
-                ),
-                React.createElement("td", { style: { padding: '0.75rem 1rem', color: '#4b5563', fontSize: '0.8125rem' } },
-                  React.createElement("div", null, c.person !== '-' ? "👤 " + c.person : '-'),
-                  React.createElement("div", { style: { fontSize: '0.75rem', color: '#9ca3af' } }, c.bizno !== '-' ? c.bizno : '')
-                ),
-                React.createElement("td", { style: { padding: '0.75rem 1rem', color: '#4b5563', fontSize: '0.8125rem' } }, c.phone),
-                React.createElement("td", { style: { padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#111827' } }, c.monthlySales.toLocaleString() + " 원"),
-                React.createElement("td", { style: { padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#2563eb' } }, c.monthlyPaid.toLocaleString() + " 원"),
-                React.createElement("td", { style: { padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '800', color: c.monthlyUnpaid > 0 ? '#dc2626' : '#059669' } }, c.monthlyUnpaid.toLocaleString() + " 원"),
-                React.createElement("td", { style: { padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '800', color: c.allTimeUnpaid > 0 ? '#b91c1c' : '#047857' } }, c.allTimeUnpaid.toLocaleString() + " 원"),
-                React.createElement("td", { style: { padding: '0.75rem 1rem', textAlign: 'center' } },
-                  hasUnpaid ? React.createElement("span", { style: { backgroundColor: '#fee2e2', color: '#991b1b', fontSize: '0.75rem', fontWeight: '700', padding: '0.2rem 0.5rem', borderRadius: '12px', border: '1px solid #fca5a5' } }, "미수금")
-                            : React.createElement("span", { style: { backgroundColor: '#d1fae5', color: '#065f46', fontSize: '0.75rem', fontWeight: '700', padding: '0.2rem 0.5rem', borderRadius: '12px', border: '1px solid #6ee7b7' } }, "완납")
-                ),
-                React.createElement("td", { className: "no-print", style: { padding: '0.75rem 1rem', textAlign: 'center' } },
-                  React.createElement("button", { className: "btn btn-outline", style: { fontSize: '0.75rem', padding: '0.25rem 0.625rem' }, onClick: () => { setSelectedCustomer(c.name); setSubTab('detailed'); } }, "장부보기 🔍")
-                )
-              );
-            })
-          )
-        )
-      )
-    ),
-    subTab === 'detailed' && React.createElement("div", { className: "card", style: { padding: '0', overflow: 'hidden' } },
-      React.createElement("div", { style: { overflowX: 'auto' } },
-        React.createElement("table", { className: "parts-table", style: { width: '100%', borderCollapse: 'collapse' } },
-          React.createElement("thead", null,
-            React.createElement("tr", { style: { backgroundColor: '#f9fafb', borderBottom: '2px solid #e5e7eb' } },
-              React.createElement("th", { style: { padding: '0.75rem 0.75rem', textTransform: 'none', width: '90px' } }, "날짜"),
-              React.createElement("th", { style: { padding: '0.75rem 0.75rem', textTransform: 'none', width: '110px' } }, "구분/번호"),
-              React.createElement("th", { style: { padding: '0.75rem 0.75rem', textTransform: 'none', width: '130px' } }, "거래처"),
-              React.createElement("th", { style: { padding: '0.75rem 0.75rem', textTransform: 'none' } }, "품목 및 내역 요약"),
-              React.createElement("th", { style: { padding: '0.75rem 0.75rem', textTransform: 'none', textAlign: 'right', width: '95px' } }, "공급가액"),
-              React.createElement("th", { style: { padding: '0.75rem 0.75rem', textTransform: 'none', textAlign: 'right', width: '85px' } }, "부가세"),
-              React.createElement("th", { style: { padding: '0.75rem 0.75rem', textTransform: 'none', textAlign: 'right', width: '105px' } }, "합계금액"),
-              React.createElement("th", { style: { padding: '0.75rem 0.75rem', textTransform: 'none', textAlign: 'right', width: '100px' } }, "수금/입금액"),
-              React.createElement("th", { style: { padding: '0.75rem 0.75rem', textTransform: 'none', textAlign: 'right', width: '100px' } }, "미수금(잔액)"),
-              React.createElement("th", { style: { padding: '0.75rem 0.75rem', textTransform: 'none', textAlign: 'center', width: '75px' } }, "상태"),
-              React.createElement("th", { style: { padding: '0.75rem 0.75rem', textTransform: 'none', width: '110px' } }, "비고"),
-              React.createElement("th", { className: "no-print", style: { padding: '0.75rem 0.75rem', textTransform: 'none', textAlign: 'center', width: '95px' } }, "수금 관리")
-            )
-          ),
-          React.createElement("tbody", null,
-            filteredDocuments.length === 0 ? React.createElement("tr", null, React.createElement("td", { colSpan: 12, style: { textAlign: 'center', padding: '3rem', color: '#9ca3af' } }, "조건에 맞는 상세 거래명세/회계 내역이 없습니다.")) :
-            filteredDocuments.map(doc => {
-              const { totalSupply, vatAmount, grandTotal, paid, balance } = getDocTotals(doc);
-              const rawCustName = (doc.customer_name || doc.customer_data?.name || '').trim();
-              const custName = (!rawCustName || rawCustName === '미지정') ? '-' : rawCustName;
-              const itemsSummary = (doc.items || []).map(i => `${i.name || '품목'}(${i.qty || 1})`).join(', ');
-              let statusBadge = balance <= 0 ? React.createElement("span", { style: { backgroundColor: '#d1fae5', color: '#065f46', fontSize: '0.6875rem', fontWeight: '700', padding: '0.15rem 0.4rem', borderRadius: '8px' } }, "완납")
-                              : (paid > 0 ? React.createElement("span", { style: { backgroundColor: '#fef3c7', color: '#92400e', fontSize: '0.6875rem', fontWeight: '700', padding: '0.15rem 0.4rem', borderRadius: '8px' } }, "부분납")
-                                          : React.createElement("span", { style: { backgroundColor: '#fee2e2', color: '#991b1b', fontSize: '0.6875rem', fontWeight: '700', padding: '0.15rem 0.4rem', borderRadius: '8px' } }, "미수"));
-              return React.createElement("tr", { key: doc.id, style: { borderBottom: '1px solid #f3f4f6' } },
-                React.createElement("td", { style: { padding: '0.625rem 0.75rem', fontSize: '0.8125rem', color: '#374151' } }, doc.doc_date || '-'),
-                React.createElement("td", { style: { padding: '0.625rem 0.75rem', fontSize: '0.8125rem' } },
-                  React.createElement("span", { style: { fontWeight: '700', color: '#1f2937' } }, doc.doc_type),
-                  React.createElement("div", { style: { fontSize: '0.6875rem', color: '#6b7280' } }, doc.doc_no)
-                ),
-                React.createElement("td", { style: { padding: '0.625rem 0.75rem', fontWeight: '700', color: '#111827', fontSize: '0.8125rem' } }, custName),
-                React.createElement("td", { style: { padding: '0.625rem 0.75rem', fontSize: '0.8125rem', color: '#4b5563', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }, title: itemsSummary }, itemsSummary || '-'),
-                React.createElement("td", { style: { padding: '0.625rem 0.75rem', textAlign: 'right', fontSize: '0.8125rem', color: '#374151' } }, totalSupply.toLocaleString()),
-                React.createElement("td", { style: { padding: '0.625rem 0.75rem', textAlign: 'right', fontSize: '0.8125rem', color: '#6b7280' } }, vatAmount.toLocaleString()),
-                React.createElement("td", { style: { padding: '0.625rem 0.75rem', textAlign: 'right', fontWeight: '800', fontSize: '0.8125rem', color: '#111827' } }, grandTotal.toLocaleString()),
-                React.createElement("td", { style: { padding: '0.625rem 0.75rem', textAlign: 'right', fontWeight: '700', fontSize: '0.8125rem', color: '#2563eb' } }, paid.toLocaleString()),
-                React.createElement("td", { style: { padding: '0.625rem 0.75rem', textAlign: 'right', fontWeight: '800', fontSize: '0.8125rem', color: balance > 0 ? '#dc2626' : '#059669' } }, balance.toLocaleString()),
-                React.createElement("td", { style: { padding: '0.625rem 0.75rem', textAlign: 'center' } }, statusBadge),
-                React.createElement("td", { style: { padding: '0.625rem 0.75rem', fontSize: '0.75rem', color: '#6b7280', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, doc.remark || '-'),
-                React.createElement("td", { className: "no-print", style: { padding: '0.625rem 0.75rem', textAlign: 'center' } },
-                  React.createElement("button", { className: "btn btn-green", style: { fontSize: '0.6875rem', padding: '0.2rem 0.5rem' }, onClick: () => handleOpenEditPaid(doc) }, "💳 수금등록")
-                )
-              );
-            })
           )
         )
       )
