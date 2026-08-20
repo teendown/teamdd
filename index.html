@@ -3397,7 +3397,7 @@ function Header({
   }, "대한민국 건설기계 정비 1등")), /*#__PURE__*/React.createElement("div", {
     style: { display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }
   },
-    /* 🏢 로그인 한 공급자 명 뱃지 */
+    /* 🏢 로그인 계정 뱃지: 관리자면 "👑 관리자" 단독 표기, 공급자면 "🏢 {공급자명}" 표기 */
     React.createElement("div", {
       style: {
         display: 'inline-flex',
@@ -3411,20 +3411,10 @@ function Header({
         fontWeight: '800',
         color: 'var(--c-navy-dark)'
       },
-      title: `로그인 계정: ${supplierDisplayName} (${userRole === 'admin' ? '관리자' : '공급자'})`
+      title: userRole === 'admin' ? '관리자 모드' : `공급자 계정: ${supplierDisplayName}`
     },
       React.createElement("span", null, userRole === 'admin' ? '👑' : '🏢'),
-      React.createElement("span", { style: { color: 'var(--c-navy-primary)' } }, supplierDisplayName),
-      userRole === 'admin' && React.createElement("span", {
-        style: {
-          fontSize: '10px',
-          backgroundColor: 'var(--c-blue-accent)',
-          color: '#ffffff',
-          padding: '1px 6px',
-          borderRadius: '10px',
-          fontWeight: '700'
-        }
-      }, "관리자")
+      React.createElement("span", { style: { color: 'var(--c-navy-primary)' } }, userRole === 'admin' ? '관리자' : supplierDisplayName)
     ),
 
     /* 🚪 로그아웃 버튼 */
