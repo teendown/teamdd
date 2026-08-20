@@ -4669,38 +4669,148 @@ function AccountingTab({
         onClick: () => setSubTab('detailed')
       }, "📋 상세 거래장부 (문서 내역 " + filteredDocuments.length + ")")
     ),
+
+    /* Main Data View */
+    React.createElement("div", { className: "card-box", style: { padding: '0', overflow: 'hidden' } },
+      subTab === 'summary' ? (
+        /* Summary Table */
+        React.createElement("div", { style: { overflowX: 'auto' } },
+          React.createElement("table", { style: { width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' } },
+            React.createElement("thead", { style: { backgroundColor: '#F8FAFC', borderBottom: '2px solid #E5E8EB', color: '#4E5968', fontWeight: '800' } },
+              React.createElement("tr", null,
+                React.createElement("th", { style: { padding: '0.75rem 1rem', textAlign: 'left' } }, "거래처명"),
+                React.createElement("th", { style: { padding: '0.75rem 0.5rem', textAlign: 'center' } }, "담당/연락처"),
+                React.createElement("th", { style: { padding: '0.75rem 0.75rem', textAlign: 'right' } }, "해당기간 매출"),
+                React.createElement("th", { style: { padding: '0.75rem 0.75rem', textAlign: 'right' } }, "해당기간 수금"),
+                React.createElement("th", { style: { padding: '0.75rem 0.75rem', textAlign: 'right' } }, "해당기간 미수"),
+                React.createElement("th", { style: { padding: '0.75rem 0.75rem', textAlign: 'right' } }, "누적 총 미수금"),
+                React.createElement("th", { style: { padding: '0.75rem 0.5rem', textAlign: 'center' } }, "상태 / 건수")
+              )
+            ),
+            React.createElement("tbody", null,
+              customerSummaries.length === 0 ? (
+                React.createElement("tr", null,
+                  React.createElement("td", { colSpan: 7, style: { padding: '2rem', textAlign: 'center', color: '#8B95A1' } }, "조회 조건에 해당하는 거래처 내역이 없습니다.")
+                )
+              ) : (
+                customerSummaries.map((c, idx) => {
+                  const hasUnpaid = c.allTimeUnpaid > 0;
+                  return React.createElement("tr", {
+                    key: c.name + idx,
+                    style: { borderBottom: '1px solid #E5E8EB', backgroundColor: idx % 2 === 0 ? '#ffffff' : '#F9FAFB' }
+                  },
+                    React.createElement("td", { style: { padding: '0.75rem 1rem', fontWeight: '800', color: '#191F28' } }, c.name),
+                    React.createElement("td", { style: { padding: '0.75rem 0.5rem', textAlign: 'center', color: '#6B7684', fontSize: '0.75rem' } }, `${c.person} (${c.phone})`),
+                    React.createElement("td", { style: { padding: '0.75rem 0.75rem', textAlign: 'right', fontWeight: '800', color: '#191F28' } }, c.monthlySales.toLocaleString() + " 원"),
+                    React.createElement("td", { style: { padding: '0.75rem 0.75rem', textAlign: 'right', fontWeight: '700', color: '#1B64DA' } }, c.monthlyPaid.toLocaleString() + " 원"),
+                    React.createElement("td", { style: { padding: '0.75rem 0.75rem', textAlign: 'right', fontWeight: '800', color: c.monthlyUnpaid > 0 ? '#D92D20' : '#03C75A' } }, c.monthlyUnpaid.toLocaleString() + " 원"),
+                    React.createElement("td", { style: { padding: '0.75rem 0.75rem', textAlign: 'right', fontWeight: '900', color: hasUnpaid ? '#D92D20' : '#03C75A' } }, c.allTimeUnpaid.toLocaleString() + " 원"),
+                    React.createElement("td", { style: { padding: '0.75rem 0.5rem', textAlign: 'center' } },
+                      hasUnpaid ? (
+                        React.createElement("span", { style: { padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', backgroundColor: '#FEF3F2', color: '#D92D20', border: '1px solid #FECDCA' } }, "미수")
+                      ) : (
+                        React.createElement("span", { style: { padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', backgroundColor: '#E8F8F0', color: '#028A3E', border: '1px solid #A3E9C4' } }, "완납")
+                      )
+                    )
+                  );
+                })
+              )
+            )
+          )
+        )
+      ) : (
+        /* Detailed Transactions Table */
+        React.createElement("div", { style: { overflowX: 'auto' } },
+          React.createElement("table", { style: { width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' } },
+            React.createElement("thead", { style: { backgroundColor: '#F8FAFC', borderBottom: '2px solid #E5E8EB', color: '#4E5968', fontWeight: '800' } },
+              React.createElement("tr", null,
+                React.createElement("th", { style: { padding: '0.75rem 0.75rem', textAlign: 'left' } }, "일자"),
+                React.createElement("th", { style: { padding: '0.75rem 0.5rem', textAlign: 'center' } }, "구분"),
+                React.createElement("th", { style: { padding: '0.75rem 0.75rem', textAlign: 'left' } }, "거래처명"),
+                React.createElement("th", { style: { padding: '0.75rem 0.75rem', textAlign: 'left' } }, "품목 요약"),
+                React.createElement("th", { style: { padding: '0.75rem 0.75rem', textAlign: 'right' } }, "공급가액"),
+                React.createElement("th", { style: { padding: '0.75rem 0.75rem', textAlign: 'right' } }, "부가세"),
+                React.createElement("th", { style: { padding: '0.75rem 0.75rem', textAlign: 'right' } }, "합계금액"),
+                React.createElement("th", { style: { padding: '0.75rem 0.75rem', textAlign: 'right' } }, "수금액"),
+                React.createElement("th", { style: { padding: '0.75rem 0.75rem', textAlign: 'right' } }, "미수잔액"),
+                React.createElement("th", { style: { padding: '0.75rem 0.5rem', textAlign: 'center' } }, "상태"),
+                React.createElement("th", { className: "no-print", style: { padding: '0.75rem 0.5rem', textAlign: 'center' } }, "관리")
+              )
+            ),
+            React.createElement("tbody", null,
+              filteredDocuments.length === 0 ? (
+                React.createElement("tr", null,
+                  React.createElement("td", { colSpan: 11, style: { padding: '2rem', textAlign: 'center', color: '#8B95A1' } }, "조회 조건에 해당하는 문서 내역이 없습니다.")
+                )
+              ) : (
+                filteredDocuments.map((doc, idx) => {
+                  const { totalSupply, vatAmount, grandTotal, paid, balance } = getDocTotals(doc);
+                  const isPaidComplete = balance <= 0;
+                  const itemSummary = (doc.items || []).map(i => i.name).filter(Boolean).slice(0, 2).join(', ');
+
+                  return React.createElement("tr", {
+                    key: doc.id || idx,
+                    style: { borderBottom: '1px solid #E5E8EB', backgroundColor: idx % 2 === 0 ? '#ffffff' : '#F9FAFB' }
+                  },
+                    React.createElement("td", { style: { padding: '0.75rem 0.75rem', color: '#6B7684', whiteSpace: 'nowrap' } }, doc.doc_date || '-'),
+                    React.createElement("td", { style: { padding: '0.75rem 0.5rem', textAlign: 'center' } },
+                      React.createElement("span", { style: { fontSize: '11px', fontWeight: '800', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#EEF2F5', color: '#333D4B' } }, doc.doc_type || '명세서')
+                    ),
+                    React.createElement("td", { style: { padding: '0.75rem 0.75rem', fontWeight: '800', color: '#191F28' } }, doc.customer_name || doc.customer_data?.name || '-'),
+                    React.createElement("td", { style: { padding: '0.75rem 0.75rem', color: '#4E5968', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, itemSummary || '-'),
+                    React.createElement("td", { style: { padding: '0.75rem 0.75rem', textAlign: 'right', color: '#4E5968' } }, totalSupply.toLocaleString()),
+                    React.createElement("td", { style: { padding: '0.75rem 0.75rem', textAlign: 'right', color: '#8B95A1' } }, vatAmount.toLocaleString()),
+                    React.createElement("td", { style: { padding: '0.75rem 0.75rem', textAlign: 'right', fontWeight: '800', color: '#191F28' } }, grandTotal.toLocaleString()),
+                    React.createElement("td", { style: { padding: '0.75rem 0.75rem', textAlign: 'right', fontWeight: '700', color: '#1B64DA' } }, paid.toLocaleString()),
+                    React.createElement("td", { style: { padding: '0.75rem 0.75rem', textAlign: 'right', fontWeight: '900', color: balance > 0 ? '#D92D20' : '#03C75A' } }, balance.toLocaleString()),
+                    React.createElement("td", { style: { padding: '0.75rem 0.5rem', textAlign: 'center' } },
+                      isPaidComplete ? (
+                        React.createElement("span", { style: { padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: '800', backgroundColor: '#E8F8F0', color: '#028A3E' } }, "완납")
+                      ) : (
+                        React.createElement("span", { style: { padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: '800', backgroundColor: '#FEF3F2', color: '#D92D20' } }, "미수")
+                      )
+                    ),
+                    React.createElement("td", { className: "no-print", style: { padding: '0.75rem 0.5rem', textAlign: 'center' } },
+                      React.createElement("button", { className: "btn btn-green", style: { fontSize: '11px', padding: '3px 8px', minHeight: '26px' }, onClick: () => handleOpenEditPaid(doc) }, "💳 수금")
+                    )
+                  );
+                })
+              )
+            )
           )
         )
       )
     ),
+
+    /* Paid Edit Modal */
     editingDoc && React.createElement("div", { style: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' } },
-      React.createElement("div", { style: { backgroundColor: '#ffffff', borderRadius: '16px', maxWidth: '480px', width: '100%', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' } },
-        React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.75rem' } },
-          React.createElement("h3", { style: { fontSize: '1.125rem', fontWeight: '800', color: '#111827', margin: 0 } }, "💳 수금 / 입금액 등록"),
-          React.createElement("button", { onClick: () => setEditingDoc(null), style: { background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#9ca3af' } }, "✕")
+      React.createElement("div", { style: { backgroundColor: '#ffffff', borderRadius: '16px', maxWidth: '440px', width: '100%', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' } },
+        React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid #E5E8EB', paddingBottom: '0.75rem' } },
+          React.createElement("h3", { style: { fontSize: '1.125rem', fontWeight: '800', color: '#191F28', margin: 0 } }, "💳 수금 / 입금액 등록"),
+          React.createElement("button", { onClick: () => setEditingDoc(null), style: { background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8B95A1' } }, "✕")
         ),
-        React.createElement("div", { style: { backgroundColor: '#f9fafb', padding: '0.875rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.8125rem' } },
-          React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' } }, React.createElement("span", { style: { color: '#6b7280' } }, "거래처:"), React.createElement("span", { style: { fontWeight: '700', color: '#111827' } }, editingDoc.customer_name || editingDoc.customer_data?.name || '-')),
-          React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' } }, React.createElement("span", { style: { color: '#6b7280' } }, "문서번호/일자:"), React.createElement("span", null, editingDoc.doc_no + " (" + editingDoc.doc_date + ")")),
-          React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' } }, React.createElement("span", { style: { color: '#6b7280' } }, "총 청구금액:"), React.createElement("span", { style: { fontWeight: '800', color: '#111827' } }, getDocTotals(editingDoc).grandTotal.toLocaleString() + " 원")),
-          React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between' } }, React.createElement("span", { style: { color: '#6b7280' } }, "현재 미수잔액:"), React.createElement("span", { style: { fontWeight: '800', color: '#dc2626' } }, getDocTotals(editingDoc).balance.toLocaleString() + " 원"))
+        React.createElement("div", { style: { backgroundColor: '#F9FAFB', padding: '0.875rem', borderRadius: '10px', marginBottom: '1rem', fontSize: '0.8125rem', border: '1px solid #E5E8EB' } },
+          React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' } }, React.createElement("span", { style: { color: '#6B7684' } }, "거래처:"), React.createElement("span", { style: { fontWeight: '700', color: '#191F28' } }, editingDoc.customer_name || editingDoc.customer_data?.name || '-')),
+          React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' } }, React.createElement("span", { style: { color: '#6B7684' } }, "문서번호/일자:"), React.createElement("span", null, editingDoc.doc_no + " (" + editingDoc.doc_date + ")")),
+          React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' } }, React.createElement("span", { style: { color: '#6B7684' } }, "총 청구금액:"), React.createElement("span", { style: { fontWeight: '800', color: '#191F28' } }, getDocTotals(editingDoc).grandTotal.toLocaleString() + " 원")),
+          React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between' } }, React.createElement("span", { style: { color: '#6B7684' } }, "현재 미수잔액:"), React.createElement("span", { style: { fontWeight: '800', color: '#D92D20' } }, getDocTotals(editingDoc).balance.toLocaleString() + " 원"))
         ),
         React.createElement("div", { style: { display: 'flex', gap: '0.5rem', marginBottom: '1rem' } },
-          React.createElement("button", { type: "button", className: "btn btn-green", style: { flex: 1, fontSize: '0.75rem', padding: '0.4rem' }, onClick: () => setInputPaid(getDocTotals(editingDoc).grandTotal) }, "✓ 전액 완납 (" + getDocTotals(editingDoc).grandTotal.toLocaleString() + "원)"),
-          React.createElement("button", { type: "button", className: "btn btn-outline", style: { flex: 1, fontSize: '0.75rem', padding: '0.4rem', color: '#dc2626', borderColor: '#fca5a5' }, onClick: () => setInputPaid(0) }, "✕ 전액 미수 (0원)")
+          React.createElement("button", { type: "button", className: "btn btn-green", style: { flex: 1, fontSize: '0.75rem', padding: '0.4rem', minHeight: '34px' }, onClick: () => setInputPaid(getDocTotals(editingDoc).grandTotal) }, "✓ 전액 완납 (" + getDocTotals(editingDoc).grandTotal.toLocaleString() + "원)"),
+          React.createElement("button", { type: "button", className: "btn btn-outline", style: { flex: 1, fontSize: '0.75rem', padding: '0.4rem', minHeight: '34px', color: '#D92D20', borderColor: '#FECDCA' }, onClick: () => setInputPaid(0) }, "✕ 전액 미수 (0원)")
         ),
         React.createElement("div", { style: { marginBottom: '1rem' } },
           React.createElement("label", { className: "form-label" }, "수금 / 입금액 (원)"),
-          React.createElement("input", { type: "number", className: "form-input", style: { fontSize: '1.125rem', fontWeight: '700', textAlign: 'right' }, value: inputPaid, onChange: e => setInputPaid(Number(e.target.value)) }),
-          React.createElement("div", { style: { fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem', textAlign: 'right' } }, "변경 후 미수잔액: " + (getDocTotals(editingDoc).grandTotal - inputPaid).toLocaleString() + " 원")
+          React.createElement("input", { type: "number", className: "form-input", style: { fontSize: '1.125rem', fontWeight: '800', textAlign: 'right' }, value: inputPaid, onChange: e => setInputPaid(Number(e.target.value)) }),
+          React.createElement("div", { style: { fontSize: '0.75rem', color: '#8B95A1', marginTop: '0.25rem', textAlign: 'right' } }, "변경 후 미수잔액: " + (getDocTotals(editingDoc).grandTotal - inputPaid).toLocaleString() + " 원")
         ),
         React.createElement("div", { style: { marginBottom: '1.25rem' } },
           React.createElement("label", { className: "form-label" }, "수금 관련 비고 / 메모"),
-          React.createElement("input", { type: "text", className: "form-input", placeholder: "예: 8/13 계좌이체 완납, 현금 수금 등", value: inputRemark, onChange: e => setInputRemark(e.target.value) })
+          React.createElement("input", { type: "text", className: "form-input", placeholder: "예: 계좌이체 완납, 현금 수금 등", value: inputRemark, onChange: e => setInputRemark(e.target.value) })
         ),
         React.createElement("div", { style: { display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' } },
-          React.createElement("button", { className: "btn btn-outline", onClick: () => setEditingDoc(null) }, "취소"),
-          React.createElement("button", { className: "btn btn-green", onClick: handleSavePaidModal }, "💾 수금 내역 저장")
+          React.createElement("button", { className: "btn btn-outline", style: { minHeight: '36px' }, onClick: () => setEditingDoc(null) }, "취소"),
+          React.createElement("button", { className: "btn btn-green", style: { minHeight: '36px' }, onClick: handleSavePaidModal }, "💾 수금 내역 저장")
         )
       )
     )
