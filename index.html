@@ -5403,16 +5403,77 @@ function ScheduleTab({
             React.createElement("label", { className: "form-label" }, "일정 제목 *"),
             React.createElement("input", { type: "text", className: "form-input", placeholder: "예: 현대 14톤 메인펌프 수리 출장", value: form.title, onChange: e => setForm({ ...form, title: e.target.value }), autoFocus: true })
           ),
-          React.createElement("div", { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' } },
-            React.createElement("div", null,
-              React.createElement("label", { className: "form-label" }, "날짜 *"),
-              React.createElement("input", { type: "date", className: "form-input", value: form.event_date, onChange: e => setForm({ ...form, event_date: e.target.value }) })
+
+          /* 🌟 일정 날짜 및 기간(시작일 ~ 종료일) 설정 박스 */
+          React.createElement("div", {
+            style: {
+              padding: '10px 12px',
+              backgroundColor: 'var(--c-blue-lightest)',
+              border: '1.5px solid var(--c-blue-soft)',
+              borderRadius: '8px'
+            }
+          },
+            React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' } },
+              React.createElement("label", { style: { fontSize: '0.8125rem', fontWeight: '800', color: 'var(--c-navy-dark)', margin: 0 } }, "📅 일정 날짜 / 기간 선택"),
+              React.createElement("div", { style: { display: 'flex', gap: '10px' } },
+                React.createElement("label", { style: { display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700', color: !form.is_period ? 'var(--c-navy-primary)' : 'var(--text-muted)' } },
+                  React.createElement("input", {
+                    type: "radio",
+                    name: "schedule_date_mode",
+                    checked: !form.is_period,
+                    onChange: () => setForm({ ...form, is_period: false, end_date: form.event_date })
+                  }),
+                  "당일 (하루)"
+                ),
+                React.createElement("label", { style: { display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '800', color: form.is_period ? 'var(--c-blue-accent)' : 'var(--text-muted)' } },
+                  React.createElement("input", {
+                    type: "radio",
+                    name: "schedule_date_mode",
+                    checked: form.is_period === true,
+                    onChange: () => setForm({ ...form, is_period: true, end_date: form.end_date || form.event_date })
+                  }),
+                  "기간 설정 (여러 날짜)"
+                )
+              )
             ),
-            React.createElement("div", null,
-              React.createElement("label", { className: "form-label" }, "시간"),
-              React.createElement("input", { type: "time", className: "form-input", value: form.event_time, onChange: e => setForm({ ...form, event_time: e.target.value }) })
+
+            form.is_period ? (
+              /* 기간 설정 모드: 시작일 ~ 종료일 */
+              React.createElement("div", { style: { display: 'flex', flexDirection: 'column', gap: '6px' } },
+                React.createElement("div", { style: { display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '6px', alignItems: 'center' } },
+                  React.createElement("div", null,
+                    React.createElement("div", { style: { fontSize: '11px', fontWeight: '700', color: 'var(--c-navy-primary)', marginBottom: '2px' } }, "시작일 *"),
+                    React.createElement("input", { type: "date", className: "form-input", value: form.event_date, onChange: e => setForm({ ...form, event_date: e.target.value }) })
+                  ),
+                  React.createElement("span", { style: { fontWeight: '900', color: 'var(--c-navy-dark)', marginTop: '16px' } }, "~"),
+                  React.createElement("div", null,
+                    React.createElement("div", { style: { fontSize: '11px', fontWeight: '700', color: 'var(--c-navy-primary)', marginBottom: '2px' } }, "종료일 *"),
+                    React.createElement("input", { type: "date", className: "form-input", min: form.event_date, value: form.end_date || form.event_date, onChange: e => setForm({ ...form, end_date: e.target.value }) })
+                  )
+                ),
+                React.createElement("div", { style: { fontSize: '11px', color: 'var(--c-navy-primary)', backgroundColor: 'var(--c-blue-light)', padding: '4px 8px', borderRadius: '4px', marginTop: '2px' } },
+                  `💡 ${form.event_date}부터 ${form.end_date || form.event_date}까지 달력 모든 날짜에 연속 표시됩니다.`
+                ),
+                React.createElement("div", { style: { marginTop: '4px' } },
+                  React.createElement("div", { style: { fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '2px' } }, "시간 (선택사항)"),
+                  React.createElement("input", { type: "time", className: "form-input", value: form.event_time, onChange: e => setForm({ ...form, event_time: e.target.value }) })
+                )
+              )
+            ) : (
+              /* 당일 모드: 날짜 + 시간 */
+              React.createElement("div", { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' } },
+                React.createElement("div", null,
+                  React.createElement("div", { style: { fontSize: '11px', fontWeight: '700', color: 'var(--c-navy-primary)', marginBottom: '2px' } }, "일정 날짜 *"),
+                  React.createElement("input", { type: "date", className: "form-input", value: form.event_date, onChange: e => setForm({ ...form, event_date: e.target.value, end_date: e.target.value }) })
+                ),
+                React.createElement("div", null,
+                  React.createElement("div", { style: { fontSize: '11px', fontWeight: '700', color: 'var(--c-navy-primary)', marginBottom: '2px' } }, "시간"),
+                  React.createElement("input", { type: "time", className: "form-input", value: form.event_time, onChange: e => setForm({ ...form, event_time: e.target.value }) })
+                )
+              )
             )
           ),
+
           React.createElement("div", null,
             React.createElement("label", { className: "form-label" }, "일정 분류"),
             React.createElement("select", { className: "form-select", value: form.category, onChange: e => setForm({ ...form, category: e.target.value }) },
