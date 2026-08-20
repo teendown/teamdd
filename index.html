@@ -3370,16 +3370,22 @@ function Header({
   setDocType,
   userRole,
   onLogout,
-  onOpenDesktopShortcutModal
+  currentSupplier,
+  selectedSupplierKey,
+  suppliersList = []
 }) {
   const [showConfig, setShowConfig] = React.useState(false);
   const [copiedSQL, setCopiedSQL] = React.useState(false);
+
+  const supplierDisplayName = currentSupplier?.company || currentSupplier?.name || (suppliersList.find(s => areSupplierKeysEquivalent(s.id, selectedSupplierKey))?.name) || (selectedSupplierKey === 'sejin' ? '세진중기' : (selectedSupplierKey === 'ds' ? '디에스건설기계' : '대성건설기계'));
+
   const copySQL = () => {
     navigator.clipboard.writeText(SQL_ALL).then(() => {
       setCopiedSQL(true);
       setTimeout(() => setCopiedSQL(false), 2500);
     });
   };
+
   return /*#__PURE__*/React.createElement("header", {
     className: "top-header"
   }, /*#__PURE__*/React.createElement("div", {
@@ -3388,19 +3394,55 @@ function Header({
     className: "brand-title"
   }, "TEAM D.D"), /*#__PURE__*/React.createElement("span", {
     className: "brand-sub"
-  }, "\uB300\uD55C\uBBFC\uAD6D \uAC74\uC124\uAE30\uACC4 \uC815\uBE44 1\uB4F1")), /*#__PURE__*/React.createElement("div", {
+  }, "대한민국 건설기계 정비 1등")), /*#__PURE__*/React.createElement("div", {
     style: { display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }
-  }, /*#__PURE__*/React.createElement("button", {
-    type: "button",
-    onClick: onOpenDesktopShortcutModal,
-    style: { padding: '4px 10px', background: '#eff6ff', border: '1px solid #93c5fd', borderRadius: '6px', fontSize: '11px', color: '#1d4ed8', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }
-  }, "🖥️ 바탕화면 아이콘"), /*#__PURE__*/React.createElement("span", {
-    style: { fontSize: '11px', color: '#4b5563', fontWeight: '700', backgroundColor: '#e2e8f0', padding: '2px 8px', borderRadius: '4px' }
-  }, userRole === 'admin' ? '👑 관리자' : '👤 공급자'), /*#__PURE__*/React.createElement("button", {
-    type: "button",
-    onClick: onLogout,
-    style: { padding: '4px 10px', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: '6px', fontSize: '11px', color: '#b91c1c', fontWeight: '700', cursor: 'pointer' }
-  }, "로그아웃")), /*#__PURE__*/React.createElement("button", {
+  },
+    /* 🏢 로그인 한 공급자 명 뱃지 */
+    React.createElement("div", {
+      style: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
+        backgroundColor: 'var(--c-blue-lightest)',
+        border: '1.5px solid var(--c-blue-soft)',
+        padding: '3px 10px',
+        borderRadius: '20px',
+        fontSize: '0.8125rem',
+        fontWeight: '800',
+        color: 'var(--c-navy-dark)'
+      },
+      title: `로그인 계정: ${supplierDisplayName} (${userRole === 'admin' ? '관리자' : '공급자'})`
+    },
+      React.createElement("span", null, userRole === 'admin' ? '👑' : '🏢'),
+      React.createElement("span", { style: { color: 'var(--c-navy-primary)' } }, supplierDisplayName),
+      userRole === 'admin' && React.createElement("span", {
+        style: {
+          fontSize: '10px',
+          backgroundColor: 'var(--c-blue-accent)',
+          color: '#ffffff',
+          padding: '1px 6px',
+          borderRadius: '10px',
+          fontWeight: '700'
+        }
+      }, "관리자")
+    ),
+
+    /* 🚪 로그아웃 버튼 */
+    React.createElement("button", {
+      type: "button",
+      onClick: onLogout,
+      className: "btn btn-outline btn-sm",
+      style: {
+        height: '30px',
+        fontSize: '0.75rem',
+        fontWeight: '700',
+        color: '#D92D20',
+        borderColor: '#FECDCA',
+        backgroundColor: '#FEF3F2',
+        cursor: 'pointer'
+      }
+    }, "로그아웃")
+  ), /*#__PURE__*/React.createElement("button", {
     type: "button",
     onClick: () => setShowConfig(prev => !prev),
     className: `status-badge ${isConnected ? 'connected' : 'disconnected'}`
@@ -3476,7 +3518,7 @@ function Header({
       marginBottom: '0.5rem',
       color: '#374151'
     }
-  }, "\uD83D\uDCCB Supabase DB \uD14C\uC774\uBE14 \uC0DD\uC131 SQL"), /*#__PURE__*/React.createElement("button", {
+  }, "📋 Supabase DB 테이블 생성 SQL"), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-green",
     style: {
       fontSize: '0.75rem',
@@ -3490,48 +3532,38 @@ function Header({
       color: '#6b7280',
       marginTop: '0.5rem'
     }
-  }, "\uD83D\uDCA1 Supabase \uB300\uC2DC\uBCF4\uB4DC \u2192 ", /*#__PURE__*/React.createElement("strong", null, "SQL Editor"), " \u2192 New query \u2192 \uBD99\uC5EC\uB123\uAE30 \u2192 ", /*#__PURE__*/React.createElement("strong", null, "Run"), " \uD074\uB9AD"))), /*#__PURE__*/React.createElement("div", {
+  }, "💡 Supabase 대시보드 → ", /*#__PURE__*/React.createElement("strong", null, "SQL Editor"), " → New query → 붙여넣기 → ", /*#__PURE__*/React.createElement("strong", null, "Run"), " 클릭"))), /*#__PURE__*/React.createElement("div", {
     className: "tab-bar-container"
   }, /*#__PURE__*/React.createElement("div", {
     className: "tab-nav"
   }, /*#__PURE__*/React.createElement("button", {
     className: `tab-btn ${activeTab === 'doc' && docType === '거래명세서' ? 'active' : ''}`,
     onClick: () => { setActiveTab('doc'); setDocType('거래명세서'); }
-  }, "\uD83D\uDCC4 \uAC70\uB798\uBA85\uC138\uC11C"), /*#__PURE__*/React.createElement("button", {
+  }, "📄 거래명세서"), /*#__PURE__*/React.createElement("button", {
     className: `tab-btn ${activeTab === 'doc' && docType === '견적서' ? 'active' : ''}`,
     onClick: () => { setActiveTab('doc'); setDocType('견적서'); }
-  }, "\uD83D\uDCC4 \uACAC\uC801\uC11C"), /*#__PURE__*/React.createElement("button", {
+  }, "📄 견적서"), /*#__PURE__*/React.createElement("button", {
     className: `tab-btn ${activeTab === 'doc' && docType === '청구서' ? 'active' : ''}`,
     onClick: () => { setActiveTab('doc'); setDocType('청구서'); }
-  }, "\uD83D\uDCC4 \uCCAD\uAD6C\uC11C"), /*#__PURE__*/React.createElement("button", {
+  }, "📄 청구서"), /*#__PURE__*/React.createElement("button", {
     className: `tab-btn ${activeTab === 'history' ? 'active' : ''}`,
     onClick: () => setActiveTab('history')
-  }, "\uD83D\uDCC1 \uBB38\uC11C\uC870\uD68C"), /*#__PURE__*/React.createElement("button", {
+  }, "📁 문서조회"), /*#__PURE__*/React.createElement("button", {
     className: `tab-btn ${activeTab === 'accounting' ? 'active' : ''}`,
     onClick: () => setActiveTab('accounting')
-  }, "\uD83D\uDCA1 거래처별 회계"), /*#__PURE__*/React.createElement("button", {
+  }, "💡 거래처별 회계"), /*#__PURE__*/React.createElement("button", {
     className: `tab-btn ${activeTab === 'schedule' ? 'active' : ''}`,
     onClick: () => setActiveTab('schedule')
   }, "📅 일정관리"), /*#__PURE__*/React.createElement("button", {
     className: `tab-btn ${activeTab === 'customers' ? 'active' : ''}`,
     onClick: () => setActiveTab('customers')
-  }, "\uD83D\uDC65 \uACE0\uAC1D\uAD00\uB9AC"), userRole === 'admin' && /*#__PURE__*/React.createElement("button", {
+  }, "👥 고객관리"), userRole === 'admin' && /*#__PURE__*/React.createElement("button", {
     className: `tab-btn ${activeTab === 'suppliers' ? 'active' : ''}`,
     onClick: () => setActiveTab('suppliers')
-  }, "\uD83C\uDFE2 \uACF5\uAE09\uC790"), /*#__PURE__*/React.createElement("button", {
+  }, "🏢 공급자"), /*#__PURE__*/React.createElement("button", {
     className: `tab-btn ${activeTab === 'parts' ? 'active' : ''}`,
     onClick: () => setActiveTab('parts')
-  }, "\uD83D\uDEE0\uFE0F \uBD80\uD488\uAD00\uB9AC"), /*#__PURE__*/React.createElement("button", {
-    className: "tab-btn",
-    style: {
-      marginLeft: 'auto',
-      backgroundColor: '#eff6ff',
-      color: '#1d4ed8',
-      borderColor: '#bfdbfe',
-      fontWeight: '800'
-    },
-    onClick: onOpenDesktopShortcutModal
-  }, "🖥️ 바탕화면 바로가기"))));
+  }, "🛠️ 부품관리"))));
 }
 function StatementTab({
   docType,
@@ -9328,7 +9360,9 @@ function App() {
     setDocType: handleDocTypeChange,
     userRole: userRole,
     onLogout: handleLogout,
-    onOpenDesktopShortcutModal: () => setIsDesktopShortcutModalOpen(true)
+    currentSupplier: currentSupplier,
+    selectedSupplierKey: selectedSupplierKey,
+    suppliersList: suppliersList
   }), /*#__PURE__*/React.createElement(DesktopShortcutModal, {
     isOpen: isDesktopShortcutModalOpen,
     onClose: () => setIsDesktopShortcutModalOpen(false)
