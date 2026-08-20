@@ -319,7 +319,7 @@ export default function DocHistoryTab({
               >
                 <option value="전체">모든 입금상태</option>
                 {['미수금', '부분입금', '입금완료'].map(t => (
-                  <option key={t, value: t}>{t}</option>
+                  <option key={t} value={t}>{t}</option>
                 ))}
               </select>
             )}

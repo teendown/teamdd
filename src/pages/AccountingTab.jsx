@@ -283,7 +283,7 @@ export default function AccountingTab({
                 <option value="all">전체 (월)</option>
                 {Array.from({ length: 12 }, (_, i) => {
                   const mStr = String(i + 1).padStart(2, '0');
-                  return <option key={mStr, value: mStr}>{i + 1}월</option>;
+                  return <option key={mStr} value={mStr}>{i + 1}월</option>;
                 })}
               </select>
             </div>

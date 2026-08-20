@@ -31,23 +31,6 @@
   <!-- Export Helpers CDN (html2canvas & jspdf) -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-  <!-- Import Map for Modern Native ES Modules -->
-  <script type="importmap">
-  {
-    "imports": {
-      "react": "https://esm.sh/react@18.2.0?dev",
-      "react/": "https://esm.sh/react@18.2.0/",
-      "react-dom": "https://esm.sh/react-dom@18.2.0?dev",
-      "react-dom/": "https://esm.sh/react-dom@18.2.0/",
-      "react-dom/client": "https://esm.sh/react-dom@18.2.0/client?dev",
-      "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.43.0"
-    }
-  }
-  </script>
-
-  <!-- Babel Standalone for In-Browser JSX ESM Compilation -->
-  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.24.0/babel.min.js"></script>
 </head>
 <body>
   <div id="loading-indicator" style="padding:2rem;text-align:center;font-family:sans-serif;color:#6b7280;font-size:0.9rem;">
@@ -90,7 +73,7 @@
     });
   </script>
 
-  <!-- Modern ESM Application Module -->
-  <script type="text/babel" data-type="module" src="./src/main.jsx"></script>
+  <!-- High-Performance Bundled Application Entry -->
+  <script type="module" src="./app.bundle.js"></script>
 </body>
 </html>
