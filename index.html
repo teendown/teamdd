@@ -1099,6 +1099,50 @@ const DEMO_PARTS = [{
   min_stock: 5,
   memo: "품절"
 }];
+const DEMO_SCHEDULES = [
+  {
+    id: "sch_demo_1",
+    supplier_key: "sejin",
+    is_shared: false, // 🔒 비공개 (세진 전용)
+    title: "현대 14톤 메인펌프 수리 출장",
+    event_date: "2026-08-25",
+    event_time: "14:00",
+    category: "repair",
+    customer_name: "전주건설",
+    customer_phone: "010-1234-5678",
+    machine_info: "DX140W 1호기",
+    amount: 450000,
+    memo: "세진 자체 비공개 정비 출장 (부품 준비 완료)"
+  },
+  {
+    id: "sch_demo_2",
+    supplier_key: "sejin",
+    is_shared: true, // 🔓 공개 (전체 공급자 공유)
+    title: "볼보 협력 정비 일정 (공유)",
+    event_date: "2026-08-27",
+    event_time: "10:30",
+    category: "repair",
+    customer_name: "김제중기",
+    customer_phone: "010-9876-5432",
+    machine_info: "EC140EL",
+    amount: 320000,
+    memo: "공동 정비 지원 건"
+  },
+  {
+    id: "sch_demo_3",
+    supplier_key: "ds_gimje",
+    is_shared: false, // 🔒 비공개 (디에스 전용)
+    title: "디에스 자체 엔진오일 교환 출장",
+    event_date: "2026-08-26",
+    event_time: "09:30",
+    category: "repair",
+    customer_name: "김제중기",
+    customer_phone: "010-9876-5432",
+    machine_info: "DX140W",
+    amount: 180000,
+    memo: "디에스 전용 비공개 일정"
+  }
+];
 const DOC_TYPES = ["거래명세서", "견적서", "청구서", "영수증", "발주서"];
 const PART_CATEGORIES = ["전체", "필터/오일", "유압부품", "전기부품", "엔진부품", "기타"];
 const getLocalItem = (key, fallback) => {
@@ -3224,6 +3268,9 @@ function Header({
     className: `tab-btn ${activeTab === 'accounting' ? 'active' : ''}`,
     onClick: () => setActiveTab('accounting')
   }, "\uD83D\uDCA1 거래처별 회계"), /*#__PURE__*/React.createElement("button", {
+    className: `tab-btn ${activeTab === 'schedule' ? 'active' : ''}`,
+    onClick: () => setActiveTab('schedule')
+  }, "📅 일정관리"), /*#__PURE__*/React.createElement("button", {
     className: `tab-btn ${activeTab === 'customers' ? 'active' : ''}`,
     onClick: () => setActiveTab('customers')
   }, "\uD83D\uDC65 \uACE0\uAC1D\uAD00\uB9AC"), userRole === 'admin' && /*#__PURE__*/React.createElement("button", {
@@ -3295,7 +3342,9 @@ function StatementTab({
   editingDocId,
   documentsList = [],
   onLoadDocument,
-  onCopyDocument
+  onCopyDocument,
+  isDocShared = false,
+  setIsDocShared
 }) {
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [selectedRecentDocId, setSelectedRecentDocId] = useState('');
@@ -4045,10 +4094,47 @@ function StatementTab({
     placeholder: "\uBA85\uC138\uC11C \uD558\uB2E8\uC5D0 \uC778\uC1C4\uB420 \uBE44\uACE0\uB97C \uC785\uB825\uD558\uC138\uC694"
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
+      padding: '8px 10px',
+      backgroundColor: isDocShared ? '#f0fdf4' : '#fffbeb',
+      border: `1px solid ${isDocShared ? '#86efac' : '#fde68a'}`,
+      borderRadius: '8px',
+      marginTop: '0.75rem',
+      marginBottom: '0.25rem'
+    }
+  },
+    /*#__PURE__*/React.createElement("div", {
+      style: { fontSize: '0.75rem', fontWeight: '800', color: '#1e293b', marginBottom: '4px' }
+    }, "🛡️ 문서 공개 설정 (타 공급자 달력 노출 여부)"),
+    /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '12px' } },
+      /*#__PURE__*/React.createElement("label", {
+        style: { display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700', color: '#c2410c' }
+      },
+        /*#__PURE__*/React.createElement("input", {
+          type: "radio",
+          name: "doc_is_shared",
+          checked: !isDocShared,
+          onChange: () => setIsDocShared && setIsDocShared(false)
+        }),
+        /*#__PURE__*/React.createElement("span", null, "🔒 비공개 (기본값)")
+      ),
+      /*#__PURE__*/React.createElement("label", {
+        style: { display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700', color: '#15803d' }
+      },
+        /*#__PURE__*/React.createElement("input", {
+          type: "radio",
+          name: "doc_is_shared",
+          checked: !!isDocShared,
+          onChange: () => setIsDocShared && setIsDocShared(true)
+        }),
+        /*#__PURE__*/React.createElement("span", null, "🔓 공개 (공유)")
+      )
+    )
+  ), /*#__PURE__*/React.createElement("div", {
+    style: {
       display: 'flex',
       flexDirection: 'column',
       gap: '0.5rem',
-      marginTop: '1rem'
+      marginTop: '0.5rem'
     }
   }, /*#__PURE__*/React.createElement("button", {
     className: "btn btn-primary",
@@ -4556,6 +4642,607 @@ function AccountingTab({
         React.createElement("div", { style: { display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' } },
           React.createElement("button", { className: "btn btn-outline", onClick: () => setEditingDoc(null) }, "취소"),
           React.createElement("button", { className: "btn btn-green", onClick: handleSavePaidModal }, "💾 수금 내역 저장")
+        )
+      )
+    )
+  );
+}
+
+function ScheduleTab({
+  schedules = [],
+  documentsList = [],
+  selectedSupplierKey = 'sejin',
+  suppliersList = [],
+  onSaveSchedule,
+  onDeleteSchedule,
+  onLoadDocument
+}) {
+  const useState = React.useState;
+  const useMemo = React.useMemo;
+  const currentDate = new Date();
+
+  const [currentYear, setCurrentYear] = useState(currentDate.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(currentDate.getMonth() + 1);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [showEventModal, setShowEventModal] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
+  const [showDayDetailModal, setShowDayDetailModal] = useState(false);
+
+  // 🔒 보안/공개 범위 필터: 기본은 'all'
+  const [privacyFilter, setPrivacyFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState({
+    schedule: true,
+    repair_doc: true,
+    payment: true,
+    estimate: true
+  });
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // 🔒 일정 등록 폼: 기본값은 비공개(is_shared: false)
+  const [form, setForm] = useState({
+    title: '',
+    event_date: currentDate.toISOString().split('T')[0],
+    event_time: '10:00',
+    category: 'repair',
+    customer_name: '',
+    customer_phone: '',
+    machine_info: '',
+    amount: '',
+    memo: '',
+    is_shared: false
+  });
+
+  const firstDayOfMonth = new Date(currentYear, currentMonth - 1, 1).getDay();
+  const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+  const prevMonthDays = new Date(currentYear, currentMonth - 1, 0).getDate();
+
+  const handlePrevMonth = () => {
+    if (currentMonth === 1) { setCurrentYear(prev => prev - 1); setCurrentMonth(12); }
+    else { setCurrentMonth(prev => prev - 1); }
+  };
+
+  const handleNextMonth = () => {
+    if (currentMonth === 12) { setCurrentYear(prev => prev + 1); setCurrentMonth(1); }
+    else { setCurrentMonth(prev => prev + 1); }
+  };
+
+  const handleToday = () => {
+    const now = new Date();
+    setCurrentYear(now.getFullYear());
+    setCurrentMonth(now.getMonth() + 1);
+    setSelectedDate(now.toISOString().split('T')[0]);
+  };
+
+  // 1. 보안 필터링 적용된 등록 일정 목록
+  const filteredSchedules = useMemo(() => {
+    return (schedules || []).filter(item => {
+      const isMine = areSupplierKeysEquivalent(item.supplier_key, selectedSupplierKey);
+      const isPublic = item.is_shared === true;
+      // 🔒 핵심 보안: 내 공급자가 아니면서 비공개인 타사 데이터는 원천 차단
+      if (!isMine && !isPublic) return false;
+
+      if (privacyFilter === 'private' && (!isMine || isPublic)) return false;
+      if (privacyFilter === 'my_public' && (!isMine || !isPublic)) return false;
+      if (privacyFilter === 'others_public' && (isMine || !isPublic)) return false;
+
+      if (!categoryFilter.schedule) return false;
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const t = (item.title || '').toLowerCase();
+        const c = (item.customer_name || '').toLowerCase();
+        const m = (item.machine_info || '').toLowerCase();
+        const memo = (item.memo || '').toLowerCase();
+        if (!t.includes(q) && !c.includes(q) && !m.includes(q) && !memo.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [schedules, selectedSupplierKey, privacyFilter, categoryFilter, searchQuery]);
+
+  // 2. 보안 필터링 적용된 문서(명세서/결제일/견적서) 연동 일정
+  const documentEvents = useMemo(() => {
+    const events = [];
+    (documentsList || []).forEach(doc => {
+      if (doc.is_deleted) return;
+      const isMine = areSupplierKeysEquivalent(doc.supplier_key, selectedSupplierKey);
+      const isDocPublic = doc.is_shared === true;
+      // 🔒 타사 문서는 오직 작성자가 공개로 열어둔 것만 노출
+      if (!isMine && !isDocPublic) return;
+
+      const custName = doc.customer_name || doc.customer_data?.name || '고객';
+      const machine = doc.customer_data?.selectedMachine || '';
+      const itemsSum = (doc.items || []).map(i => i.name).filter(Boolean).join(', ');
+
+      // A. 거래명세서 / 청구서 정비 발행일
+      if (categoryFilter.repair_doc && doc.doc_date && (doc.doc_type === '거래명세서' || doc.doc_type === '청구서')) {
+        events.push({
+          id: 'doc_repair_' + doc.id,
+          isDocEvent: true,
+          rawDoc: doc,
+          type: 'repair_doc',
+          event_date: doc.doc_date,
+          event_time: doc.doc_time || '',
+          title: '📦 [' + doc.doc_type + '] ' + custName,
+          subtitle: machine ? '(' + machine + ') ' + itemsSum : itemsSum,
+          supplier_key: doc.supplier_key,
+          is_shared: isDocPublic,
+          isMine: isMine
+        });
+      }
+
+      // B. 결제 예정일 / 수금일
+      if (categoryFilter.payment && doc.payment_date && doc.doc_type !== '견적서') {
+        const balance = (Number(doc.total_amount || 0) || (doc.items || []).reduce((s, i) => s + (i.qty * i.price), 0)) - (Number(doc.paid) || 0);
+        const isPaidComplete = doc.payment_status === '입금완료' || balance <= 0;
+        events.push({
+          id: 'doc_payment_' + doc.id,
+          isDocEvent: true,
+          rawDoc: doc,
+          type: 'payment',
+          event_date: doc.payment_date,
+          event_time: '',
+          title: isPaidComplete ? '🟢 [완납] ' + custName : '🔴 [결제/미수] ' + custName,
+          subtitle: '문서번호: ' + (doc.doc_no || ''),
+          supplier_key: doc.supplier_key,
+          is_shared: isDocPublic,
+          isMine: isMine
+        });
+      }
+
+      // C. 견적서 발행일
+      if (categoryFilter.estimate && doc.doc_date && doc.doc_type === '견적서') {
+        events.push({
+          id: 'doc_estimate_' + doc.id,
+          isDocEvent: true,
+          rawDoc: doc,
+          type: 'estimate',
+          event_date: doc.doc_date,
+          event_time: doc.doc_time || '',
+          title: '📋 [견적] ' + custName,
+          subtitle: machine ? '(' + machine + ') ' + itemsSum : itemsSum,
+          supplier_key: doc.supplier_key,
+          is_shared: isDocPublic,
+          isMine: isMine
+        });
+      }
+    });
+    return events;
+  }, [documentsList, selectedSupplierKey, categoryFilter]);
+
+  // 날짜별 그룹핑
+  const eventsByDate = useMemo(() => {
+    const map = {};
+    filteredSchedules.forEach(sch => {
+      const d = sch.event_date;
+      if (!d) return;
+      if (!map[d]) map[d] = [];
+      map[d].push({ ...sch, isSchedule: true });
+    });
+    documentEvents.forEach(docEv => {
+      const d = docEv.event_date;
+      if (!d) return;
+      if (!map[d]) map[d] = [];
+      map[d].push(docEv);
+    });
+    return map;
+  }, [filteredSchedules, documentEvents]);
+
+  const handleOpenAddEvent = (dateStr = null) => {
+    const targetDate = dateStr || selectedDate || `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
+    setForm({
+      id: null,
+      title: '',
+      event_date: targetDate,
+      event_time: '10:00',
+      category: 'repair',
+      customer_name: '',
+      customer_phone: '',
+      machine_info: '',
+      amount: '',
+      memo: '',
+      is_shared: false // 🔒 기본값은 비공개
+    });
+    setEditingEvent(null);
+    setShowEventModal(true);
+  };
+
+  const handleOpenEditEvent = (ev) => {
+    if (ev.isDocEvent) {
+      if (onLoadDocument && ev.rawDoc) {
+        onLoadDocument(ev.rawDoc);
+      }
+      return;
+    }
+    setForm({
+      id: ev.id,
+      title: ev.title || '',
+      event_date: ev.event_date || '',
+      event_time: ev.event_time || '',
+      category: ev.category || 'repair',
+      customer_name: ev.customer_name || '',
+      customer_phone: ev.customer_phone || '',
+      machine_info: ev.machine_info || '',
+      amount: ev.amount || '',
+      memo: ev.memo || '',
+      is_shared: ev.is_shared === true
+    });
+    setEditingEvent(ev);
+    setShowEventModal(true);
+  };
+
+  const handleSaveEvent = async () => {
+    if (!form.title.trim()) {
+      alert('일정 제목을 입력해 주세요.');
+      return;
+    }
+    if (!form.event_date) {
+      alert('일정 날짜를 선택해 주세요.');
+      return;
+    }
+    const payload = {
+      ...form,
+      id: form.id || `sch_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      supplier_key: selectedSupplierKey,
+      amount: Number(form.amount) || 0
+    };
+    if (onSaveSchedule) {
+      await onSaveSchedule(payload, !!editingEvent);
+    }
+    setShowEventModal(false);
+  };
+
+  const handleDeleteEvent = async (id) => {
+    if (!confirm('이 일정을 삭제하시겠습니까?')) return;
+    if (onDeleteSchedule) {
+      await onDeleteSchedule(id);
+    }
+    setShowEventModal(false);
+    setShowDayDetailModal(false);
+  };
+
+  // 달력 셀 계산
+  const calendarCells = useMemo(() => {
+    const cells = [];
+    for (let i = firstDayOfMonth - 1; i >= 0; i--) {
+      const d = prevMonthDays - i;
+      const m = currentMonth === 1 ? 12 : currentMonth - 1;
+      const y = currentMonth === 1 ? currentYear - 1 : currentYear;
+      const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      cells.push({ dayNumber: d, dateStr: dateStr, isCurrentMonth: false, events: eventsByDate[dateStr] || [] });
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      cells.push({ dayNumber: d, dateStr: dateStr, isCurrentMonth: true, events: eventsByDate[dateStr] || [] });
+    }
+    const totalCells = cells.length;
+    const remaining = 35 - totalCells > 0 ? 35 - totalCells : (42 - totalCells > 0 ? 42 - totalCells : 0);
+    for (let d = 1; d <= remaining; d++) {
+      const m = currentMonth === 12 ? 1 : currentMonth + 1;
+      const y = currentMonth === 12 ? currentYear + 1 : currentYear;
+      const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      cells.push({ dayNumber: d, dateStr: dateStr, isCurrentMonth: false, events: eventsByDate[dateStr] || [] });
+    }
+    return cells;
+  }, [currentYear, currentMonth, firstDayOfMonth, daysInMonth, prevMonthDays, eventsByDate]);
+
+  const todayStr = currentDate.toISOString().split('T')[0];
+
+  return React.createElement("div", { className: "management-container", style: { padding: '0.75rem', maxWidth: '1440px', margin: '0 auto' } },
+    /* Header Toolbar */
+    React.createElement("div", { className: "card-box", style: { marginBottom: '0.75rem', padding: '0.875rem' } },
+      React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' } },
+        React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '0.5rem' } },
+          React.createElement("h2", { style: { fontSize: '1.25rem', fontWeight: '900', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 } },
+            React.createElement("span", null, "📅"),
+            ` ${currentYear}년 ${currentMonth}월`
+          ),
+          React.createElement("div", { style: { display: 'flex', gap: '4px' } },
+            React.createElement("button", { type: "button", className: "btn btn-outline", style: { padding: '4px 10px', fontSize: '12px' }, onClick: handlePrevMonth }, "◀ 이전달"),
+            React.createElement("button", { type: "button", className: "btn btn-outline", style: { padding: '4px 10px', fontSize: '12px', fontWeight: '700' }, onClick: handleToday }, "오늘"),
+            React.createElement("button", { type: "button", className: "btn btn-outline", style: { padding: '4px 10px', fontSize: '12px' }, onClick: handleNextMonth }, "다음달 ▶")
+          )
+        ),
+        React.createElement("button", {
+          type: "button",
+          className: "btn btn-primary",
+          style: { padding: '8px 16px', fontSize: '0.875rem', fontWeight: '800', backgroundColor: '#1E6091', borderColor: '#1E6091', display: 'flex', alignItems: 'center', gap: '6px' },
+          onClick: () => handleOpenAddEvent()
+        }, "➕ 새 일정 등록 (비공개/공개 선택)")
+      ),
+
+      /* Filters Bar */
+      React.createElement("div", {
+        style: { marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', fontSize: '0.75rem' }
+      },
+        React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' } },
+          React.createElement("span", { style: { fontWeight: '800', color: '#334155' } }, "🔒 보안/공개 범위:"),
+          React.createElement("button", {
+            type: "button",
+            style: { padding: '3px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', cursor: 'pointer', backgroundColor: privacyFilter === 'all' ? '#1e293b' : '#f8fafc', color: privacyFilter === 'all' ? '#fff' : '#475569', fontWeight: privacyFilter === 'all' ? '800' : '500' },
+            onClick: () => setPrivacyFilter('all')
+          }, "전체 보기"),
+          React.createElement("button", {
+            type: "button",
+            style: { padding: '3px 8px', borderRadius: '6px', border: '1px solid #fed7aa', cursor: 'pointer', backgroundColor: privacyFilter === 'private' ? '#ea580c' : '#fff7ed', color: privacyFilter === 'private' ? '#fff' : '#c2410c', fontWeight: privacyFilter === 'private' ? '800' : '700' },
+            onClick: () => setPrivacyFilter('private')
+          }, "🔒 내 비공개만"),
+          React.createElement("button", {
+            type: "button",
+            style: { padding: '3px 8px', borderRadius: '6px', border: '1px solid #bbf7d0', cursor: 'pointer', backgroundColor: privacyFilter === 'my_public' ? '#16a34a' : '#f0fdf4', color: privacyFilter === 'my_public' ? '#fff' : '#15803d', fontWeight: privacyFilter === 'my_public' ? '800' : '700' },
+            onClick: () => setPrivacyFilter('my_public')
+          }, "🔓 내 공개만"),
+          React.createElement("button", {
+            type: "button",
+            style: { padding: '3px 8px', borderRadius: '6px', border: '1px solid #bfdbfe', cursor: 'pointer', backgroundColor: privacyFilter === 'others_public' ? '#2563eb' : '#eff6ff', color: privacyFilter === 'others_public' ? '#fff' : '#1d4ed8', fontWeight: privacyFilter === 'others_public' ? '800' : '700' },
+            onClick: () => setPrivacyFilter('others_public')
+          }, "🌐 타사 공유만")
+        ),
+        React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' } },
+          React.createElement("label", { style: { display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' } },
+            React.createElement("input", { type: "checkbox", checked: categoryFilter.schedule, onChange: e => setCategoryFilter({ ...categoryFilter, schedule: e.target.checked }) }),
+            React.createElement("span", null, "📌 등록일정")
+          ),
+          React.createElement("label", { style: { display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' } },
+            React.createElement("input", { type: "checkbox", checked: categoryFilter.repair_doc, onChange: e => setCategoryFilter({ ...categoryFilter, repair_doc: e.target.checked }) }),
+            React.createElement("span", null, "📦 명세서(정비)")
+          ),
+          React.createElement("label", { style: { display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' } },
+            React.createElement("input", { type: "checkbox", checked: categoryFilter.payment, onChange: e => setCategoryFilter({ ...categoryFilter, payment: e.target.checked }) }),
+            React.createElement("span", null, "💳 결제/수금일")
+          ),
+          React.createElement("label", { style: { display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' } },
+            React.createElement("input", { type: "checkbox", checked: categoryFilter.estimate, onChange: e => setCategoryFilter({ ...categoryFilter, estimate: e.target.checked }) }),
+            React.createElement("span", null, "📋 견적서")
+          )
+        )
+      )
+    ),
+
+    /* Main Calendar Grid */
+    React.createElement("div", { className: "card-box", style: { padding: '0', overflow: 'hidden' } },
+      /* Day of Week Header */
+      React.createElement("div", {
+        style: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'center', fontWeight: '800', fontSize: '0.8125rem' }
+      },
+        ['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => React.createElement("div", {
+          key: day,
+          style: { padding: '10px 0', color: idx === 0 ? '#ef4444' : (idx === 6 ? '#2563eb' : '#334155'), backgroundColor: idx === 0 ? '#fef2f2' : (idx === 6 ? '#eff6ff' : 'transparent') }
+        }, day))
+      ),
+
+      /* Grid Cells */
+      React.createElement("div", {
+        style: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', backgroundColor: '#cbd5e1', gap: '1px' }
+      },
+        calendarCells.map((cell, idx) => {
+          const isToday = cell.dateStr === todayStr;
+          const isSelected = cell.dateStr === selectedDate;
+          const dayOfWeek = idx % 7;
+
+          return React.createElement("div", {
+            key: idx,
+            style: {
+              minHeight: '115px',
+              backgroundColor: cell.isCurrentMonth ? '#ffffff' : '#f8fafc',
+              padding: '6px',
+              display: 'flex',
+              flexDirection: 'column',
+              cursor: 'pointer',
+              position: 'relative',
+              outline: isSelected ? '2px solid #1E6091' : (isToday ? '2px solid #3b82f6' : 'none'),
+              outlineOffset: '-2px'
+            },
+            onClick: () => {
+              setSelectedDate(cell.dateStr);
+              if (cell.events.length > 0) {
+                setShowDayDetailModal(true);
+              } else {
+                handleOpenAddEvent(cell.dateStr);
+              }
+            }
+          },
+            React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' } },
+              React.createElement("span", {
+                style: {
+                  fontSize: '0.8125rem',
+                  fontWeight: isToday ? '900' : '700',
+                  color: !cell.isCurrentMonth ? '#94a3b8' : (dayOfWeek === 0 ? '#ef4444' : (dayOfWeek === 6 ? '#2563eb' : '#1e293b')),
+                  backgroundColor: isToday ? '#3b82f6' : 'transparent',
+                  color: isToday ? '#ffffff' : undefined,
+                  padding: isToday ? '1px 6px' : '0',
+                  borderRadius: isToday ? '10px' : '0'
+                }
+              }, cell.dayNumber),
+              cell.events.length > 0 && React.createElement("span", { style: { fontSize: '10px', fontWeight: '800', color: '#64748b' } }, `${cell.events.length}건`)
+            ),
+
+            /* Events List */
+            React.createElement("div", { style: { display: 'flex', flexDirection: 'column', gap: '3px', flex: 1, overflowY: 'hidden' } },
+              cell.events.slice(0, 3).map(ev => {
+                const isPrivate = !ev.is_shared;
+                let badgeBg = '#f1f5f9';
+                let badgeColor = '#334155';
+                let badgeBorder = '#cbd5e1';
+
+                if (ev.type === 'payment') {
+                  badgeBg = '#fef2f2'; badgeColor = '#991b1b'; badgeBorder = '#fca5a5';
+                } else if (ev.type === 'estimate') {
+                  badgeBg = '#fff7ed'; badgeColor = '#c2410c'; badgeBorder = '#fdba74';
+                } else if (ev.is_shared) {
+                  badgeBg = '#eff6ff'; badgeColor = '#1d4ed8'; badgeBorder = '#bfdbfe';
+                } else {
+                  badgeBg = '#fef3c7'; badgeColor = '#92400e'; badgeBorder = '#fde68a';
+                }
+
+                return React.createElement("div", {
+                  key: ev.id,
+                  style: {
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    padding: '2px 4px',
+                    borderRadius: '4px',
+                    backgroundColor: badgeBg,
+                    color: badgeColor,
+                    border: `1px solid ${badgeBorder}`,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    lineHeight: '1.2'
+                  },
+                  title: `${ev.title}\n${ev.subtitle || ''}\n${isPrivate ? '🔒 비공개' : '🔓 공개'}`,
+                  onClick: (e) => {
+                    e.stopPropagation();
+                    handleOpenEditEvent(ev);
+                  }
+                }, `${isPrivate ? '🔒' : '🔓'} ${ev.title}`);
+              }),
+              cell.events.length > 3 && React.createElement("div", { style: { fontSize: '10px', color: '#64748b', textAlign: 'center', fontWeight: '700' } }, `+ ${cell.events.length - 3}건 더보기`)
+            )
+          );
+        })
+      )
+    ),
+
+    /* Day Detail Modal */
+    showDayDetailModal && selectedDate && React.createElement("div", { className: "modal-overlay", style: { zIndex: 1000 } },
+      React.createElement("div", { className: "modal-content", style: { maxWidth: '520px', maxHeight: '85vh', overflowY: 'auto' } },
+        React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' } },
+          React.createElement("h3", { style: { margin: 0, fontWeight: '900', fontSize: '1.125rem' } }, `📅 ${selectedDate} 일정 내역 (${eventsByDate[selectedDate]?.length || 0}건)`),
+          React.createElement("button", { type: "button", style: { background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#94a3b8' }, onClick: () => setShowDayDetailModal(false) }, "✕")
+        ),
+        React.createElement("div", { style: { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '1.25rem' } },
+          (eventsByDate[selectedDate] || []).map(ev => {
+            const isPrivate = !ev.is_shared;
+            return React.createElement("div", {
+              key: ev.id,
+              style: { padding: '10px 12px', borderRadius: '8px', backgroundColor: isPrivate ? '#fffbeb' : '#f0fdf4', border: `1px solid ${isPrivate ? '#fde68a' : '#bbf7d0'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }
+            },
+              React.createElement("div", null,
+                React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' } },
+                  React.createElement("span", { style: { fontSize: '10px', fontWeight: '800', padding: '1px 5px', borderRadius: '4px', backgroundColor: isPrivate ? '#fef3c7' : '#dcfce7', color: isPrivate ? '#92400e' : '#15803d' } }, isPrivate ? '🔒 비공개(나만보기)' : '🔓 공개(전체공유)'),
+                  React.createElement("span", { style: { fontWeight: '800', fontSize: '0.875rem', color: '#1e293b' } }, ev.title)
+                ),
+                ev.event_time && React.createElement("div", { style: { fontSize: '11px', color: '#64748b' } }, `⏰ 시간: ${ev.event_time}`),
+                ev.customer_name && React.createElement("div", { style: { fontSize: '11px', color: '#475569' } }, `🏢 거래처: ${ev.customer_name} (${ev.customer_phone || '-'})`),
+                ev.machine_info && React.createElement("div", { style: { fontSize: '11px', color: '#1d4ed8' } }, `🚜 기종: ${ev.machine_info}`),
+                ev.memo && React.createElement("div", { style: { fontSize: '11px', color: '#64748b', marginTop: '4px' } }, `📝 메모: ${ev.memo}`)
+              ),
+              React.createElement("div", { style: { display: 'flex', gap: '6px' } },
+                ev.isDocEvent ? React.createElement("button", {
+                  type: "button",
+                  className: "btn btn-outline",
+                  style: { fontSize: '11px', padding: '4px 8px' },
+                  onClick: () => { setShowDayDetailModal(false); onLoadDocument && onLoadDocument(ev.rawDoc); }
+                }, "문서 열기") : React.createElement("button", {
+                  type: "button",
+                  className: "btn btn-primary",
+                  style: { fontSize: '11px', padding: '4px 8px', backgroundColor: '#1E6091', borderColor: '#1E6091' },
+                  onClick: () => { setShowDayDetailModal(false); handleOpenEditEvent(ev); }
+                }, "수정")
+              )
+            );
+          })
+        ),
+        React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', gap: '8px' } },
+          React.createElement("button", {
+            type: "button",
+            className: "btn btn-primary",
+            style: { flex: 1, backgroundColor: '#1E6091', borderColor: '#1E6091', padding: '8px 12px', fontSize: '0.8125rem' },
+            onClick: () => { setShowDayDetailModal(false); handleOpenAddEvent(selectedDate); }
+          }, "➕ 이 날짜에 새 일정 추가"),
+          React.createElement("button", { type: "button", className: "btn btn-outline", style: { padding: '8px 16px', fontSize: '0.8125rem' }, onClick: () => setShowDayDetailModal(false) }, "닫기")
+        )
+      )
+    ),
+
+    /* Add/Edit Event Modal */
+    showEventModal && React.createElement("div", { className: "modal-overlay", style: { zIndex: 1000 } },
+      React.createElement("div", { className: "modal-content", style: { maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto' } },
+        React.createElement("h3", { style: { marginBottom: '1rem', fontWeight: '900' } }, editingEvent ? '✏️ 일정 수정' : '➕ 새 일정 등록'),
+
+        /* 🔒 공개/비공개 선택 영역 (기본값: 🔒 비공개) */
+        React.createElement("div", {
+          style: { padding: '10px 12px', backgroundColor: form.is_shared ? '#f0fdf4' : '#fffbeb', border: `2px solid ${form.is_shared ? '#86efac' : '#fde68a'}`, borderRadius: '8px', marginBottom: '1rem' }
+        },
+          React.createElement("label", { style: { display: 'block', fontSize: '0.8125rem', fontWeight: '900', color: '#1e293b', marginBottom: '6px' } }, "🛡️ 공개 여부 설정 (타 공급자 노출 제어)"),
+          React.createElement("div", { style: { display: 'flex', gap: '12px' } },
+            React.createElement("label", { style: { display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8125rem', color: '#c2410c' } },
+              React.createElement("input", { type: "radio", name: "is_shared", checked: form.is_shared === false, onChange: () => setForm({ ...form, is_shared: false }) }),
+              React.createElement("span", null, "🔒 비공개 (나만 보기 - 기본값)")
+            ),
+            React.createElement("label", { style: { display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8125rem', color: '#15803d' } },
+              React.createElement("input", { type: "radio", name: "is_shared", checked: form.is_shared === true, onChange: () => setForm({ ...form, is_shared: true }) }),
+              React.createElement("span", null, "🔓 공개 (다른 공급자와 공유)")
+            )
+          ),
+          React.createElement("div", { style: { fontSize: '11px', color: '#64748b', marginTop: '4px' } },
+            form.is_shared ? '✓ 세진, 디에스 등 모든 공급자의 캘린더에 함께 노출됩니다.' : '🔒 오직 내 업체에만 표시되며 다른 공급자에게는 일체 노출되지 않습니다.'
+          )
+        ),
+
+        /* Form Inputs */
+        React.createElement("div", { style: { display: 'flex', flexDirection: 'column', gap: '0.75rem' } },
+          React.createElement("div", null,
+            React.createElement("label", { className: "form-label" }, "일정 제목 *"),
+            React.createElement("input", { type: "text", className: "form-input", placeholder: "예: 현대 14톤 메인펌프 수리 출장", value: form.title, onChange: e => setForm({ ...form, title: e.target.value }), autoFocus: true })
+          ),
+          React.createElement("div", { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' } },
+            React.createElement("div", null,
+              React.createElement("label", { className: "form-label" }, "날짜 *"),
+              React.createElement("input", { type: "date", className: "form-input", value: form.event_date, onChange: e => setForm({ ...form, event_date: e.target.value }) })
+            ),
+            React.createElement("div", null,
+              React.createElement("label", { className: "form-label" }, "시간"),
+              React.createElement("input", { type: "time", className: "form-input", value: form.event_time, onChange: e => setForm({ ...form, event_time: e.target.value }) })
+            )
+          ),
+          React.createElement("div", null,
+            React.createElement("label", { className: "form-label" }, "일정 분류"),
+            React.createElement("select", { className: "form-select", value: form.category, onChange: e => setForm({ ...form, category: e.target.value }) },
+              React.createElement("option", { value: "repair" }, "🚜 정비 / 출장 / 수리"),
+              React.createElement("option", { value: "payment" }, "💳 수금 / 결제 예정일"),
+              React.createElement("option", { value: "estimate" }, "📋 견적 제출 / 상담"),
+              React.createElement("option", { value: "general" }, "📌 일반 업무 / 기타")
+            )
+          ),
+          React.createElement("div", { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' } },
+            React.createElement("div", null,
+              React.createElement("label", { className: "form-label" }, "거래처명 (고객명)"),
+              React.createElement("input", { type: "text", className: "form-input", placeholder: "예: 대성건설기계", value: form.customer_name, onChange: e => setForm({ ...form, customer_name: e.target.value }) })
+            ),
+            React.createElement("div", null,
+              React.createElement("label", { className: "form-label" }, "연락처"),
+              React.createElement("input", { type: "text", className: "form-input", placeholder: "010-0000-0000", value: form.customer_phone, onChange: e => setForm({ ...form, customer_phone: e.target.value }) })
+            )
+          ),
+          React.createElement("div", { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' } },
+            React.createElement("div", null,
+              React.createElement("label", { className: "form-label" }, "장비/기종"),
+              React.createElement("input", { type: "text", className: "form-input", placeholder: "예: DX140W 1호기", value: form.machine_info, onChange: e => setForm({ ...form, machine_info: e.target.value }) })
+            ),
+            React.createElement("div", null,
+              React.createElement("label", { className: "form-label" }, "관련 금액 (원)"),
+              React.createElement("input", { type: "number", className: "form-input", placeholder: "0", value: form.amount, onChange: e => setForm({ ...form, amount: e.target.value }) })
+            )
+          ),
+          React.createElement("div", null,
+            React.createElement("label", { className: "form-label" }, "상세 메모"),
+            React.createElement("textarea", { className: "form-input", style: { minHeight: '60px' }, placeholder: "특이사항, 챙길 부품, 현장 위치 등", value: form.memo, onChange: e => setForm({ ...form, memo: e.target.value }) })
+          )
+        ),
+
+        /* Action Buttons */
+        React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0' } },
+          editingEvent ? React.createElement("button", {
+            type: "button",
+            className: "btn btn-outline",
+            style: { color: '#dc2626', borderColor: '#fca5a5' },
+            onClick: () => handleDeleteEvent(editingEvent.id)
+          }, "🗑️ 삭제") : React.createElement("div", null),
+          React.createElement("div", { style: { display: 'flex', gap: '8px' } },
+            React.createElement("button", { type: "button", className: "btn btn-outline", onClick: () => setShowEventModal(false) }, "취소"),
+            React.createElement("button", { type: "button", className: "btn btn-primary", style: { backgroundColor: '#1E6091', borderColor: '#1E6091', fontWeight: '800' }, onClick: handleSaveEvent }, "💾 일정 저장")
+          )
         )
       )
     )
@@ -7781,6 +8468,10 @@ function App() {
   const [receiverName, setReceiverName] = useState('');
   const [receiveDate, setReceiveDate] = useState('');
   const [remark, setRemark] = useState('');
+  const [isDocShared, setIsDocShared] = useState(false); // 🔒 문서 기본값은 비공개
+
+  // 📅 스마트 캘린더 일정 목록 상태
+  const [schedulesList, setSchedulesList] = useState(() => getLocalItem('dd_schedules_list_v1', DEMO_SCHEDULES));
 
   const [docDrafts, setDocDrafts] = useState({});
 
@@ -8009,10 +8700,16 @@ function App() {
     setIsTesting(false);
     if (result.ok && !result.isTableMissing) {
       // 모든 데이터 새로고침
-      const [custs, supps, parts] = await Promise.all([dbFetch('customers', DEMO_CUSTOMERS), dbFetch('suppliers', INITIAL_SUPPLIERS_LIST), dbFetch('parts', DEMO_PARTS)]);
+      const [custs, supps, parts, schs] = await Promise.all([
+        dbFetch('customers', DEMO_CUSTOMERS),
+        dbFetch('suppliers', INITIAL_SUPPLIERS_LIST),
+        dbFetch('parts', DEMO_PARTS),
+        dbFetch('schedules', DEMO_SCHEDULES)
+      ]);
       setCustomersList(custs);
       if (supps.length > 0) setSuppliersList(supps);
       if (parts.length > 0) setPartsList(parts);
+      if (schs.length > 0) setSchedulesList(schs);
     }
   };
 
@@ -8047,6 +8744,7 @@ function App() {
       dbFetch('customers', DEMO_CUSTOMERS).then(setCustomersList);
       dbFetch('suppliers', INITIAL_SUPPLIERS_LIST).then(d => { if (d.length > 0) setSuppliersList(d); });
       dbFetch('parts', DEMO_PARTS).then(setPartsList);
+      dbFetch('schedules', DEMO_SCHEDULES).then(setSchedulesList);
       handleReloadDocuments();
     }
   }, [isLoggedIn, selectedSupplierKey, handleReloadDocuments]);
@@ -8058,16 +8756,30 @@ function App() {
 
   // 탭 전환 시 데이터 새로고침
   useEffect(() => {
-    if (activeTab === 'accounting' || activeTab === 'doc') {
+    if (activeTab === 'accounting' || activeTab === 'doc' || activeTab === 'schedule') {
       handleReloadDocuments();
     }
     if (!isConnected) return;
-    if (activeTab === 'customers') dbFetch('customers', DEMO_CUSTOMERS).then(setCustomersList);else if (activeTab === 'suppliers') dbFetch('suppliers', INITIAL_SUPPLIERS_LIST).then(d => {
+    if (activeTab === 'customers') dbFetch('customers', DEMO_CUSTOMERS).then(setCustomersList);
+    else if (activeTab === 'suppliers') dbFetch('suppliers', INITIAL_SUPPLIERS_LIST).then(d => {
       if (d.length > 0) setSuppliersList(d);
-    });else if (activeTab === 'parts') dbFetch('parts', DEMO_PARTS).then(d => {
+    });
+    else if (activeTab === 'parts') dbFetch('parts', DEMO_PARTS).then(d => {
       if (d.length > 0) setPartsList(d);
     });
+    else if (activeTab === 'schedule') dbFetch('schedules', DEMO_SCHEDULES).then(setSchedulesList);
   }, [activeTab, isConnected, handleReloadDocuments]);
+
+  // 일정 (스마트 캘린더) CRUD
+  const handleSaveSchedule = async (sch, isEdit) => {
+    const updated = await dbSave('schedules', sch, isEdit, schedulesList);
+    setSchedulesList(updated);
+    alert('✓ 일정이 성공적으로 저장되었습니다.');
+  };
+  const handleDeleteSchedule = async id => {
+    setSchedulesList(await dbDelete('schedules', id, schedulesList));
+    alert('✓ 일정이 삭제되었습니다.');
+  };
 
   // 고객 CRUD
   const handleSaveCustomer = async (c, isEdit, silent = false) => {
@@ -8180,7 +8892,8 @@ function App() {
       dueDate,
       receiverName,
       receiveDate,
-      remark
+      remark,
+      is_shared: !!isDocShared
     });
     const finalSavedNo = saveRes && saveRes.docNo ? saveRes.docNo : docNo;
     setDocNo(finalSavedNo);
@@ -8246,6 +8959,7 @@ function App() {
     setReceiverName(doc.receiverName || doc.receiver_name || '');
     setReceiveDate(doc.receiveDate || doc.receive_date || '');
     setRemark(doc.remark || '');
+    setIsDocShared(doc.is_shared === true);
     setEditingDocId(doc.id || null);
     setIsSavedThisSession(true);
     setActiveTab('doc');
@@ -8283,6 +8997,7 @@ function App() {
     setReceiverName('');
     setReceiveDate('');
     setRemark('');
+    setIsDocShared(false); // 🔒 초기화 시 항상 기본값은 비공개
     setEditingDocId(null);
     setPendingReset(false);
     setPendingTab(null);
@@ -8467,6 +9182,8 @@ function App() {
     dueDate: dueDate, setDueDate: setDueDate,
     receiverName: receiverName, setReceiverName: setReceiverName,
     receiveDate: receiveDate, setReceiveDate: setReceiveDate,
+    isDocShared: isDocShared,
+    setIsDocShared: setIsDocShared,
     remark: remark,
     setRemark: setRemark,
     onResetForm: handleRequestResetForm,
@@ -8491,6 +9208,14 @@ function App() {
     suppliersList: suppliersList,
     onUpdateDocumentPaid: handleUpdateDocumentPaid,
     onDeleteDocument: dbDeleteDocument
+  }), activeTab === 'schedule' && /*#__PURE__*/React.createElement(ScheduleTab, {
+    schedules: schedulesList,
+    documentsList: documentsList,
+    selectedSupplierKey: selectedSupplierKey,
+    suppliersList: suppliersList,
+    onSaveSchedule: handleSaveSchedule,
+    onDeleteSchedule: handleDeleteSchedule,
+    onLoadDocument: handleLoadDocument
   }), activeTab === 'customers' && /*#__PURE__*/React.createElement(CustomerTab, {
     customers: customersList,
     openAddModal: openAddCustomerModal,
