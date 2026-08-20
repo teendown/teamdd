@@ -1002,34 +1002,43 @@
       align-items: center;
     }
 
-    /* 📅 캘린더 모바일/PC 반응형 전용 스타일 */
+    /* 📅 캘린더 모바일/PC 반응형 전용 스타일 (칸 너비 완벽 고정 & 2줄 말줄임) */
     .cal-container {
       padding: 0.5rem;
       max-width: 1440px;
       margin: 0 auto;
+      width: 100%;
     }
     @media (min-width: 768px) {
       .cal-container {
         padding: 0.875rem;
       }
     }
-    .cal-cell {
-      min-height: 52px;
+    .cal-grid-header, .cal-cells-container {
+      display: grid !important;
+      grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+      width: 100% !important;
+      box-sizing: border-box;
+    }
+    .cal-day-cell {
+      min-height: 54px;
+      min-width: 0 !important;
+      max-width: 100% !important;
       background-color: #ffffff;
-      padding: 4px 2px;
+      padding: 4px 3px;
       display: flex;
       flex-direction: column;
-      align-items: center;
       cursor: pointer;
       position: relative;
       user-select: none;
       transition: all 0.15s ease;
+      overflow: hidden !important;
+      box-sizing: border-box;
     }
     @media (min-width: 768px) {
-      .cal-cell {
-        min-height: 115px;
-        padding: 6px;
-        align-items: stretch;
+      .cal-day-cell {
+        min-height: 110px;
+        padding: 6px 4px;
       }
     }
     .cal-dot-container {
@@ -1040,6 +1049,8 @@
       flex-wrap: wrap;
       margin-top: 3px;
       max-width: 100%;
+      min-width: 0;
+      overflow: hidden;
     }
     @media (min-width: 768px) {
       .cal-dot-container {
@@ -1048,6 +1059,10 @@
     }
     .cal-desktop-badges {
       display: none !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+      overflow: hidden !important;
     }
     @media (min-width: 768px) {
       .cal-desktop-badges {
@@ -1056,19 +1071,39 @@
         gap: 3px;
         flex: 1;
         overflow-y: hidden;
+        min-width: 0 !important;
+        max-width: 100% !important;
       }
+    }
+    /* 🌟 달력 뱃지: 2줄까지 자동 줄바꿈, 2줄 초과 시 말줄임표(...)로 뒤는 감춤 */
+    .cal-badge-item {
+      display: -webkit-box !important;
+      -webkit-line-clamp: 2 !important;
+      -webkit-box-orient: vertical !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      word-break: break-all !important;
+      white-space: normal !important;
+      line-height: 1.25 !important;
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      padding: 2px 4px !important;
+      border-radius: 4px !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+      cursor: pointer;
+      transition: opacity 0.15s ease;
+    }
+    .cal-badge-item:hover {
+      opacity: 0.85;
     }
     .cal-dot {
-      width: 7px;
-      height: 7px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       flex-shrink: 0;
-    }
-    @media (max-width: 400px) {
-      .cal-dot {
-        width: 6px;
-        height: 6px;
-      }
     }
 </style>
 </head>
@@ -5229,17 +5264,10 @@ function ScheduleTab({
 
                 return React.createElement("div", {
                   key: ev.id + '_' + eIdx,
+                  className: "cal-badge-item",
                   style: {
-                    fontSize: '11px',
-                    fontWeight: '700',
-                    padding: '2px 4px',
-                    borderRadius: '4px',
                     backgroundColor: badgeBg,
-                    color: badgeColor,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    lineHeight: '1.2'
+                    color: badgeColor
                   },
                   title: (ev.periodInfo ? `[${ev.periodInfo}] ` : '') + ev.title,
                   onClick: (e) => { e.stopPropagation(); handleOpenEditEvent(ev); }
