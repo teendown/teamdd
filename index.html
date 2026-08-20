@@ -1806,16 +1806,18 @@ function getCustomerNumericCode(customer, customersList = []) {
   return '0000';
 }
 
-// 🌟 체계적 숫자 문서번호 생성: 날짜(8자리)-문서종류(2자리)-공급자(2자리)-거래처(4자리)-일일순번(2자리, 종류별/매일 독립 리셋)
+// 🌟 체계적 숫자 문서번호 생성: [날짜(8자리)문서종류(2자리)]-[공급자(2자리)]-[거래처(4자리)]-[일일순번(2자리, 종류별/매일 독립 리셋)]
 function generateNextDocNo(targetDate, docList = [], supplierKey = 'sejin', customer = null, docType = '거래명세서', suppliersList = [], customersList = []) {
   const d = targetDate ? new Date(targetDate) : new Date();
   const dateStr = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
-  const typeCode = getDocTypeNumericCode(docType);
+  const typeCode = getDocTypeNumericCode(docType); // 거래명세서: 01, 견적서: 02, 청구서: 03
+  const dateTypeBlock = `${dateStr}${typeCode}`; // 🌟 날짜 뒤에 문서종류 번호 결합 (예: 2026082101)
   const suppCode = getSupplierNumericCode(supplierKey, suppliersList);
   const custCode = getCustomerNumericCode(customer, customersList);
 
   // 당일 + 해당 문서종류 + 해당 공급자 기준 최대 일일 순번 계산 (문서 종류별 각각 01부터 독립 관리)
   let maxSeq = 0;
+  const prefixMain = `${dateTypeBlock}-${suppCode}-`;
   const prefix5Part = `${dateStr}-${typeCode}-${suppCode}-`;
   const prefix4Part = `${dateStr}-${suppCode}-`;
 
@@ -1824,15 +1826,23 @@ function generateNextDocNo(targetDate, docList = [], supplierKey = 'sejin', cust
     const cleanNo = String(doc.doc_no).trim();
     const docItemType = doc.doc_type || doc.docType || '거래명세서';
 
-    // 1) 5단 구조 (날짜-문서종류-공급자-거래처-순번) 매칭
-    if (cleanNo.startsWith(prefix5Part)) {
+    // 1) 날짜뒤 문서종류 결합형 ([YYYYMMDD01]-[공급자]-[거래처]-[순번])
+    if (cleanNo.startsWith(prefixMain)) {
+      const parts = cleanNo.split('-');
+      if (parts.length >= 4) {
+        const seq = parseInt(parts[3], 10);
+        if (!isNaN(seq) && seq > maxSeq) maxSeq = seq;
+      }
+    }
+    // 2) 5단 분리형 ([YYYYMMDD]-[01]-[공급자]-[거래처]-[순번])
+    else if (cleanNo.startsWith(prefix5Part)) {
       const parts = cleanNo.split('-');
       if (parts.length >= 5) {
         const seq = parseInt(parts[4], 10);
         if (!isNaN(seq) && seq > maxSeq) maxSeq = seq;
       }
     } 
-    // 2) 4단 구조 및 구버전 호환 (같은 문서 종류인 경우만)
+    // 3) 구버전 호환 (같은 문서 종류인 경우만)
     else if (docItemType === docType) {
       if (cleanNo.startsWith(prefix4Part)) {
         const parts = cleanNo.split('-');
@@ -1851,7 +1861,7 @@ function generateNextDocNo(targetDate, docList = [], supplierKey = 'sejin', cust
   });
 
   const nextSeq = String(maxSeq + 1).padStart(2, '0');
-  return `${dateStr}-${typeCode}-${suppCode}-${custCode}-${nextSeq}`;
+  return `${dateTypeBlock}-${suppCode}-${custCode}-${nextSeq}`;
 }
 
 // 과거 중복 문서번호 자동 정리 및 고유 순번 재부여 (1회성 마이그레이션)
