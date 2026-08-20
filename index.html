@@ -1765,27 +1765,69 @@ async function dbDelete(table, rowId, currentList = []) {
   return updated;
 }
 
-// 스마트 고유 순번 채번 함수 (YYYYMMDD-001, -002 ...)
-function generateNextDocNo(targetDate, docList = []) {
+// 공급자 고유 2자리 숫자 코드 추출 (세진: 01, 디에스: 02, 대성: 03 ...)
+function getSupplierNumericCode(supplierKey, suppliersList = []) {
+  if (!supplierKey) return '01';
+  const cleanKey = String(supplierKey).toLowerCase().trim();
+  if (cleanKey === 'sejin' || cleanKey.includes('세진')) return '01';
+  if (cleanKey === 'ds' || cleanKey.includes('디에스')) return '02';
+  if (cleanKey === 'daeseong' || cleanKey.includes('대성')) return '03';
+  
+  const idx = (suppliersList || []).findIndex(s => areSupplierKeysEquivalent(s.id, supplierKey) || s.code === supplierKey);
+  if (idx >= 0) return String(idx + 1).padStart(2, '0');
+  return '01';
+}
+
+// 거래처 4자리 숫자 코드 추출 (C0001 -> 0001, 미지정 시 0000)
+function getCustomerNumericCode(customer, customersList = []) {
+  if (!customer) return '0000';
+  let rawCode = customer.code || '';
+  if (!rawCode && customer.name && Array.isArray(customersList)) {
+    const found = customersList.find(c => c.name === customer.name || c.id === customer.id);
+    if (found) rawCode = found.code || '';
+  }
+  const numsOnly = String(rawCode).replace(/[^0-9]/g, '');
+  if (numsOnly) return numsOnly.slice(-4).padStart(4, '0');
+  
+  if (customer.id) {
+    const idNums = String(customer.id).replace(/[^0-9]/g, '');
+    if (idNums) return idNums.slice(-4).padStart(4, '0');
+  }
+  return '0000';
+}
+
+// 🌟 체계적 숫자 문서번호 생성: 날짜(8자리)-공급자(2자리)-거래처(4자리)-일일순번(2자리, 매일 리셋)
+function generateNextDocNo(targetDate, docList = [], supplierKey = 'sejin', customer = null, suppliersList = [], customersList = []) {
   const d = targetDate ? new Date(targetDate) : new Date();
   const dateStr = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
-  
+  const suppCode = getSupplierNumericCode(supplierKey, suppliersList);
+  const custCode = getCustomerNumericCode(customer, customersList);
+
+  // 당일 + 해당 공급자 기준 최대 일일 순번 계산 (자정 지나면 01로 자동 리셋)
   let maxSeq = 0;
+  const prefix = `${dateStr}-${suppCode}-`;
+
   (docList || []).forEach(doc => {
-    if (!doc || !doc.doc_no) return;
+    if (!doc || !doc.doc_no || doc.is_deleted) return;
     const cleanNo = String(doc.doc_no).trim();
-    if (cleanNo.startsWith(dateStr)) {
+    if (cleanNo.startsWith(prefix)) {
       const parts = cleanNo.split('-');
-      if (parts.length >= 2) {
+      if (parts.length >= 4) {
+        const seq = parseInt(parts[3], 10);
+        if (!isNaN(seq) && seq > maxSeq) maxSeq = seq;
+      }
+    } else if (cleanNo.startsWith(dateStr)) {
+      // 구버전 포맷 (YYYYMMDD-001) 호환
+      const parts = cleanNo.split('-');
+      if (parts.length === 2) {
         const seq = parseInt(parts[1], 10);
-        if (!isNaN(seq) && seq > maxSeq) {
-          maxSeq = seq;
-        }
+        if (!isNaN(seq) && seq > maxSeq) maxSeq = seq;
       }
     }
   });
 
-  return `${dateStr}-${String(maxSeq + 1).padStart(3, '0')}`;
+  const nextSeq = String(maxSeq + 1).padStart(2, '0');
+  return `${dateStr}-${suppCode}-${custCode}-${nextSeq}`;
 }
 
 // 과거 중복 문서번호 자동 정리 및 고유 순번 재부여 (1회성 마이그레이션)
@@ -1886,7 +1928,7 @@ async function dbSaveDocument(docData) {
   if (!isEditing) {
     const isDuplicate = local.some(d => d.doc_no === finalDocNo && !d.is_deleted);
     if (!finalDocNo || isDuplicate) {
-      finalDocNo = generateNextDocNo(docData.docDate, local);
+      finalDocNo = generateNextDocNo(docData.docDate, local, docData.supplierKey || selectedSupplierKey, docData.customer);
     }
   }
 
@@ -8732,14 +8774,17 @@ function App() {
     addr: ''
   });
   const [partsList, setPartsList] = useState(() => getLocalItem('dd_parts_list_v1', DEMO_PARTS));
-  const [docType, setDocType] = useState('\uAC70\uB798\uBA85\uC138\uC11C');
-  const [docNo, setDocNo] = useState(function() {
-    var now = new Date();
-    return '' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '-001';
-  });
+  const [docType, setDocType] = useState('거래명세서');
   const [docDate, setDocDate] = useState(function() {
     var now = new Date();
     return now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+  });
+  const [docNo, setDocNo] = useState(function() {
+    var now = new Date();
+    var todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+    var localDocs = getLocalItem('dd_documents_history_v1', []);
+    var suppKey = sessionStorage.getItem('selected_supplier_key') || localStorage.getItem('selected_supplier_key') || 'sejin';
+    return generateNextDocNo(todayStr, localDocs, suppKey, null);
   });
   const [docTime, setDocTime] = useState(function() {
     var now = new Date();
@@ -8813,10 +8858,12 @@ function App() {
       setEditingDocId(draft.editingDocId);
     } else {
       var now = new Date();
-      setCustomer({name: '', person: '', phone: '', addr: ''});
-      setDocNo('' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '-001');
-      setDocDate(now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0'));
+      var todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+      var emptyCust = { name: '', person: '', phone: '', addr: '' };
+      setCustomer(emptyCust);
+      setDocDate(todayStr);
       setDocTime(String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0'));
+      setDocNo(generateNextDocNo(todayStr, documentsList, selectedSupplierKey, emptyCust, suppliersList, customersList));
       setItems([{ id: Date.now().toString(), code: '', name: '', unit: 'EA', qty: 1, price: 0 }]);
       setVatIncluded(true);
       setVat(0);
@@ -8873,10 +8920,11 @@ function App() {
       setVat(doc.vat || 0);
       setPaid(0);
       setPaymentStatus('미수금');
-      // 오늘 날짜 및 신규 명세서 번호 채번
+      // 오늘 날짜 및 체계적 신규 명세서 번호 채번
       const now = new Date();
-      setDocNo('' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '-001');
-      setDocDate(now.toISOString().split('T')[0]);
+      const todayStr = now.toISOString().split('T')[0];
+      setDocNo(generateNextDocNo(todayStr, documentsList, selectedSupplierKey, custData, suppliersList, customersList));
+      setDocDate(todayStr);
       setDocTime(String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0'));
       setRemark(doc.remark || '');
       setEditingDocId(null);
@@ -8914,8 +8962,9 @@ function App() {
       setPaymentStatus('미수금');
       // 신규 거래명세서 번호 채번
       const now = new Date();
-      setDocNo('' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '-001');
-      setDocDate(now.toISOString().split('T')[0]);
+      const todayStr = now.toISOString().split('T')[0];
+      setDocNo(generateNextDocNo(todayStr, documentsList, selectedSupplierKey, custData, suppliersList, customersList));
+      setDocDate(todayStr);
       setDocTime(String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0'));
       setRemark(doc.remark ? `${doc.remark} (견적서 ${doc.doc_no} 기반)` : `(견적서 ${doc.doc_no} 기반)`);
       setEditingDocId(null);
@@ -8939,6 +8988,13 @@ function App() {
   useEffect(() => {
     setIsSavedThisSession(false);
   }, [customer, items, docType, docNo, docDate, remark, vatIncluded]);
+
+  // 🌟 신규 작성 중일 때 거래처/공급자/작성일자 변경 시 체계적 문서번호 자동 갱신
+  useEffect(() => {
+    if (!editingDocId) {
+      setDocNo(generateNextDocNo(docDate, documentsList, selectedSupplierKey, customer, suppliersList, customersList));
+    }
+  }, [customer?.name, customer?.code, customer?.id, docDate, selectedSupplierKey, editingDocId, documentsList.length]);
 
   // 브라우저 탭/창 닫기 방지 (beforeunload)
   useEffect(() => {
@@ -9214,7 +9270,7 @@ function App() {
     const todayStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
     setDocDate(todayStr);
     setDocTime(String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'));
-    const nextNo = generateNextDocNo(todayStr, documentsList);
+    const nextNo = generateNextDocNo(todayStr, documentsList, doc.supplier_key || selectedSupplierKey, doc.customer_data, suppliersList, customersList);
     setDocNo(nextNo);
   };
 
@@ -9226,7 +9282,7 @@ function App() {
     const todayStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
     setDocDate(todayStr);
     setDocTime(String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'));
-    const nextNo = generateNextDocNo(todayStr, documentsList);
+    const nextNo = generateNextDocNo(todayStr, documentsList, doc.supplier_key || selectedSupplierKey, doc.customer_data, suppliersList, customersList);
     setDocNo(nextNo);
     setActiveTab('doc');
   };
@@ -9267,15 +9323,12 @@ function App() {
   };
   const handleResetForm = () => {
     const now = new Date();
-    setDocNo(`${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(Math.floor(Math.random() * 100)).padStart(3, '0')}`);
-    setDocDate(now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0'));
+    const todayDateStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+    const emptyCust = { name: '', person: '', phone: '', addr: '' };
+    setDocDate(todayDateStr);
     setDocTime(String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0'));
-    setCustomer({
-      name: '',
-      person: '',
-      phone: '',
-      addr: ''
-    });
+    setCustomer(emptyCust);
+    setDocNo(generateNextDocNo(todayDateStr, documentsList, selectedSupplierKey, emptyCust, suppliersList, customersList));
     setItems([{
       id: Date.now().toString(),
       code: '',
