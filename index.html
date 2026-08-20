@@ -1402,12 +1402,15 @@ const setLocalItem = (key, value) => {
 };
 
 // ── Supabase Client ────────────────────────────────────────────────────────
+const DEFAULT_SUPABASE_URL = 'https://wmrfwrsaacolkpjyrffy.supabase.co';
+const DEFAULT_SUPABASE_KEY = 'sb_publishable_nWgVPKLg5hHZqvCrOL9oUQ_GfuAGe9Y';
+
 let _sbClient = null;
 let _sbUrl = '';
 let _sbKey = '';
 function getSupabaseClient() {
-  const url = (localStorage.getItem('supabase_url') || '').trim();
-  const key = (localStorage.getItem('supabase_anon_key') || '').trim();
+  const url = (localStorage.getItem('supabase_url') || DEFAULT_SUPABASE_URL).trim();
+  const key = (localStorage.getItem('supabase_anon_key') || DEFAULT_SUPABASE_KEY).trim();
   if (!url || !key) return null;
   if (_sbClient && url === _sbUrl && key === _sbKey) return _sbClient;
   try {
@@ -9203,26 +9206,25 @@ function App() {
     }
   }, [isLoggedIn, selectedSupplierKey, handleReloadDocuments]);
 
-  // 초기 자동 연결 시도
+  // 초기 자동 연결 시도 및 전체 데이터 로드
   useEffect(() => {
-    if (supabaseUrl && supabaseKey) handleTestConnection();
+    handleTestConnection();
+    dbFetch('customers', DEMO_CUSTOMERS).then(setCustomersList);
+    dbFetch('suppliers', INITIAL_SUPPLIERS_LIST).then(d => { if (d.length > 0) setSuppliersList(d); });
+    dbFetch('parts', DEMO_PARTS).then(setPartsList);
+    dbFetch('schedules', DEMO_SCHEDULES).then(setSchedulesList);
   }, []);
 
-  // 탭 전환 시 데이터 새로고침
+  // 탭 전환 시 최신 데이터 새로고침
   useEffect(() => {
     if (activeTab === 'accounting' || activeTab === 'doc' || activeTab === 'schedule') {
       handleReloadDocuments();
     }
-    if (!isConnected) return;
-    if (activeTab === 'customers') dbFetch('customers', DEMO_CUSTOMERS).then(setCustomersList);
-    else if (activeTab === 'suppliers') dbFetch('suppliers', INITIAL_SUPPLIERS_LIST).then(d => {
-      if (d.length > 0) setSuppliersList(d);
-    });
-    else if (activeTab === 'parts') dbFetch('parts', DEMO_PARTS).then(d => {
-      if (d.length > 0) setPartsList(d);
-    });
-    else if (activeTab === 'schedule') dbFetch('schedules', DEMO_SCHEDULES).then(setSchedulesList);
-  }, [activeTab, isConnected, handleReloadDocuments]);
+    if (activeTab === 'schedule') dbFetch('schedules', DEMO_SCHEDULES).then(setSchedulesList);
+    else if (activeTab === 'customers') dbFetch('customers', DEMO_CUSTOMERS).then(setCustomersList);
+    else if (activeTab === 'suppliers') dbFetch('suppliers', INITIAL_SUPPLIERS_LIST).then(d => { if (d.length > 0) setSuppliersList(d); });
+    else if (activeTab === 'parts') dbFetch('parts', DEMO_PARTS).then(d => { if (d.length > 0) setPartsList(d); });
+  }, [activeTab, handleReloadDocuments]);
 
   // 일정 (스마트 캘린더) CRUD
   const handleSaveSchedule = async (sch, isEdit) => {
