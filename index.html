@@ -863,6 +863,75 @@
       display: flex;
       align-items: center;
     }
+
+    /* 📅 캘린더 모바일/PC 반응형 전용 스타일 */
+    .cal-container {
+      padding: 0.5rem;
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+    @media (min-width: 768px) {
+      .cal-container {
+        padding: 0.875rem;
+      }
+    }
+    .cal-cell {
+      min-height: 52px;
+      background-color: #ffffff;
+      padding: 4px 2px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      position: relative;
+      user-select: none;
+      transition: all 0.15s ease;
+    }
+    @media (min-width: 768px) {
+      .cal-cell {
+        min-height: 115px;
+        padding: 6px;
+        align-items: stretch;
+      }
+    }
+    .cal-dot-container {
+      display: flex;
+      gap: 3px;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 3px;
+      max-width: 100%;
+    }
+    @media (min-width: 768px) {
+      .cal-dot-container {
+        display: none !important;
+      }
+    }
+    .cal-desktop-badges {
+      display: none !important;
+    }
+    @media (min-width: 768px) {
+      .cal-desktop-badges {
+        display: flex !important;
+        flex-direction: column;
+        gap: 3px;
+        flex: 1;
+        overflow-y: hidden;
+      }
+    }
+    .cal-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    @media (max-width: 400px) {
+      .cal-dot {
+        width: 6px;
+        height: 6px;
+      }
+    }
 </style>
 </head>
 <body>
@@ -4660,13 +4729,13 @@ function ScheduleTab({
   const useState = React.useState;
   const useMemo = React.useMemo;
   const currentDate = new Date();
+  const todayStr = currentDate.toISOString().split('T')[0];
 
   const [currentYear, setCurrentYear] = useState(currentDate.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(currentDate.getMonth() + 1);
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(todayStr); // 🌟 기본 선택을 오늘 날짜로 지정하여 하단에 바로 표시
   const [showEventModal, setShowEventModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
-  const [showDayDetailModal, setShowDayDetailModal] = useState(false);
 
   // 🔒 보안/공개 범위 필터: 기본은 'all'
   const [privacyFilter, setPrivacyFilter] = useState('all');
@@ -4681,7 +4750,7 @@ function ScheduleTab({
   // 🔒 일정 등록 폼: 기본값은 비공개(is_shared: false)
   const [form, setForm] = useState({
     title: '',
-    event_date: currentDate.toISOString().split('T')[0],
+    event_date: todayStr,
     event_time: '10:00',
     category: 'repair',
     customer_name: '',
@@ -4710,7 +4779,7 @@ function ScheduleTab({
     const now = new Date();
     setCurrentYear(now.getFullYear());
     setCurrentMonth(now.getMonth() + 1);
-    setSelectedDate(now.toISOString().split('T')[0]);
+    setSelectedDate(todayStr);
   };
 
   // 1. 보안 필터링 적용된 등록 일정 목록
@@ -4718,7 +4787,6 @@ function ScheduleTab({
     return (schedules || []).filter(item => {
       const isMine = areSupplierKeysEquivalent(item.supplier_key, selectedSupplierKey);
       const isPublic = item.is_shared === true;
-      // 🔒 핵심 보안: 내 공급자가 아니면서 비공개인 타사 데이터는 원천 차단
       if (!isMine && !isPublic) return false;
 
       if (privacyFilter === 'private' && (!isMine || isPublic)) return false;
@@ -4746,14 +4814,12 @@ function ScheduleTab({
       if (doc.is_deleted) return;
       const isMine = areSupplierKeysEquivalent(doc.supplier_key, selectedSupplierKey);
       const isDocPublic = doc.is_shared === true;
-      // 🔒 타사 문서는 오직 작성자가 공개로 열어둔 것만 노출
       if (!isMine && !isDocPublic) return;
 
       const custName = doc.customer_name || doc.customer_data?.name || '고객';
       const machine = doc.customer_data?.selectedMachine || '';
       const itemsSum = (doc.items || []).map(i => i.name).filter(Boolean).join(', ');
 
-      // A. 거래명세서 / 청구서 정비 발행일
       if (categoryFilter.repair_doc && doc.doc_date && (doc.doc_type === '거래명세서' || doc.doc_type === '청구서')) {
         events.push({
           id: 'doc_repair_' + doc.id,
@@ -4770,7 +4836,6 @@ function ScheduleTab({
         });
       }
 
-      // B. 결제 예정일 / 수금일
       if (categoryFilter.payment && doc.payment_date && doc.doc_type !== '견적서') {
         const balance = (Number(doc.total_amount || 0) || (doc.items || []).reduce((s, i) => s + (i.qty * i.price), 0)) - (Number(doc.paid) || 0);
         const isPaidComplete = doc.payment_status === '입금완료' || balance <= 0;
@@ -4789,7 +4854,6 @@ function ScheduleTab({
         });
       }
 
-      // C. 견적서 발행일
       if (categoryFilter.estimate && doc.doc_date && doc.doc_type === '견적서') {
         events.push({
           id: 'doc_estimate_' + doc.id,
@@ -4809,7 +4873,6 @@ function ScheduleTab({
     return events;
   }, [documentsList, selectedSupplierKey, categoryFilter]);
 
-  // 날짜별 그룹핑
   const eventsByDate = useMemo(() => {
     const map = {};
     filteredSchedules.forEach(sch => {
@@ -4828,7 +4891,7 @@ function ScheduleTab({
   }, [filteredSchedules, documentEvents]);
 
   const handleOpenAddEvent = (dateStr = null) => {
-    const targetDate = dateStr || selectedDate || `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
+    const targetDate = dateStr || selectedDate || todayStr;
     setForm({
       id: null,
       title: '',
@@ -4897,7 +4960,6 @@ function ScheduleTab({
       await onDeleteSchedule(id);
     }
     setShowEventModal(false);
-    setShowDayDetailModal(false);
   };
 
   // 달력 셀 계산
@@ -4925,74 +4987,72 @@ function ScheduleTab({
     return cells;
   }, [currentYear, currentMonth, firstDayOfMonth, daysInMonth, prevMonthDays, eventsByDate]);
 
-  const todayStr = currentDate.toISOString().split('T')[0];
-
-  return React.createElement("div", { className: "management-container", style: { padding: '0.75rem', maxWidth: '1440px', margin: '0 auto' } },
+  return React.createElement("div", { className: "cal-container" },
     /* Header Toolbar */
-    React.createElement("div", { className: "card-box", style: { marginBottom: '0.75rem', padding: '0.875rem' } },
-      React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' } },
-        React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '0.5rem' } },
-          React.createElement("h2", { style: { fontSize: '1.25rem', fontWeight: '900', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 } },
+    React.createElement("div", { className: "card-box", style: { marginBottom: '0.5rem', padding: '0.625rem 0.75rem' } },
+      React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' } },
+        React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '0.375rem' } },
+          React.createElement("h2", { style: { fontSize: '1.125rem', fontWeight: '900', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px', margin: 0 } },
             React.createElement("span", null, "📅"),
             ` ${currentYear}년 ${currentMonth}월`
           ),
-          React.createElement("div", { style: { display: 'flex', gap: '4px' } },
-            React.createElement("button", { type: "button", className: "btn btn-outline", style: { padding: '4px 10px', fontSize: '12px' }, onClick: handlePrevMonth }, "◀ 이전달"),
-            React.createElement("button", { type: "button", className: "btn btn-outline", style: { padding: '4px 10px', fontSize: '12px', fontWeight: '700' }, onClick: handleToday }, "오늘"),
-            React.createElement("button", { type: "button", className: "btn btn-outline", style: { padding: '4px 10px', fontSize: '12px' }, onClick: handleNextMonth }, "다음달 ▶")
+          React.createElement("div", { style: { display: 'flex', gap: '3px' } },
+            React.createElement("button", { type: "button", className: "btn btn-outline", style: { padding: '3px 7px', fontSize: '11px', minHeight: '28px' }, onClick: handlePrevMonth }, "◀"),
+            React.createElement("button", { type: "button", className: "btn btn-outline", style: { padding: '3px 8px', fontSize: '11px', fontWeight: '700', minHeight: '28px' }, onClick: handleToday }, "오늘"),
+            React.createElement("button", { type: "button", className: "btn btn-outline", style: { padding: '3px 7px', fontSize: '11px', minHeight: '28px' }, onClick: handleNextMonth }, "▶")
           )
         ),
         React.createElement("button", {
           type: "button",
           className: "btn btn-primary",
-          style: { padding: '8px 16px', fontSize: '0.875rem', fontWeight: '800', backgroundColor: '#1E6091', borderColor: '#1E6091', display: 'flex', alignItems: 'center', gap: '6px' },
+          style: { padding: '6px 12px', fontSize: '0.8125rem', fontWeight: '800', backgroundColor: '#1E6091', borderColor: '#1E6091', minHeight: '32px' },
           onClick: () => handleOpenAddEvent()
-        }, "➕ 새 일정 등록 (비공개/공개 선택)")
+        }, "➕ 새 일정 등록")
       ),
 
       /* Filters Bar */
       React.createElement("div", {
-        style: { marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', fontSize: '0.75rem' }
+        style: { marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px', fontSize: '0.75rem' }
       },
-        React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' } },
-          React.createElement("span", { style: { fontWeight: '800', color: '#334155' } }, "🔒 보안/공개 범위:"),
+        React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' } },
+          React.createElement("span", { style: { fontWeight: '800', color: '#334155', marginRight: '2px' } }, "🔒 보안:"),
           React.createElement("button", {
             type: "button",
-            style: { padding: '3px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', cursor: 'pointer', backgroundColor: privacyFilter === 'all' ? '#1e293b' : '#f8fafc', color: privacyFilter === 'all' ? '#fff' : '#475569', fontWeight: privacyFilter === 'all' ? '800' : '500' },
+            style: { padding: '2px 7px', borderRadius: '4px', border: '1px solid #cbd5e1', cursor: 'pointer', backgroundColor: privacyFilter === 'all' ? '#1e293b' : '#f8fafc', color: privacyFilter === 'all' ? '#fff' : '#475569', fontWeight: privacyFilter === 'all' ? '800' : '500' },
             onClick: () => setPrivacyFilter('all')
-          }, "전체 보기"),
+          }, "전체"),
           React.createElement("button", {
             type: "button",
-            style: { padding: '3px 8px', borderRadius: '6px', border: '1px solid #fed7aa', cursor: 'pointer', backgroundColor: privacyFilter === 'private' ? '#ea580c' : '#fff7ed', color: privacyFilter === 'private' ? '#fff' : '#c2410c', fontWeight: privacyFilter === 'private' ? '800' : '700' },
+            style: { padding: '2px 7px', borderRadius: '4px', border: '1px solid #fed7aa', cursor: 'pointer', backgroundColor: privacyFilter === 'private' ? '#ea580c' : '#fff7ed', color: privacyFilter === 'private' ? '#fff' : '#c2410c', fontWeight: privacyFilter === 'private' ? '800' : '700' },
             onClick: () => setPrivacyFilter('private')
-          }, "🔒 내 비공개만"),
+          }, "🔒 비공개"),
           React.createElement("button", {
             type: "button",
-            style: { padding: '3px 8px', borderRadius: '6px', border: '1px solid #bbf7d0', cursor: 'pointer', backgroundColor: privacyFilter === 'my_public' ? '#16a34a' : '#f0fdf4', color: privacyFilter === 'my_public' ? '#fff' : '#15803d', fontWeight: privacyFilter === 'my_public' ? '800' : '700' },
+            style: { padding: '2px 7px', borderRadius: '4px', border: '1px solid #bbf7d0', cursor: 'pointer', backgroundColor: privacyFilter === 'my_public' ? '#16a34a' : '#f0fdf4', color: privacyFilter === 'my_public' ? '#fff' : '#15803d', fontWeight: privacyFilter === 'my_public' ? '800' : '700' },
             onClick: () => setPrivacyFilter('my_public')
-          }, "🔓 내 공개만"),
+          }, "🔓 공개"),
           React.createElement("button", {
             type: "button",
-            style: { padding: '3px 8px', borderRadius: '6px', border: '1px solid #bfdbfe', cursor: 'pointer', backgroundColor: privacyFilter === 'others_public' ? '#2563eb' : '#eff6ff', color: privacyFilter === 'others_public' ? '#fff' : '#1d4ed8', fontWeight: privacyFilter === 'others_public' ? '800' : '700' },
+            style: { padding: '2px 7px', borderRadius: '4px', border: '1px solid #bfdbfe', cursor: 'pointer', backgroundColor: privacyFilter === 'others_public' ? '#2563eb' : '#eff6ff', color: privacyFilter === 'others_public' ? '#fff' : '#1d4ed8', fontWeight: privacyFilter === 'others_public' ? '800' : '700' },
             onClick: () => setPrivacyFilter('others_public')
-          }, "🌐 타사 공유만")
+          }, "🌐 공유")
         ),
-        React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' } },
-          React.createElement("label", { style: { display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' } },
+        React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' } },
+          React.createElement("label", { style: { display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer' } },
             React.createElement("input", { type: "checkbox", checked: categoryFilter.schedule, onChange: e => setCategoryFilter({ ...categoryFilter, schedule: e.target.checked }) }),
-            React.createElement("span", null, "📌 등록일정")
+            React.createElement("span", null, "📌 일정")
           ),
-          React.createElement("label", { style: { display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' } },
+          React.createElement("label", { style: { display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer' } },
             React.createElement("input", { type: "checkbox", checked: categoryFilter.repair_doc, onChange: e => setCategoryFilter({ ...categoryFilter, repair_doc: e.target.checked }) }),
-            React.createElement("span", null, "📦 명세서(정비)")
+            React.createElement("span", null, "📦 명세서")
           ),
-          React.createElement("label", { style: { display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' } },
+          React.createElement("label", { style: { display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer' } },
             React.createElement("input", { type: "checkbox", checked: categoryFilter.payment, onChange: e => setCategoryFilter({ ...categoryFilter, payment: e.target.checked }) }),
-            React.createElement("span", null, "💳 결제/수금일")
+            React.createElement("span", null, "💳 결제일")
           ),
-          React.createElement("label", { style: { display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' } },
+          React.createElement("label", { style: { display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer' } },
             React.createElement("input", { type: "checkbox", checked: categoryFilter.estimate, onChange: e => setCategoryFilter({ ...categoryFilter, estimate: e.target.checked }) }),
-            React.createElement("span", null, "📋 견적서")
+            React.createElement("span", null, "📋 견적")
           )
         )
       )
@@ -5002,11 +5062,11 @@ function ScheduleTab({
     React.createElement("div", { className: "card-box", style: { padding: '0', overflow: 'hidden' } },
       /* Day of Week Header */
       React.createElement("div", {
-        style: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'center', fontWeight: '800', fontSize: '0.8125rem' }
+        style: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'center', fontWeight: '800', fontSize: '0.75rem' }
       },
         ['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => React.createElement("div", {
           key: day,
-          style: { padding: '10px 0', color: idx === 0 ? '#ef4444' : (idx === 6 ? '#2563eb' : '#334155'), backgroundColor: idx === 0 ? '#fef2f2' : (idx === 6 ? '#eff6ff' : 'transparent') }
+          style: { padding: '6px 0', color: idx === 0 ? '#ef4444' : (idx === 6 ? '#2563eb' : '#334155'), backgroundColor: idx === 0 ? '#fef2f2' : (idx === 6 ? '#eff6ff' : 'transparent') }
         }, day))
       ),
 
@@ -5021,43 +5081,66 @@ function ScheduleTab({
 
           return React.createElement("div", {
             key: idx,
+            className: "cal-cell",
             style: {
-              minHeight: '115px',
               backgroundColor: cell.isCurrentMonth ? '#ffffff' : '#f8fafc',
-              padding: '6px',
-              display: 'flex',
-              flexDirection: 'column',
-              cursor: 'pointer',
-              position: 'relative',
               outline: isSelected ? '2px solid #1E6091' : (isToday ? '2px solid #3b82f6' : 'none'),
               outlineOffset: '-2px'
             },
             onClick: () => {
               setSelectedDate(cell.dateStr);
-              if (cell.events.length > 0) {
-                setShowDayDetailModal(true);
-              } else {
-                handleOpenAddEvent(cell.dateStr);
-              }
             }
           },
-            React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' } },
+            /* Day Number Header */
+            React.createElement("div", {
+              style: {
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                width: '100%',
+                marginBottom: '1px'
+              }
+            },
               React.createElement("span", {
                 style: {
                   fontSize: '0.8125rem',
                   fontWeight: isToday ? '900' : '700',
-                  color: !cell.isCurrentMonth ? '#94a3b8' : (dayOfWeek === 0 ? '#ef4444' : (dayOfWeek === 6 ? '#2563eb' : '#1e293b')),
+                  color: !cell.isCurrentMonth ? '#cbd5e1' : (dayOfWeek === 0 ? '#ef4444' : (dayOfWeek === 6 ? '#2563eb' : '#1e293b')),
                   backgroundColor: isToday ? '#3b82f6' : 'transparent',
                   color: isToday ? '#ffffff' : undefined,
-                  padding: isToday ? '1px 6px' : '0',
-                  borderRadius: isToday ? '10px' : '0'
+                  padding: isToday ? '1px 5px' : '0',
+                  borderRadius: isToday ? '6px' : '0',
+                  display: 'inline-block'
                 }
               }, cell.dayNumber),
-              cell.events.length > 0 && React.createElement("span", { style: { fontSize: '10px', fontWeight: '800', color: '#64748b' } }, `${cell.events.length}건`)
+              cell.events.length > 0 && React.createElement("span", {
+                style: { fontSize: '9px', fontWeight: '800', color: '#64748b' }
+              }, `${cell.events.length}건`)
             ),
 
-            /* Events List */
-            React.createElement("div", { style: { display: 'flex', flexDirection: 'column', gap: '3px', flex: 1, overflowY: 'hidden' } },
+            /* 📱 [모바일 뷰] 컬러 점(Dot) 인디케이터 (글자 삐져나옴 완벽 해결) */
+            React.createElement("div", { className: "cal-dot-container" },
+              cell.events.slice(0, 4).map((ev, dIdx) => {
+                let dotColor = '#3b82f6';
+                if (ev.type === 'payment') dotColor = '#ef4444';
+                else if (ev.type === 'estimate') dotColor = '#ea580c';
+                else if (ev.is_shared) dotColor = '#10b981';
+                else dotColor = '#f59e0b';
+
+                return React.createElement("span", {
+                  key: dIdx,
+                  className: "cal-dot",
+                  style: { backgroundColor: dotColor },
+                  title: ev.title
+                });
+              }),
+              cell.events.length > 4 && React.createElement("span", {
+                style: { fontSize: '8px', fontWeight: '900', color: '#64748b', lineHeight: 1 }
+              }, "+")
+            ),
+
+            /* 💻 [PC 뷰] 텍스트 풀사이즈 뱃지 */
+            React.createElement("div", { className: "cal-desktop-badges" },
               cell.events.slice(0, 3).map(ev => {
                 const isPrivate = !ev.is_shared;
                 let badgeBg = '#f1f5f9';
@@ -5103,54 +5186,79 @@ function ScheduleTab({
       )
     ),
 
-    /* Day Detail Modal */
-    showDayDetailModal && selectedDate && React.createElement("div", { className: "modal-overlay", style: { zIndex: 1000 } },
-      React.createElement("div", { className: "modal-content", style: { maxWidth: '520px', maxHeight: '85vh', overflowY: 'auto' } },
-        React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' } },
-          React.createElement("h3", { style: { margin: 0, fontWeight: '900', fontSize: '1.125rem' } }, `📅 ${selectedDate} 일정 내역 (${eventsByDate[selectedDate]?.length || 0}건)`),
-          React.createElement("button", { type: "button", style: { background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#94a3b8' }, onClick: () => setShowDayDetailModal(false) }, "✕")
+    /* 📅 [상시 상세 패널] 선택된 날짜 상세 일정 및 연동 문서 (모바일/PC 공용) */
+    React.createElement("div", { className: "card-box", style: { marginTop: '0.75rem', padding: '0.875rem' } },
+      React.createElement("div", {
+        style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', flexWrap: 'wrap', gap: '6px' }
+      },
+        React.createElement("h3", { style: { margin: 0, fontWeight: '900', fontSize: '0.9375rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' } },
+          React.createElement("span", null, "📅"),
+          `${selectedDate || todayStr} 일정 내역 (${(eventsByDate[selectedDate] || []).length}건)`
         ),
-        React.createElement("div", { style: { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '1.25rem' } },
+        React.createElement("button", {
+          type: "button",
+          className: "btn btn-primary",
+          style: { fontSize: '0.75rem', padding: '5px 12px', minHeight: '30px', backgroundColor: '#1E6091', borderColor: '#1E6091', fontWeight: '800' },
+          onClick: () => handleOpenAddEvent(selectedDate)
+        }, "➕ 이 날짜에 일정 추가")
+      ),
+
+      (eventsByDate[selectedDate] || []).length === 0 ? (
+        React.createElement("div", { style: { textAlign: 'center', padding: '1.25rem', color: '#94a3b8', fontSize: '0.8125rem' } },
+          "선택한 날짜에 등록된 일정이나 연동 문서가 없습니다. (상단 + 버튼을 눌러 새 일정을 등록해보세요)"
+        )
+      ) : (
+        React.createElement("div", { style: { display: 'flex', flexDirection: 'column', gap: '8px' } },
           (eventsByDate[selectedDate] || []).map(ev => {
             const isPrivate = !ev.is_shared;
             return React.createElement("div", {
               key: ev.id,
-              style: { padding: '10px 12px', borderRadius: '8px', backgroundColor: isPrivate ? '#fffbeb' : '#f0fdf4', border: `1px solid ${isPrivate ? '#fde68a' : '#bbf7d0'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }
+              style: {
+                padding: '10px 12px',
+                borderRadius: '8px',
+                backgroundColor: isPrivate ? '#fffbeb' : '#f0fdf4',
+                border: `1px solid ${isPrivate ? '#fde68a' : '#bbf7d0'}`,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '8px'
+              }
             },
-              React.createElement("div", null,
-                React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' } },
-                  React.createElement("span", { style: { fontSize: '10px', fontWeight: '800', padding: '1px 5px', borderRadius: '4px', backgroundColor: isPrivate ? '#fef3c7' : '#dcfce7', color: isPrivate ? '#92400e' : '#15803d' } }, isPrivate ? '🔒 비공개(나만보기)' : '🔓 공개(전체공유)'),
+              React.createElement("div", { style: { flex: 1, minWidth: '180px' } },
+                React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' } },
+                  React.createElement("span", {
+                    style: {
+                      fontSize: '10px',
+                      fontWeight: '800',
+                      padding: '1px 6px',
+                      borderRadius: '4px',
+                      backgroundColor: isPrivate ? '#fef3c7' : '#dcfce7',
+                      color: isPrivate ? '#92400e' : '#15803d'
+                    }
+                  }, isPrivate ? '🔒 비공개' : '🔓 공개'),
                   React.createElement("span", { style: { fontWeight: '800', fontSize: '0.875rem', color: '#1e293b' } }, ev.title)
                 ),
                 ev.event_time && React.createElement("div", { style: { fontSize: '11px', color: '#64748b' } }, `⏰ 시간: ${ev.event_time}`),
                 ev.customer_name && React.createElement("div", { style: { fontSize: '11px', color: '#475569' } }, `🏢 거래처: ${ev.customer_name} (${ev.customer_phone || '-'})`),
                 ev.machine_info && React.createElement("div", { style: { fontSize: '11px', color: '#1d4ed8' } }, `🚜 기종: ${ev.machine_info}`),
-                ev.memo && React.createElement("div", { style: { fontSize: '11px', color: '#64748b', marginTop: '4px' } }, `📝 메모: ${ev.memo}`)
+                ev.memo && React.createElement("div", { style: { fontSize: '11px', color: '#64748b', marginTop: '2px' } }, `📝 메모: ${ev.memo}`)
               ),
-              React.createElement("div", { style: { display: 'flex', gap: '6px' } },
+              React.createElement("div", { style: { display: 'flex', gap: '4px' } },
                 ev.isDocEvent ? React.createElement("button", {
                   type: "button",
                   className: "btn btn-outline",
-                  style: { fontSize: '11px', padding: '4px 8px' },
-                  onClick: () => { setShowDayDetailModal(false); onLoadDocument && onLoadDocument(ev.rawDoc); }
+                  style: { fontSize: '11px', padding: '4px 8px', minHeight: '30px' },
+                  onClick: () => { onLoadDocument && onLoadDocument(ev.rawDoc); }
                 }, "문서 열기") : React.createElement("button", {
                   type: "button",
                   className: "btn btn-primary",
-                  style: { fontSize: '11px', padding: '4px 8px', backgroundColor: '#1E6091', borderColor: '#1E6091' },
-                  onClick: () => { setShowDayDetailModal(false); handleOpenEditEvent(ev); }
+                  style: { fontSize: '11px', padding: '4px 8px', minHeight: '30px', backgroundColor: '#1E6091', borderColor: '#1E6091' },
+                  onClick: () => handleOpenEditEvent(ev)
                 }, "수정")
               )
             );
           })
-        ),
-        React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', gap: '8px' } },
-          React.createElement("button", {
-            type: "button",
-            className: "btn btn-primary",
-            style: { flex: 1, backgroundColor: '#1E6091', borderColor: '#1E6091', padding: '8px 12px', fontSize: '0.8125rem' },
-            onClick: () => { setShowDayDetailModal(false); handleOpenAddEvent(selectedDate); }
-          }, "➕ 이 날짜에 새 일정 추가"),
-          React.createElement("button", { type: "button", className: "btn btn-outline", style: { padding: '8px 16px', fontSize: '0.8125rem' }, onClick: () => setShowDayDetailModal(false) }, "닫기")
         )
       )
     ),
