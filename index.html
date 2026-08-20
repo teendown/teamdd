@@ -1988,6 +1988,82 @@ async function deduplicateAndResequenceDocNumbers(docList = []) {
   return updatedList;
 }
 
+// ── 임시보관함(Drafts) & 자동 만료(TTL: 3일) 매니저 ─────────────────────────
+const DRAFT_TTL_DAYS = 3; // 3일 후 자동 만료
+
+function getDraftDocuments() {
+  try {
+    const raw = localStorage.getItem('dd_draft_documents_v1');
+    if (!raw) return [];
+    const list = JSON.parse(raw);
+    if (!Array.isArray(list)) return [];
+    
+    // 만료(3일 경과) 데이터 자동 필터링 및 청소
+    const now = Date.now();
+    const validDrafts = list.filter(item => {
+      if (!item || !item.saved_at) return false;
+      const expireTime = item.expires_at || (item.saved_at + (DRAFT_TTL_DAYS * 24 * 60 * 60 * 1000));
+      return now < expireTime;
+    });
+
+    if (validDrafts.length !== list.length) {
+      localStorage.setItem('dd_draft_documents_v1', JSON.stringify(validDrafts));
+    }
+    return validDrafts;
+  } catch (e) {
+    console.error('Error loading drafts:', e);
+    return [];
+  }
+}
+
+function saveDraftDocument(draftState) {
+  try {
+    const validDrafts = getDraftDocuments();
+    const now = Date.now();
+    const expiresAt = now + (DRAFT_TTL_DAYS * 24 * 60 * 60 * 1000);
+    
+    const draftItem = {
+      ...draftState,
+      draft_id: draftState.draft_id || `draft_${now}_${Math.random().toString(36).slice(2, 6)}`,
+      saved_at: now,
+      expires_at: expiresAt
+    };
+
+    // 기존 draft_id가 있으면 업데이트, 없으면 맨 앞에 추가
+    const existingIdx = validDrafts.findIndex(d => d.draft_id === draftItem.draft_id);
+    let updated;
+    if (existingIdx >= 0) {
+      validDrafts[existingIdx] = draftItem;
+      updated = [...validDrafts];
+    } else {
+      updated = [draftItem, ...validDrafts];
+    }
+
+    localStorage.setItem('dd_draft_documents_v1', JSON.stringify(updated));
+    return { ok: true, draft: draftItem, list: updated };
+  } catch (e) {
+    console.error('Error saving draft:', e);
+    return { ok: false, error: e };
+  }
+}
+
+function deleteDraftDocument(draftId) {
+  try {
+    const validDrafts = getDraftDocuments();
+    const updated = validDrafts.filter(d => d.draft_id !== draftId);
+    localStorage.setItem('dd_draft_documents_v1', JSON.stringify(updated));
+    return updated;
+  } catch (e) {
+    console.error('Error deleting draft:', e);
+    return getDraftDocuments();
+  }
+}
+
+function clearAllDrafts() {
+  localStorage.removeItem('dd_draft_documents_v1');
+  return [];
+}
+
 async function dbSaveDocument(docData) {
   const sb = getSupabaseClient();
   const userRole = sessionStorage.getItem('dd_user_role') || 'supplier';
@@ -3502,6 +3578,455 @@ function DocumentCanvas({
     /*#__PURE__*/React.createElement("span", { style: { color: '#1d6bf3', fontWeight: '800' } }, `(다음 ${pageIdx + 2}페이지에 계속 ➡️)`)
   )))));
 }
+
+// ── 📄 문서 상세 미리보기 모달 (DocumentPreviewModal) ─────────────────────────
+function DocumentPreviewModal({
+  doc,
+  onClose,
+  onEdit,
+  onCopy,
+  suppliersList = []
+}) {
+  if (!doc) return null;
+
+  const docType = doc.doc_type || doc.docType || '거래명세서';
+  const docNo = doc.doc_no || '미지정';
+  const docDate = doc.doc_date || (doc.created_at ? doc.created_at.split('T')[0] : '');
+  const docTime = doc.doc_time || '';
+  const customer = doc.customer_data || { name: doc.customer_name || '미지정' };
+  const items = doc.items || [];
+  
+  const supplier = doc.supplier_data || suppliersList.find(s => areSupplierKeysEquivalent(s.id, doc.supplier_key)) || DEFAULT_SUPPLIERS[doc.supplier_key] || DEFAULT_SUPPLIERS.sejin;
+  const hasStamp = areSupplierKeysEquivalent(doc.supplier_key, 'sejin') || supplier?.hasStamp;
+
+  const totalSupply = items.reduce((sum, i) => sum + ((Number(i.qty) || 0) * (Number(i.price) || 0)), 0);
+  const vatAmount = doc.vat_included !== false ? Math.floor(totalSupply * 0.1) : (Number(doc.vat) || 0);
+  const grandTotal = totalSupply + vatAmount;
+  const paid = Number(doc.paid) || 0;
+  const balance = grandTotal - paid;
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  return React.createElement("div", {
+    className: "modal-backdrop",
+    style: {
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(15, 23, 42, 0.7)',
+      backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: 9999, padding: '1rem'
+    },
+    onClick: onClose
+  },
+    React.createElement("div", {
+      className: "modal-content card-box",
+      style: {
+        maxWidth: '860px', width: '100%', maxHeight: '92vh',
+        overflowY: 'auto', backgroundColor: '#FFFFFF',
+        borderRadius: '16px', padding: '0',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        display: 'flex', flexDirection: 'column'
+      },
+      onClick: e => e.stopPropagation()
+    },
+      /* Header Bar */
+      React.createElement("div", {
+        style: {
+          padding: '1rem 1.25rem',
+          backgroundColor: 'var(--c-navy-dark)',
+          color: '#FFFFFF',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          borderTopLeftRadius: '16px', borderTopRightRadius: '16px'
+        }
+      },
+        React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '8px' } },
+          React.createElement("span", { style: { fontSize: '1.25rem' } }, "📄"),
+          React.createElement("h3", { style: { margin: 0, fontSize: '1.125rem', fontWeight: '900', color: '#FFFFFF' } },
+            `[${docType}] ${customer.name || '고객'} (${docNo})`
+          )
+        ),
+        React.createElement("button", {
+          type: "button",
+          onClick: onClose,
+          style: {
+            background: 'none', border: 'none', color: '#FFFFFF',
+            fontSize: '1.25rem', cursor: 'pointer', fontWeight: 'bold'
+          }
+        }, "✕")
+      ),
+
+      /* Body Content (Document Canvas Style) */
+      React.createElement("div", { style: { padding: '1.5rem', flex: 1, backgroundColor: '#F8FAFC' } },
+        /* Top Info Grid */
+        React.createElement("div", {
+          style: {
+            display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '1rem', marginBottom: '1.25rem'
+          }
+        },
+          /* 공급자 정보 박스 */
+          React.createElement("div", {
+            style: {
+              padding: '1rem', backgroundColor: '#FFFFFF', borderRadius: '10px',
+              border: '1px solid var(--border-color)', position: 'relative'
+            }
+          },
+            React.createElement("h4", { style: { margin: '0 0 0.5rem 0', fontSize: '0.875rem', fontWeight: '900', color: 'var(--c-navy-primary)' } }, "🏢 공급자 정보"),
+            React.createElement("div", { style: { fontSize: '0.8125rem', display: 'flex', flexDirection: 'column', gap: '3px', color: 'var(--c-navy-dark)' } },
+              React.createElement("div", null, React.createElement("strong", null, "상호: "), supplier.name || supplier.company || '세진중기'),
+              React.createElement("div", null, React.createElement("strong", null, "등록번호: "), supplier.bizno || '123-45-67890'),
+              React.createElement("div", null, React.createElement("strong", null, "대표자: "), supplier.person || supplier.owner || '허강'),
+              React.createElement("div", null, React.createElement("strong", null, "연락처: "), supplier.phone || supplier.tel || '010-0000-0000'),
+              React.createElement("div", null, React.createElement("strong", null, "주소: "), supplier.addr || '전북 김제시')
+            ),
+            hasStamp && React.createElement("div", {
+              style: {
+                position: 'absolute', right: '15px', bottom: '15px',
+                width: '52px', height: '52px', borderRadius: '50%',
+                border: '2px solid #DC2626', color: '#DC2626',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontWeight: '900', fontSize: '11px', transform: 'rotate(-10deg)',
+                backgroundColor: 'rgba(254, 226, 226, 0.3)'
+              }
+            }, "인")
+          ),
+
+          /* 공급받는자(거래처) 정보 박스 */
+          React.createElement("div", {
+            style: {
+              padding: '1rem', backgroundColor: '#FFFFFF', borderRadius: '10px',
+              border: '1px solid var(--border-color)'
+            }
+          },
+            React.createElement("h4", { style: { margin: '0 0 0.5rem 0', fontSize: '0.875rem', fontWeight: '900', color: 'var(--c-navy-primary)' } }, "👤 공급받는자(거래처)"),
+            React.createElement("div", { style: { fontSize: '0.8125rem', display: 'flex', flexDirection: 'column', gap: '3px', color: 'var(--c-navy-dark)' } },
+              React.createElement("div", null, React.createElement("strong", null, "상호: "), customer.name || '미지정'),
+              React.createElement("div", null, React.createElement("strong", null, "담당자: "), customer.person || '-'),
+              React.createElement("div", null, React.createElement("strong", null, "연락처: "), customer.phone || '-'),
+              React.createElement("div", null, React.createElement("strong", null, "발행일시: "), `${docDate} ${docTime}`),
+              React.createElement("div", null, React.createElement("strong", null, "문서번호: "), docNo)
+            )
+          )
+        ),
+
+        /* Items Table */
+        React.createElement("div", {
+          style: {
+            backgroundColor: '#FFFFFF', borderRadius: '10px',
+            border: '1px solid var(--border-color)', overflow: 'hidden',
+            marginBottom: '1.25rem'
+          }
+        },
+          React.createElement("table", { style: { width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' } },
+            React.createElement("thead", { style: { backgroundColor: 'var(--c-blue-lightest)', borderBottom: '1px solid var(--border-color)', textAlign: 'center', fontWeight: '800' } },
+              React.createElement("tr", null,
+                React.createElement("th", { style: { padding: '8px 6px', width: '40px' } }, "No"),
+                React.createElement("th", { style: { padding: '8px 8px', textAlign: 'left' } }, "품목 / 정비내역"),
+                React.createElement("th", { style: { padding: '8px 6px', width: '50px' } }, "단위"),
+                React.createElement("th", { style: { padding: '8px 6px', width: '50px' } }, "수량"),
+                React.createElement("th", { style: { padding: '8px 8px', textAlign: 'right', width: '90px' } }, "단가"),
+                React.createElement("th", { style: { padding: '8px 8px', textAlign: 'right', width: '100px' } }, "공급가액")
+              )
+            ),
+            React.createElement("tbody", null,
+              items.length === 0 ? (
+                React.createElement("tr", null,
+                  React.createElement("td", { colSpan: 6, style: { padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)' } }, "등록된 품목 내역이 없습니다.")
+                )
+              ) : (
+                items.map((item, idx) => {
+                  const itemQty = Number(item.qty) || 0;
+                  const itemPrice = Number(item.price) || 0;
+                  const itemSupply = itemQty * itemPrice;
+                  return React.createElement("tr", {
+                    key: item.id || idx,
+                    style: { borderBottom: '1px solid var(--border-color)', backgroundColor: idx % 2 === 1 ? '#FAFAFA' : '#FFFFFF' }
+                  },
+                    React.createElement("td", { style: { padding: '6px 4px', textAlign: 'center', color: 'var(--text-muted)' } }, idx + 1),
+                    React.createElement("td", { style: { padding: '6px 8px', fontWeight: '700' } }, item.name || '-'),
+                    React.createElement("td", { style: { padding: '6px 4px', textAlign: 'center' } }, item.unit || 'EA'),
+                    React.createElement("td", { style: { padding: '6px 4px', textAlign: 'center', fontWeight: '700' } }, itemQty.toLocaleString()),
+                    React.createElement("td", { style: { padding: '6px 8px', textAlign: 'right' } }, itemPrice.toLocaleString()),
+                    React.createElement("td", { style: { padding: '6px 8px', textAlign: 'right', fontWeight: '800', color: 'var(--c-navy-primary)' } }, itemSupply.toLocaleString())
+                  );
+                })
+              )
+            )
+          )
+        ),
+
+        /* Financial Summary Bar */
+        React.createElement("div", {
+          style: {
+            display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+            gap: '8px', padding: '1rem', backgroundColor: '#FFFFFF',
+            borderRadius: '10px', border: '1px solid var(--border-color)',
+            textAlign: 'center', marginBottom: '1rem'
+          }
+        },
+          React.createElement("div", null,
+            React.createElement("div", { style: { fontSize: '0.75rem', color: 'var(--text-muted)' } }, "공급가액"),
+            React.createElement("div", { style: { fontSize: '0.9375rem', fontWeight: '800', color: 'var(--c-navy-dark)' } }, `${totalSupply.toLocaleString()}원`)
+          ),
+          React.createElement("div", null,
+            React.createElement("div", { style: { fontSize: '0.75rem', color: 'var(--text-muted)' } }, "부가세 (10%)"),
+            React.createElement("div", { style: { fontSize: '0.9375rem', fontWeight: '800', color: 'var(--c-navy-dark)' } }, `${vatAmount.toLocaleString()}원`)
+          ),
+          React.createElement("div", null,
+            React.createElement("div", { style: { fontSize: '0.75rem', color: 'var(--c-blue-accent)', fontWeight: '800' } }, "총 합계금액"),
+            React.createElement("div", { style: { fontSize: '1.0625rem', fontWeight: '900', color: 'var(--c-blue-accent)' } }, `${grandTotal.toLocaleString()}원`)
+          ),
+          React.createElement("div", null,
+            React.createElement("div", { style: { fontSize: '0.75rem', color: '#028A3E' } }, "입금/수금액"),
+            React.createElement("div", { style: { fontSize: '0.9375rem', fontWeight: '800', color: '#028A3E' } }, `${paid.toLocaleString()}원`)
+          ),
+          React.createElement("div", null,
+            React.createElement("div", { style: { fontSize: '0.75rem', color: balance > 0 ? '#D92D20' : 'var(--text-muted)' } }, "미수 잔액"),
+            React.createElement("div", { style: { fontSize: '1.0625rem', fontWeight: '900', color: balance > 0 ? '#D92D20' : '#028A3E' } },
+              balance > 0 ? `${balance.toLocaleString()}원` : '0원 (완납)'
+            )
+          )
+        ),
+
+        /* 특이사항 */
+        doc.remark && React.createElement("div", {
+          style: {
+            padding: '0.75rem 1rem', backgroundColor: '#FFFFFF',
+            borderRadius: '8px', border: '1px solid var(--border-color)',
+            fontSize: '0.8125rem'
+          }
+        },
+          React.createElement("strong", { style: { color: 'var(--c-navy-primary)' } }, "📝 특이사항: "),
+          doc.remark
+        )
+      ),
+
+      /* Footer Action Bar */
+      React.createElement("div", {
+        style: {
+          padding: '1rem 1.25rem', backgroundColor: '#FFFFFF',
+          borderTop: '1px solid var(--border-color)',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          flexWrap: 'wrap', gap: '0.5rem', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px'
+        }
+      },
+        React.createElement("div", { style: { display: 'flex', gap: '0.5rem' } },
+          React.createElement("button", {
+            type: "button",
+            className: "btn btn-outline",
+            style: { height: '36px', fontSize: '0.8125rem', fontWeight: '800' },
+            onClick: handlePrint
+          }, "🖨️ 인쇄 / PDF 저장")
+        ),
+        React.createElement("div", { style: { display: 'flex', gap: '0.5rem' } },
+          onCopy && React.createElement("button", {
+            type: "button",
+            className: "btn btn-outline",
+            style: { height: '36px', fontSize: '0.8125rem', fontWeight: '800' },
+            onClick: () => {
+              onCopy(doc);
+              onClose();
+            }
+          }, "📑 새 명세서로 복사"),
+          onEdit && React.createElement("button", {
+            type: "button",
+            className: "btn btn-primary",
+            style: { height: '36px', fontSize: '0.8125rem', fontWeight: '900' },
+            onClick: () => {
+              onEdit(doc);
+              onClose();
+            }
+          }, "✏️ 이 문서 편집하기 (작성 탭)"),
+          React.createElement("button", {
+            type: "button",
+            className: "btn btn-outline",
+            style: { height: '36px', fontSize: '0.8125rem' },
+            onClick: onClose
+          }, "닫기")
+        )
+      )
+    )
+  );
+}
+
+// ── 📂 임시보관함 모달 (DraftsModal) ──────────────────────────────────────────
+function DraftsModal({
+  isOpen,
+  onClose,
+  onLoadDraft,
+  draftsList = [],
+  onDeleteDraft,
+  onClearAll
+}) {
+  if (!isOpen) return null;
+
+  const formatRemainingTime = (expiresAt) => {
+    if (!expiresAt) return '3일 보관';
+    const diffMs = expiresAt - Date.now();
+    if (diffMs <= 0) return '만료됨';
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    if (hours >= 24) {
+      const days = Math.floor(hours / 24);
+      return `${days}일 ${hours % 24}시간 남음`;
+    }
+    return `${hours}시간 남음`;
+  };
+
+  return React.createElement("div", {
+    className: "modal-backdrop",
+    style: {
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(15, 23, 42, 0.7)',
+      backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: 9999, padding: '1rem'
+    },
+    onClick: onClose
+  },
+    React.createElement("div", {
+      className: "modal-content card-box",
+      style: {
+        maxWidth: '720px', width: '100%', maxHeight: '85vh',
+        overflowY: 'auto', backgroundColor: '#FFFFFF',
+        borderRadius: '16px', padding: '0',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        display: 'flex', flexDirection: 'column'
+      },
+      onClick: e => e.stopPropagation()
+    },
+      /* Header Bar */
+      React.createElement("div", {
+        style: {
+          padding: '1rem 1.25rem',
+          backgroundColor: 'var(--c-navy-dark)',
+          color: '#FFFFFF',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          borderTopLeftRadius: '16px', borderTopRightRadius: '16px'
+        }
+      },
+        React.createElement("div", null,
+          React.createElement("h3", { style: { margin: 0, fontSize: '1.125rem', fontWeight: '900', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '6px' } },
+            React.createElement("span", null, "📂"),
+            `임시보관함 (${draftsList.length}건)`
+          ),
+          React.createElement("div", { style: { fontSize: '0.75rem', color: '#94A3B8', marginTop: '2px' } },
+            "⏱️ 임시저장된 문서는 정식 DB와 격리되며, 3일(72시간) 후 자동으로 안전하게 폐기됩니다."
+          )
+        ),
+        React.createElement("button", {
+          type: "button",
+          onClick: onClose,
+          style: {
+            background: 'none', border: 'none', color: '#FFFFFF',
+            fontSize: '1.25rem', cursor: 'pointer', fontWeight: 'bold'
+          }
+        }, "✕")
+      ),
+
+      /* Body List */
+      React.createElement("div", { style: { padding: '1rem 1.25rem', flex: 1, backgroundColor: '#F8FAFC' } },
+        draftsList.length === 0 ? (
+          React.createElement("div", { style: { padding: '3rem 1rem', textAlign: 'center', color: 'var(--text-muted)' } },
+            React.createElement("div", { style: { fontSize: '2.5rem', marginBottom: '0.5rem' } }, "📭"),
+            React.createElement("div", { style: { fontSize: '0.9375rem', fontWeight: '800', color: 'var(--c-navy-dark)' } }, "임시보관된 문서가 없습니다."),
+            React.createElement("div", { style: { fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '4px' } }, "작성 화면에서 '📝 임시저장' 버튼을 누르면 언제든지 작성 중인 내용을 보관할 수 있습니다.")
+          )
+        ) : (
+          React.createElement("div", { style: { display: 'flex', flexDirection: 'column', gap: '0.625rem' } },
+            draftsList.map((draft, idx) => {
+              const savedDateStr = new Date(draft.saved_at).toLocaleString('ko-KR', {
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit'
+              });
+              const custName = draft.customer?.name || draft.customer_name || '거래처 미지정';
+              const itemsCount = (draft.items || []).length;
+              const firstItem = draft.items && draft.items[0] ? draft.items[0].name : '';
+              const remainStr = formatRemainingTime(draft.expires_at);
+
+              return React.createElement("div", {
+                key: draft.draft_id || idx,
+                style: {
+                  padding: '0.875rem 1rem', borderRadius: '10px',
+                  backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  flexWrap: 'wrap', gap: '8px'
+                }
+              },
+                React.createElement("div", { style: { flex: 1, minWidth: '220px' } },
+                  React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' } },
+                    React.createElement("span", {
+                      style: {
+                        fontSize: '11px', fontWeight: '800', padding: '2px 6px',
+                        borderRadius: '4px', backgroundColor: 'var(--c-blue-lightest)',
+                        color: 'var(--c-navy-primary)', border: '1px solid var(--c-blue-soft)'
+                      }
+                    }, draft.doc_type || '거래명세서'),
+                    React.createElement("span", { style: { fontSize: '0.9375rem', fontWeight: '900', color: 'var(--c-navy-dark)' } }, custName),
+                    React.createElement("span", {
+                      style: {
+                        fontSize: '10px', fontWeight: '800', color: '#D97706',
+                        backgroundColor: '#FEF3C7', padding: '1px 5px', borderRadius: '4px'
+                      }
+                    }, `⏱️ ${remainStr}`)
+                  ),
+                  React.createElement("div", { style: { fontSize: '0.8125rem', color: 'var(--text-muted)' } },
+                    firstItem ? `${firstItem} 외 ${itemsCount}건 품목` : `품목 ${itemsCount}건`,
+                    ` · 임시저장일시: ${savedDateStr}`
+                  )
+                ),
+                React.createElement("div", { style: { display: 'flex', gap: '6px' } },
+                  React.createElement("button", {
+                    type: "button",
+                    className: "btn btn-primary btn-sm",
+                    style: { fontWeight: '800' },
+                    onClick: () => {
+                      onLoadDraft(draft);
+                      onClose();
+                    }
+                  }, "✍️ 불러와서 이어쓰기"),
+                  React.createElement("button", {
+                    type: "button",
+                    className: "btn btn-outline btn-sm",
+                    style: { color: '#D92D20', borderColor: '#FECDCA', backgroundColor: '#FEF3F2' },
+                    onClick: () => onDeleteDraft(draft.draft_id)
+                  }, "삭제")
+                )
+              );
+            })
+          )
+        )
+      ),
+
+      /* Footer */
+      React.createElement("div", {
+        style: {
+          padding: '0.875rem 1.25rem', backgroundColor: '#FFFFFF',
+          borderTop: '1px solid var(--border-color)',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px'
+        }
+      },
+        draftsList.length > 0 ? (
+          React.createElement("button", {
+            type: "button",
+            className: "btn btn-outline btn-sm",
+            style: { color: '#D92D20', borderColor: '#FECDCA' },
+            onClick: onClearAll
+          }, "🗑️ 임시보관함 전체 비우기")
+        ) : React.createElement("div", null),
+        React.createElement("button", {
+          type: "button",
+          className: "btn btn-outline",
+          style: { height: '34px', fontSize: '0.8125rem' },
+          onClick: onClose
+        }, "닫기")
+      )
+    )
+  );
+}
+
 function Header({
   activeTab,
   setActiveTab,
@@ -3733,14 +4258,14 @@ function StatementTab({
   paymentMethod,
   setPaymentMethod,
   paymentDate,
-      validityPeriod,
-      deliveryDate,
-      deliveryLocation,
-      paymentTerms,
-      bankAccount,
-      dueDate,
-      receiverName,
-      receiveDate,
+  validityPeriod,
+  deliveryDate,
+  deliveryLocation,
+  paymentTerms,
+  bankAccount,
+  dueDate,
+  receiverName,
+  receiveDate,
   setPaymentDate,
   remark,
   setRemark,
@@ -3755,7 +4280,10 @@ function StatementTab({
   onLoadDocument,
   onCopyDocument,
   isDocShared = false,
-  setIsDocShared
+  setIsDocShared,
+  onSaveDraft,
+  onOpenDraftsModal,
+  draftsCount = 0
 }) {
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [selectedRecentDocId, setSelectedRecentDocId] = useState('');
@@ -3853,24 +4381,16 @@ function StatementTab({
         })) {
           await navigator.share({
             files: [file],
-            title: `${docType} (${docNo})`,
-            text: `[TEAM D.D] ${docType} (${docNo})`
-          });
-        } else if (navigator.share) {
-          await navigator.share({
-            title: `${docType} (${docNo})`,
-            text: `[TEAM D.D] ${docType} (${docNo})`
+            title: `${docType}_${docNo || '명세서'}`,
+            text: `${docType} 전송`
           });
         } else {
-          const link = document.createElement('a');
-          link.download = `${docType}_${docNo || '명세서'}.png`;
-          link.href = canvas.toDataURL('image/png');
-          link.click();
-          alert('✓ 명세서 이미지가 다운로드되었습니다. 카카오톡이나 문자메시지로 공유해 보세요!');
+          handleExportPNG();
         }
-      }, 'image/png');
+      });
     } catch (e) {
-      alert('공유하기 중 오류가 발생했습니다.');
+      console.error(e);
+      handleExportPNG();
     }
   };
   return /*#__PURE__*/React.createElement("div", {
@@ -4531,7 +5051,8 @@ function AccountingTab({
   customersList = [],
   suppliersList = [],
   onUpdateDocumentPaid,
-  onDeleteDocument
+  onDeleteDocument,
+  onPreviewDocument
 }) {
   const useState = React.useState;
   const useMemo = React.useMemo;
@@ -4936,7 +5457,8 @@ function AccountingTab({
 
                   return React.createElement("tr", {
                     key: doc.id || idx,
-                    style: { borderBottom: '1px solid #E5E8EB', backgroundColor: idx % 2 === 0 ? '#ffffff' : '#F9FAFB' }
+                    style: { borderBottom: '1px solid #E5E8EB', backgroundColor: idx % 2 === 0 ? '#ffffff' : '#F9FAFB', cursor: onPreviewDocument ? 'pointer' : 'default' },
+                    onClick: () => onPreviewDocument && onPreviewDocument(doc)
                   },
                     React.createElement("td", { style: { padding: '0.75rem 0.75rem', color: '#6B7684', whiteSpace: 'nowrap' } }, doc.doc_date || '-'),
                     React.createElement("td", { style: { padding: '0.75rem 0.5rem', textAlign: 'center' } },
@@ -4956,8 +5478,21 @@ function AccountingTab({
                         React.createElement("span", { style: { padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: '800', backgroundColor: '#FEF3F2', color: '#D92D20' } }, "미수")
                       )
                     ),
-                    React.createElement("td", { className: "no-print", style: { padding: '0.75rem 0.5rem', textAlign: 'center' } },
-                      React.createElement("button", { className: "btn btn-green", style: { fontSize: '11px', padding: '3px 8px', minHeight: '26px' }, onClick: () => handleOpenEditPaid(doc) }, "💳 수금")
+                    React.createElement("td", { className: "no-print", style: { padding: '0.75rem 0.5rem', textAlign: 'center' }, onClick: e => e.stopPropagation() },
+                      React.createElement("div", { style: { display: 'flex', gap: '4px', justifyContent: 'center' } },
+                        React.createElement("button", {
+                          type: "button",
+                          className: "btn btn-outline btn-sm",
+                          style: { fontSize: '11px', padding: '2px 6px', minHeight: '26px' },
+                          onClick: () => onPreviewDocument && onPreviewDocument(doc)
+                        }, "📄 보기"),
+                        React.createElement("button", {
+                          type: "button",
+                          className: "btn btn-green btn-sm",
+                          style: { fontSize: '11px', padding: '2px 6px', minHeight: '26px' },
+                          onClick: () => handleOpenEditPaid(doc)
+                        }, "💳 수금")
+                      )
                     )
                   );
                 })
@@ -5032,7 +5567,8 @@ function ScheduleTab({
   suppliersList = [],
   onSaveSchedule,
   onDeleteSchedule,
-  onLoadDocument
+  onLoadDocument,
+  onPreviewDocument
 }) {
   const useState = React.useState;
   const useMemo = React.useMemo;
@@ -5239,7 +5775,9 @@ function ScheduleTab({
 
   const handleOpenEditEvent = (ev) => {
     if (ev.isDocEvent) {
-      if (onLoadDocument && ev.rawDoc) {
+      if (onPreviewDocument && ev.rawDoc) {
+        onPreviewDocument(ev.rawDoc);
+      } else if (onLoadDocument && ev.rawDoc) {
         onLoadDocument(ev.rawDoc);
       }
       return;
@@ -6747,7 +7285,8 @@ function DocHistoryTab({
   onCopyDocument,
   onConvertToDoc,
   isConnected,
-  selectedSupplierKey
+  selectedSupplierKey,
+  onPreviewDocument
 }) {
   function getEffectivePaymentStatus(doc) {
     var ps = doc.paymentStatus || doc.payment_status || '\uBBF8\uC218\uAE08';
@@ -7152,6 +7691,13 @@ function DocHistoryTab({
               onClick: () => handlePermanentDelete(doc)
             }, "❌ 영구삭제")
           ) : /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: '4px', flexWrap: 'wrap' } },
+            /*#__PURE__*/React.createElement("button", {
+              type: "button",
+              className: "btn btn-outline",
+              style: { padding: '3px 7px', fontSize: '11px', fontWeight: '800' },
+              onClick: () => onPreviewDocument ? onPreviewDocument(doc) : onLoadDocument(doc)
+            }, "📄 보기"),
+
             /*#__PURE__*/React.createElement("button", {
               className: "btn btn-primary",
               style: { padding: '3px 7px', fontSize: '11px' },
@@ -8864,6 +9410,10 @@ function App() {
     return sessionStorage.getItem('dd_user_role') || 'supplier';
   });
 
+  // 📄 문서 미리보기 및 📂 임시보관함 상태
+  const [previewDoc, setPreviewDoc] = useState(null);
+  const [isDraftsModalOpen, setIsDraftsModalOpen] = useState(false);
+  const [draftsList, setDraftsList] = useState(() => getDraftDocuments());
 
   // Supabase 연결 상태
   const [supabaseUrl, setSupabaseUrl] = useState(() => localStorage.getItem('supabase_url') || 'https://wmrfwrsaacolkpjyrffy.supabase.co');
@@ -8876,6 +9426,7 @@ function App() {
   const [currentSupplier, setCurrentSupplier] = useState(DEFAULT_SUPPLIERS.sejin);
   const [customersList, setCustomersList] = useState(() => getLocalItem('dd_customers_list_v1', DEMO_CUSTOMERS));
   const [documentsList, setDocumentsList] = useState(() => getLocalItem('dd_documents_history_v1', []));
+  const [schedulesList, setSchedulesList] = useState(() => getLocalItem('dd_schedules_list_v1', DEMO_SCHEDULES));
   const hasSyncedCustRef = React.useRef(false);
 
   const handleReloadDocuments = useCallback(() => {
