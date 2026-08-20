@@ -8801,6 +8801,18 @@ function App() {
   const [selectedSupplierKey, setSelectedSupplierKey] = useState(() => sessionStorage.getItem('selected_supplier_key') || localStorage.getItem('selected_supplier_key') || 'sejin');
   const [currentSupplier, setCurrentSupplier] = useState(DEFAULT_SUPPLIERS.sejin);
   const [customersList, setCustomersList] = useState(() => getLocalItem('dd_customers_list_v1', DEMO_CUSTOMERS));
+  const [documentsList, setDocumentsList] = useState(() => getLocalItem('dd_documents_history_v1', []));
+  const hasSyncedCustRef = React.useRef(false);
+
+  const handleReloadDocuments = useCallback(() => {
+    dbFetchDocuments().then(data => {
+      setDocumentsList(data);
+    });
+  }, [selectedSupplierKey]);
+
+  useEffect(() => {
+    handleReloadDocuments();
+  }, [handleReloadDocuments]);
   const [customer, setCustomer] = useState({
     name: '',
     person: '',
@@ -9103,18 +9115,6 @@ function App() {
     }
   };
 
-  const [documentsList, setDocumentsList] = useState([]);
-  const hasSyncedCustRef = React.useRef(false);
-
-  const handleReloadDocuments = useCallback(() => {
-    dbFetchDocuments().then(data => {
-      setDocumentsList(data);
-    });
-  }, [selectedSupplierKey]);
-
-  useEffect(() => {
-    handleReloadDocuments();
-  }, [handleReloadDocuments]);
 
   // 문서 로드 완료 시 1회만 안전하게 거래처 마스터 동기화 실행 (무한 루프 방지)
   useEffect(() => {
