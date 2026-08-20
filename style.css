@@ -1,0 +1,61 @@
+﻿/* ═══════════════════════════════════════════════════════════════════════════
+   TEAM D.D 통합 디자인 시스템 (Integrated Design System)
+   - Color Palette: #001B48, #02457A, #018ABE, #97CADB, #D6E8EE
+   - Rule 1: 흰색/밝은 배경 -> 검정/딥네이비(#001B48) 글씨
+   - Rule 2: 색상 채움 버튼 -> 선명한 화이트(#FFFFFF) 글씨
+   - Rule 3: 모든 버튼 & 인풋 높이 38px (컴팩트 32px) 완벽 통일
+   - Rule 4: 모노톤 & 정돈된 아이콘
+═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* 🎨 사용자 제공 5대 핵심 블루/네이비 팔레트 */
+  --c-navy-dark: #001B48;     /* 딥 다크 네이비 (헤더, 타이틀, 본문 볼드 텍스트) */
+  --c-navy-primary: #02457A;  /* 클래식 네이비 (주 버튼, 메인 브랜드 포인트) */
+  --c-navy-hover: #01345D;    /* 네이비 호버 */
+  --c-blue-accent: #018ABE;   /* 오션 블루 (강조 버튼, 액티브 탭, 서브 포인트) */
+  --c-blue-hover: #0175A2;    /* 오션 블루 호버 */
+  --c-blue-soft: #97CADB;     /* 파스텔 스카이 블루 (보더, 호버 배경, 소프트 뱃지) */
+  --c-blue-light: #D6E8EE;    /* 쿨 아이스 블루 (배경 트랙, 칩, 연한 뱃지 배경) */
+  --c-blue-lightest: #F2F7FA; /* 초경량 틴트 배경 */
+
+  /* 기본 UI 토큰 */
+  --bg-app: #F4F7F9;
+  --bg-card: #FFFFFF;
+  --bg-muted: #F8FAFC;
+  
+  --border-color: #D6E8EE;
+  --border-strong: #97CADB;
+  --border-hover: #018ABE;
+  
+  --text-main: #001B48;
+  --text-secondary: #02457A;
+  --text-muted: #64748B;
+  
+  /* 상태 알림 컬러 (직관적 구분 유지) */
+  --status-red: #D92D20;
+  --status-red-bg: #FEF3F2;
+  --status-red-border: #FECDCA;
+  
+  --status-green: #028A3E;
+  --status-green-bg: #E8F8F0;
+  --status-green-border: #A3E9C4;
+
+  --status-blue: #018ABE;
+  --status-blue-bg: #D6E8EE;
+  --status-blue-border: #97CADB;
+
+  /* 규격 표준화 (모든 버튼/인풋 높이 통일) */
+  --control-height: 38px;
+  --control-height-sm: 32px;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-full: 9999px;
+  
+  --shadow-sm: 0 1px 3px rgba(0, 27, 72, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 27, 72, 0.08);
+  --shadow-lg: 0 10px 24px rgba(0, 27, 72, 0.12);
+
+  --font-main: "Pretendard", -apple-system, BlinkMacSystemFont, "NanumSquare Neo", "NanumSquare", sans-serif;
+}

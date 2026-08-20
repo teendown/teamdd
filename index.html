@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="TEAM D.D">
   <link rel="apple-touch-icon" href="/teamdd/icon-512.jpg">
-  <meta name="theme-color" content="#03C75A">
+  <meta name="theme-color" content="#02457A">
   <!-- Pretendard & Inter Web Fonts -->
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -35,54 +35,64 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="./style.css?v=2.0">
 
   <style>
-    /* 🟢 NAVER PAY THEME DESIGN SYSTEM for Team D.D */
+    /* 🎨 TEAM D.D UNIFIED DESIGN SYSTEM (5-Color Blue/Navy Palette) */
     :root {
       --font-main: "Pretendard", -apple-system, BlinkMacSystemFont, "NanumSquare Neo", "NanumSquare", "Malgun Gothic", "맑은 고딕", sans-serif;
       
-      /* 네이버페이 시그니처 컬러 팔레트 */
-      --np-green: #03C75A;
-      --np-green-hover: #02B150;
-      --np-green-active: #009F47;
-      --np-green-bg: #E8F8F0;
-      --np-green-border: #A3E9C4;
+      /* 🎨 사용자 제공 5대 핵심 블루/네이비 팔레트 */
+      --c-navy-dark: #001B48;     /* 딥 다크 네이비 (헤더, 타이틀, 본문 볼드 텍스트) */
+      --c-navy-primary: #02457A;  /* 클래식 네이비 (주 버튼, 메인 브랜드 포인트) */
+      --c-navy-hover: #01345D;    /* 네이비 호버 */
+      --c-blue-accent: #018ABE;   /* 오션 블루 (강조 버튼, 액티브 탭, 서브 포인트) */
+      --c-blue-hover: #0175A2;    /* 오션 블루 호버 */
+      --c-blue-soft: #97CADB;     /* 파스텔 스카이 블루 (보더, 호버 배경, 소프트 뱃지) */
+      --c-blue-light: #D6E8EE;    /* 쿨 아이스 블루 (배경 트랙, 칩, 연한 뱃지 배경) */
+      --c-blue-lightest: #F2F7FA; /* 초경량 틴트 배경 */
 
-      --bg-app: #F5F7F9;
+      --bg-app: #F4F7F9;
       --bg-card: #FFFFFF;
-      --bg-muted: #F9FAFB;
-      --border-color: #E5E8EB;
-      --border-hover: #D1D6DB;
+      --bg-muted: #F8FAFC;
       
-      --primary: #03C75A;
-      --primary-hover: #02B150;
-      --primary-dark: #191F28;
+      --border-color: #D6E8EE;
+      --border-strong: #97CADB;
+      --border-hover: #018ABE;
       
-      --accent-green: #03C75A;
-      --accent-green-bg: #E8F8F0;
-      --accent-green-border: #A3E9C4;
+      --primary: #02457A;
+      --primary-hover: #01345D;
+      --primary-dark: #001B48;
       
-      --accent-red: #F04438;
+      --accent-blue: #018ABE;
+      --accent-blue-bg: #D6E8EE;
+      --accent-blue-border: #97CADB;
+
+      --accent-red: #D92D20;
       --accent-red-bg: #FEF3F2;
       --accent-red-border: #FECDCA;
 
-      --accent-blue: #3182F6;
-      --accent-blue-bg: #EFF4FE;
-      --accent-blue-border: #C2D9FC;
+      --accent-green: #028A3E;
+      --accent-green-bg: #E8F8F0;
+      --accent-green-border: #A3E9C4;
 
-      --text-main: #191F28;
-      --text-secondary: #4E5968;
-      --text-muted: #8B95A1;
+      --text-main: #001B48;
+      --text-secondary: #02457A;
+      --text-muted: #64748B;
       
-      --radius-xs: 6px;
-      --radius-sm: 8px;
-      --radius-md: 12px;
-      --radius-lg: 16px;
+      /* 규격 표준화: 모든 버튼 및 인풋 높이 38px 통일 */
+      --control-height: 38px;
+      --control-height-sm: 32px;
+      
+      --radius-xs: 4px;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
       --radius-full: 9999px;
       
-      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
-      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
-      --shadow-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.08), 0 8px 16px -4px rgba(0, 0, 0, 0.03);
+      --shadow-sm: 0 1px 3px rgba(0, 27, 72, 0.06);
+      --shadow-md: 0 4px 12px rgba(0, 27, 72, 0.08);
+      --shadow-lg: 0 10px 24px rgba(0, 27, 72, 0.12);
     }
 
     *, *::before, *::after {
@@ -106,6 +116,13 @@
       display: flex;
       flex-direction: column;
       min-height: 100vh;
+    }
+
+    .management-container, .tab-content {
+      max-width: 1440px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 0.75rem;
     }
 
     .top-header {
@@ -135,20 +152,23 @@
     }
 
     .brand-title {
-      font-size: 0.9375rem;
+      font-size: 1rem;
       font-weight: 900;
       letter-spacing: -0.03em;
-      color: var(--primary-dark);
+      color: var(--c-navy-dark);
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
+    }
+    .brand-title span {
+      color: var(--c-blue-accent);
     }
 
     .brand-sub {
       font-size: 0.6875rem;
       color: var(--text-muted);
       display: none;
-      font-weight: 500;
+      font-weight: 600;
     }
 
     @media (min-width: 640px) {
@@ -175,14 +195,14 @@
     }
 
     .status-badge.connected {
-      background-color: var(--np-green-bg);
-      color: #028A3E;
-      border-color: var(--np-green-border);
+      background-color: var(--c-blue-light);
+      color: var(--c-navy-primary);
+      border-color: var(--c-blue-soft);
     }
 
     .status-badge.disconnected {
       background-color: var(--accent-red-bg);
-      color: #D92D20;
+      color: var(--accent-red);
       border-color: var(--accent-red-border);
     }
 
@@ -199,7 +219,7 @@
     .tab-nav {
       display: flex;
       gap: 0.25rem;
-      background-color: #EEF2F5;
+      background-color: var(--c-blue-light);
       padding: 0.25rem;
       border-radius: var(--radius-sm);
       width: 100%;
@@ -207,31 +227,37 @@
 
     .tab-btn {
       flex: 1;
-      padding: 0.5rem 0.25rem;
-      font-size: 0.75rem;
-      font-weight: 600;
+      height: var(--control-height);
+      min-height: var(--control-height);
+      padding: 0 0.5rem;
+      font-size: 0.8125rem;
+      font-weight: 700;
       border: none;
       background: transparent;
-      color: var(--text-secondary);
-      border-radius: 6px;
+      color: var(--c-navy-primary);
+      border-radius: var(--radius-xs);
       cursor: pointer;
       text-align: center;
       white-space: nowrap;
       transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
     @media (min-width: 640px) {
       .tab-btn {
-        padding: 0.5rem 1rem;
+        padding: 0 1rem;
         font-size: 0.8125rem;
       }
     }
 
     .tab-btn.active {
       background-color: #ffffff;
-      color: #028A3E;
-      font-weight: 800;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      color: var(--c-navy-dark);
+      font-weight: 900;
+      box-shadow: 0 1px 3px rgba(0, 27, 72, 0.12);
+      border: 1px solid var(--c-blue-soft);
     }
 
     .main-content {
@@ -277,7 +303,7 @@
     .preview-panel {
       flex: 1;
       padding: 0.5rem;
-      background-color: #EEF2F5;
+      background-color: var(--c-blue-lightest);
       overflow-x: auto;
       display: flex;
       flex-direction: column;
@@ -298,12 +324,12 @@
 
     .section-title {
       font-size: 0.8125rem;
-      font-weight: 700;
+      font-weight: 800;
       margin-bottom: 0.375rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      color: var(--primary-dark);
+      color: var(--c-navy-dark);
     }
 
     .form-group {
@@ -314,28 +340,35 @@
     }
 
     .form-label {
-      font-size: 0.6875rem;
-      color: var(--text-secondary);
-      font-weight: 600;
+      font-size: 0.75rem;
+      color: var(--c-navy-primary);
+      font-weight: 700;
     }
 
+    /* ── 표준 입력창 및 셀렉트 (높이 38px 통일) ── */
     .form-input, .form-select, .form-textarea {
       width: 100%;
-      padding: 0.625rem 0.75rem;
-      border: 1px solid var(--border-color);
+      height: var(--control-height);
+      min-height: var(--control-height);
+      padding: 0 0.75rem;
+      border: 1px solid var(--border-strong);
       border-radius: var(--radius-sm);
       font-size: 0.8125rem;
       font-family: inherit;
       background-color: #ffffff;
       outline: none;
-      min-height: 40px;
       color: var(--text-main);
       transition: all 0.15s ease;
     }
+    .form-textarea {
+      height: auto;
+      min-height: 80px;
+      padding: 0.5rem 0.75rem;
+    }
 
     .form-input:focus, .form-select:focus, .form-textarea:focus {
-      border-color: var(--np-green);
-      box-shadow: 0 0 0 3px rgba(3, 199, 90, 0.15);
+      border-color: var(--c-blue-accent);
+      box-shadow: 0 0 0 3px rgba(1, 138, 190, 0.15);
     }
 
     /* Canvas Direct Cell Editing Inputs */
@@ -358,13 +391,13 @@
       display: block;
     }
     .canvas-input:hover {
-      background-color: #f0fdf4 !important;
-      box-shadow: inset 0 0 0 1px #03C75A !important;
+      background-color: var(--c-blue-light) !important;
+      box-shadow: inset 0 0 0 1px var(--c-blue-accent) !important;
       border-radius: 2px;
     }
     .canvas-input:focus {
       background-color: #ffffff !important;
-      box-shadow: inset 0 0 0 2px #03C75A !important;
+      box-shadow: inset 0 0 0 2px var(--c-blue-accent) !important;
       border-radius: 2px;
     }
     @media print {
@@ -380,9 +413,12 @@
       gap: 0.375rem;
     }
 
-    /* 🟢 NAVER PAY BUTTONS */
+    /* ── 🎨 통일된 버튼 시스템 (높이 38px & 명확한 대비 규칙) ── */
     .btn {
-      padding: 0.625rem 0.875rem;
+      height: var(--control-height);
+      min-height: var(--control-height);
+      max-height: var(--control-height);
+      padding: 0 1rem;
       border-radius: var(--radius-sm);
       font-size: 0.8125rem;
       font-weight: 700;
@@ -393,47 +429,72 @@
       align-items: center;
       justify-content: center;
       gap: 0.375rem;
-      min-height: 42px;
       touch-action: manipulation;
+      white-space: nowrap;
     }
 
-    .btn-primary {
-      background-color: var(--np-green);
-      color: #ffffff;
-      box-shadow: 0 1px 2px rgba(3, 199, 90, 0.2);
+    /* 색상 채움 버튼: 무조건 흰색 글자 */
+    .btn-primary, .btn-navy {
+      background-color: var(--c-navy-primary);
+      color: #ffffff !important;
+      box-shadow: 0 1px 2px rgba(2, 69, 122, 0.2);
     }
-    .btn-primary:hover {
-      background-color: var(--np-green-hover);
+    .btn-primary:hover, .btn-navy:hover {
+      background-color: var(--c-navy-hover);
     }
-    .btn-primary:active {
-      background-color: var(--np-green-active);
+    .btn-primary:active, .btn-navy:active {
+      background-color: var(--c-navy-dark);
     }
 
+    .btn-blue, .btn-green {
+      background-color: var(--c-blue-accent);
+      color: #ffffff !important;
+      box-shadow: 0 1px 2px rgba(1, 138, 190, 0.2);
+    }
+    .btn-blue:hover, .btn-green:hover {
+      background-color: var(--c-blue-hover);
+    }
+
+    /* 흰색/밝은 배경 버튼: 무조건 검정/딥네이비(#001B48) 글자 */
     .btn-outline {
       background-color: #ffffff;
-      border-color: var(--border-color);
-      color: var(--text-main);
+      border: 1px solid var(--border-strong);
+      color: var(--c-navy-dark) !important;
     }
     .btn-outline:hover {
-      background-color: #F9FAFB;
-      border-color: var(--border-hover);
+      background-color: var(--c-blue-lightest);
+      border-color: var(--c-blue-accent);
     }
 
-    .btn-green {
-      background-color: var(--np-green);
-      color: #ffffff;
+    .btn-light {
+      background-color: var(--c-blue-light);
+      border: 1px solid var(--c-blue-soft);
+      color: var(--c-navy-dark) !important;
     }
-    .btn-green:hover {
-      background-color: var(--np-green-hover);
+    .btn-light:hover {
+      background-color: var(--c-blue-soft);
+    }
+
+    .btn-danger {
+      background-color: var(--accent-red);
+      color: #ffffff !important;
     }
 
     .btn-red-outline {
       background-color: var(--accent-red-bg);
-      border-color: var(--accent-red-border);
-      color: var(--accent-red);
+      border: 1px solid var(--accent-red-border);
+      color: var(--accent-red) !important;
     }
     .btn-red-outline:hover {
       background-color: #FEE4E2;
+    }
+
+    .btn-sm {
+      height: var(--control-height-sm);
+      min-height: var(--control-height-sm);
+      max-height: var(--control-height-sm);
+      padding: 0 0.625rem;
+      font-size: 0.75rem;
     }
 
     .item-card {
@@ -744,8 +805,6 @@
     }
     .splash-install-btn:hover {
       background: rgba(250, 204, 21, 0.25);
-      border-color: rgba(250, 204, 21, 0.8);
-      transform: translateY(-1px);
     }
     .splash-install-ios-guide {
       margin-top: 1.25rem; padding: 0.875rem 1.25rem;
@@ -757,10 +816,10 @@
     }
     .splash-install-ios-guide b { color: #fde68a; }
 
-    /* ── Splash / Login Screen (Naver Pay Theme) ── */
+    /* ── Splash / Login Screen (Deep Navy & Ocean Blue Theme) ── */
     .splash-screen {
       position: fixed; inset: 0; z-index: 9999;
-      background: linear-gradient(145deg, #0F172A 0%, #111E2E 50%, #032E1D 100%);
+      background: linear-gradient(145deg, #001B48 0%, #02457A 50%, #018ABE 100%);
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
       font-family: var(--font-main, 'Pretendard', sans-serif);
@@ -774,25 +833,25 @@
       margin-bottom: 2.5rem;
     }
     .splash-icon {
-      width: 68px; height: 68px; background: rgba(3, 199, 90, 0.15);
+      width: 68px; height: 68px; background: rgba(255, 255, 255, 0.12);
       border-radius: 18px; display: flex; align-items: center;
       justify-content: center; margin-bottom: 1.25rem;
-      box-shadow: 0 8px 32px rgba(3, 199, 90, 0.2);
-      border: 1px solid rgba(3, 199, 90, 0.35);
+      box-shadow: 0 8px 32px rgba(0, 27, 72, 0.4);
+      border: 1px solid rgba(151, 202, 219, 0.4);
     }
     .splash-title {
       font-size: 2.75rem; font-weight: 900; color: #ffffff;
       letter-spacing: -0.03em; line-height: 1;
     }
-    .splash-title span { color: #03C75A; }
+    .splash-title span { color: #97CADB; }
     .splash-subtitle {
-      font-size: 0.8125rem; color: rgba(255,255,255,0.65);
+      font-size: 0.8125rem; color: rgba(214, 232, 238, 0.8);
       margin-top: 0.5rem; letter-spacing: 0.05em;
       text-transform: uppercase;
       font-weight: 600;
     }
     .splash-label {
-      font-size: 0.8125rem; font-weight: 700; color: rgba(255,255,255,0.7);
+      font-size: 0.8125rem; font-weight: 700; color: rgba(214, 232, 238, 0.85);
       text-align: center; margin-bottom: 1rem; letter-spacing: 0.02em;
     }
     .splash-cards {
@@ -800,18 +859,18 @@
       width: 100%; max-width: 340px; padding: 0 1.25rem;
     }
     .splash-card {
-      background: rgba(255,255,255,0.07);
-      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(151, 202, 219, 0.3);
       border-radius: 16px; padding: 1rem 1.25rem;
       cursor: pointer; transition: all 0.22s ease;
       display: flex; align-items: center; gap: 1rem;
       backdrop-filter: blur(10px);
     }
     .splash-card:hover, .splash-card:active {
-      background: rgba(255,255,255,0.15);
-      border-color: rgba(3, 199, 90, 0.6);
+      background: rgba(255, 255, 255, 0.2);
+      border-color: #97CADB;
       transform: translateY(-2px);
-      box-shadow: 0 10px 28px rgba(3, 199, 90, 0.18);
+      box-shadow: 0 10px 28px rgba(0, 27, 72, 0.3);
     }
     .splash-card-avatar {
       width: 44px; height: 44px; border-radius: 12px;
@@ -823,24 +882,24 @@
       font-size: 0.9375rem; font-weight: 800; color: #ffffff; line-height: 1.3;
     }
     .splash-card-sub {
-      font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-top: 2px;
+      font-size: 0.75rem; color: rgba(214, 232, 238, 0.65); margin-top: 2px;
     }
-    .splash-card-arrow { color: rgba(255,255,255,0.35); font-size: 1.125rem; }
+    .splash-card-arrow { color: rgba(214, 232, 238, 0.5); font-size: 1.125rem; }
     .splash-footer {
       margin-top: 2rem; font-size: 0.6875rem;
-      color: rgba(255,255,255,0.35); text-align: center;
+      color: rgba(214, 232, 238, 0.5); text-align: center;
     }
 
     /* ── Splash Login Form Styles ── */
     .login-form-container {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(151, 202, 219, 0.35);
       border-radius: 20px;
       padding: 1.75rem 1.5rem;
       width: 100%;
       max-width: 320px;
       backdrop-filter: blur(10px);
-      box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+      box-shadow: 0 20px 50px rgba(0, 27, 72, 0.4);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -856,14 +915,14 @@
     }
     .login-form-subtitle {
       font-size: 0.75rem;
-      color: rgba(255,255,255,0.6);
+      color: rgba(214, 232, 238, 0.75);
       margin-bottom: 1.25rem;
       text-align: center;
     }
     .login-input {
       width: 100%;
-      background: rgba(255, 255, 255, 0.12);
-      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(151, 202, 219, 0.4);
       border-radius: 12px;
       padding: 0.75rem;
       color: #ffffff;
@@ -874,12 +933,12 @@
       transition: all 0.2s ease;
     }
     .login-input:focus {
-      background: rgba(255, 255, 255, 0.2);
-      border-color: #03C75A;
-      box-shadow: 0 0 0 3px rgba(3, 199, 90, 0.3);
+      background: rgba(255, 255, 255, 0.25);
+      border-color: #97CADB;
+      box-shadow: 0 0 0 3px rgba(151, 202, 219, 0.4);
     }
     .login-error {
-      color: #f87171;
+      color: #fca5a5;
       font-size: 0.75rem;
       min-height: 1.25rem;
       margin-top: 0.5rem;
