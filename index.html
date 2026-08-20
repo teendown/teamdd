@@ -1435,26 +1435,29 @@ async function sbTestConnection(url, key) {
         persistSession: false
       }
     });
-    const {
-      error
-    } = await client.from('customers').select('id').limit(1);
-    if (error) {
-      if (error.code === '42P01' || error.message && error.message.includes('does not exist')) {
+    const [resCust, resDoc, resSch] = await Promise.all([
+      client.from('customers').select('id').limit(1),
+      client.from('documents').select('id').limit(1),
+      client.from('schedules').select('id').limit(1)
+    ]);
+    const err = resCust.error || resDoc.error || resSch.error;
+    if (err) {
+      if (err.code === '42P01' || (err.message && (err.message.includes('does not exist') || err.message.includes('schema cache')))) {
         return {
           ok: true,
           isTableMissing: true,
-          message: '✓ Supabase 연결 성공! (테이블 미생성 - 아래 SQL 복사 후 SQL Editor에서 실행하세요)'
+          message: '✓ Supabase 연결 성공! (일부 테이블 미생성 - 아래 [📋 전체 SQL 복사] 후 SQL Editor에서 실행해주세요)'
         };
       }
       return {
         ok: false,
-        message: '연결 오류: ' + error.message
+        message: '연결 오류: ' + err.message
       };
     }
     return {
       ok: true,
       isTableMissing: false,
-      message: '✓ Supabase 클라우드 DB 연결 성공!'
+      message: '✓ Supabase 클라우드 DB 연결 및 전체 테이블 정상!'
     };
   } catch (e) {
     return {
@@ -1466,14 +1469,18 @@ async function sbTestConnection(url, key) {
 
 // ── DB CRUD helpers ────────────────────────────────────────────────────────
 function packRow(r, table) {
-  if (table !== 'customers' && table !== 'suppliers' && table !== 'documents') return { ...r };
+  if (table !== 'customers' && table !== 'suppliers' && table !== 'documents' && table !== 'schedules' && table !== 'parts') return { ...r };
   let standardCols = [];
   if (table === 'customers') {
     standardCols = ['id', 'created_at', 'code', 'name', 'bizno', 'person', 'phone', 'addr', 'machine', 'memo'];
   } else if (table === 'suppliers') {
-    standardCols = ['id', 'created_at', 'code', 'name', 'bizno', 'person', 'phone', 'tel', 'bank', 'addr', 'memo'];
+    standardCols = ['id', 'created_at', 'code', 'name', 'bizno', 'person', 'phone', 'tel', 'bank', 'addr', 'memo', 'is_default'];
   } else if (table === 'documents') {
-    standardCols = ['id', 'created_at', 'doc_type', 'doc_no', 'doc_date', 'doc_time', 'customer_name', 'customer_data', 'supplier_key', 'supplier_data', 'items', 'vat', 'vat_included', 'paid', 'remark'];
+    standardCols = ['id', 'created_at', 'doc_type', 'doc_no', 'doc_date', 'doc_time', 'customer_name', 'customer_data', 'supplier_key', 'supplier_data', 'items', 'vat', 'vat_included', 'paid', 'remark', 'is_shared'];
+  } else if (table === 'schedules') {
+    standardCols = ['id', 'created_at', 'title', 'start_date', 'end_date', 'schedule_time', 'category', 'customer_name', 'phone', 'machine', 'amount', 'memo', 'is_shared', 'supplier_key', 'date', 'time'];
+  } else if (table === 'parts') {
+    standardCols = ['id', 'created_at', 'code', 'name', 'category', 'unit', 'price', 'stock', 'min_stock', 'location', 'memo', 'supplier_key'];
   }
   const payload = { ...r };
   const extraFields = {};
@@ -1715,15 +1722,27 @@ async function dbSave(table, rowData, isEdit = false, currentList = []) {
       if (isEdit && rowData.id) {
         const { id, created_at, ...payload } = packedData;
         const { data, error } = await sb.from(table).update(payload).eq('id', id).select().single();
-        if (!error) serverRow = unpackRow(data);
-        else { console.error('Supabase update error:', error); alert('Supabase update error: ' + (error.message || JSON.stringify(error))); }
+        if (!error) {
+          serverRow = unpackRow(data);
+        } else {
+          console.warn(`[Supabase 수정 경고 (${table})]:`, error.message || error);
+          if (error.code !== '42P01' && !(error.message && (error.message.includes('does not exist') || error.message.includes('schema cache')))) {
+            console.error('Supabase update error:', error);
+          }
+        }
       } else {
         const { id, created_at, ...payload } = packedData;
         const { data, error } = await sb.from(table).insert(payload).select().single();
-        if (!error) serverRow = unpackRow(data);
-        else { console.error('Supabase insert error:', error); alert('Supabase insert error: ' + (error.message || JSON.stringify(error))); }
+        if (!error) {
+          serverRow = unpackRow(data);
+        } else {
+          console.warn(`[Supabase 등록 경고 (${table})]:`, error.message || error);
+          if (error.code !== '42P01' && !(error.message && (error.message.includes('does not exist') || error.message.includes('schema cache')))) {
+            console.error('Supabase insert error:', error);
+          }
+        }
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error('Supabase operation exception:', e); }
   }
   let updated;
   if (isEdit && rowData.id) {
@@ -2202,12 +2221,12 @@ async function dbUpdateDocumentPaid(docId, paidAmount, remark) {
   return updated;
 }
 const SQL_ALL = `-- TEAM D.D 전체 스키마 (한번에 실행)
--- Supabase SQL Editor에 붙여넣기 후 Run 클릭
+-- Supabase SQL Editor에 붙여넣기 후 Run(실행) 클릭
 
 create table if not exists customers (
   id uuid primary key default gen_random_uuid(),
   code text, name text not null,
-  bizno text, person text, phone text, addr text, memo text,
+  bizno text, person text, phone text, addr text, machine text, memo text,
   created_at timestamptz default now()
 );
 alter table customers disable row level security;
@@ -2230,6 +2249,7 @@ create table if not exists parts (
   stock integer default 0,
   min_stock integer default 5,
   location text, memo text,
+  supplier_key text,
   created_at timestamptz default now()
 );
 alter table parts disable row level security;
@@ -2242,9 +2262,28 @@ create table if not exists documents (
   items jsonb, vat integer default 0,
   vat_included boolean default true,
   paid integer default 0, remark text,
+  is_shared boolean default false,
   created_at timestamptz default now()
 );
-alter table documents disable row level security;`;
+alter table documents disable row level security;
+
+create table if not exists schedules (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  start_date text not null,
+  end_date text,
+  schedule_time text,
+  category text,
+  customer_name text,
+  phone text,
+  machine text,
+  amount integer default 0,
+  memo text,
+  is_shared boolean default false,
+  supplier_key text,
+  created_at timestamptz default now()
+);
+alter table schedules disable row level security;`;
 function DocumentCanvas({
   docType,
   docNo,
