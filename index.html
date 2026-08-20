@@ -12,8 +12,18 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="TEAM D.D">
   <link rel="apple-touch-icon" href="/teamdd/icon-512.jpg">
-  <meta name="theme-color" content="#1d4ed8">
+  <meta name="theme-color" content="#03C75A">
   <!-- Pretendard & Inter Web Fonts -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+  <!-- React 18 & ReactDOM CDN (jsDelivr Global Network) -->
+  <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" crossorigin="anonymous"></script>
+  <!-- Pretendard & NanumSquare Neo Web Fonts -->
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,30 +37,52 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
 
   <style>
-    /* Mobile-first responsive styling for Team D.D System */
+    /* 🟢 NAVER PAY THEME DESIGN SYSTEM for Team D.D */
     :root {
-      --font-main: 'Pretendard', 'Noto Sans KR', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      --bg-app: #f3f4f6;
-      --bg-card: #ffffff;
-      --bg-muted: #f9fafb;
-      --border-color: #e5e7eb;
-      --primary: #111827;
-      --primary-hover: #1f2937;
-      --accent-green: #16a34a;
-      --accent-green-bg: #ecfdf5;
-      --accent-green-border: #a7f3d0;
-      --accent-red: #dc2626;
-      --accent-red-bg: #fef2f2;
-      --accent-red-border: #fecaca;
-      --text-main: #111827;
-      --text-secondary: #4b5563;
-      --text-muted: #9ca3af;
+      --font-main: "Pretendard", -apple-system, BlinkMacSystemFont, "NanumSquare Neo", "NanumSquare", "Malgun Gothic", "맑은 고딕", sans-serif;
+      
+      /* 네이버페이 시그니처 컬러 팔레트 */
+      --np-green: #03C75A;
+      --np-green-hover: #02B150;
+      --np-green-active: #009F47;
+      --np-green-bg: #E8F8F0;
+      --np-green-border: #A3E9C4;
+
+      --bg-app: #F5F7F9;
+      --bg-card: #FFFFFF;
+      --bg-muted: #F9FAFB;
+      --border-color: #E5E8EB;
+      --border-hover: #D1D6DB;
+      
+      --primary: #03C75A;
+      --primary-hover: #02B150;
+      --primary-dark: #191F28;
+      
+      --accent-green: #03C75A;
+      --accent-green-bg: #E8F8F0;
+      --accent-green-border: #A3E9C4;
+      
+      --accent-red: #F04438;
+      --accent-red-bg: #FEF3F2;
+      --accent-red-border: #FECDCA;
+
+      --accent-blue: #3182F6;
+      --accent-blue-bg: #EFF4FE;
+      --accent-blue-border: #C2D9FC;
+
+      --text-main: #191F28;
+      --text-secondary: #4E5968;
+      --text-muted: #8B95A1;
+      
+      --radius-xs: 6px;
       --radius-sm: 8px;
       --radius-md: 12px;
       --radius-lg: 16px;
-      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -1px rgba(0,0,0,0.04);
-      --shadow-lg: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.04);
+      --radius-full: 9999px;
+      
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.08), 0 8px 16px -4px rgba(0, 0, 0, 0.03);
     }
 
     *, *::before, *::after {
@@ -58,6 +90,7 @@
       margin: 0;
       padding: 0;
       -webkit-tap-highlight-color: transparent;
+      letter-spacing: -0.02em;
     }
 
     html, body, #root {
@@ -66,6 +99,7 @@
       background-color: var(--bg-app);
       color: var(--text-main);
       line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
     }
 
     .app-container {
@@ -103,14 +137,18 @@
     .brand-title {
       font-size: 0.9375rem;
       font-weight: 900;
-      letter-spacing: -0.02em;
-      color: var(--primary);
+      letter-spacing: -0.03em;
+      color: var(--primary-dark);
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
 
     .brand-sub {
       font-size: 0.6875rem;
       color: var(--text-muted);
       display: none;
+      font-weight: 500;
     }
 
     @media (min-width: 640px) {
@@ -126,24 +164,25 @@
       font-size: 0.6875rem;
       font-weight: 700;
       padding: 0.375rem 0.625rem;
-      border-radius: 9999px;
+      border-radius: var(--radius-full);
       border: 1px solid transparent;
       cursor: pointer;
       white-space: nowrap;
       flex-shrink: 0;
       touch-action: manipulation;
       z-index: 50;
+      transition: all 0.2s ease;
     }
 
     .status-badge.connected {
-      background-color: var(--accent-green-bg);
-      color: #065f46;
-      border-color: var(--accent-green-border);
+      background-color: var(--np-green-bg);
+      color: #028A3E;
+      border-color: var(--np-green-border);
     }
 
     .status-badge.disconnected {
       background-color: var(--accent-red-bg);
-      color: #991b1b;
+      color: #D92D20;
       border-color: var(--accent-red-border);
     }
 
@@ -160,7 +199,7 @@
     .tab-nav {
       display: flex;
       gap: 0.25rem;
-      background-color: #f3f4f6;
+      background-color: #EEF2F5;
       padding: 0.25rem;
       border-radius: var(--radius-sm);
       width: 100%;
@@ -178,6 +217,7 @@
       cursor: pointer;
       text-align: center;
       white-space: nowrap;
+      transition: all 0.15s ease;
     }
 
     @media (min-width: 640px) {
@@ -189,9 +229,9 @@
 
     .tab-btn.active {
       background-color: #ffffff;
-      color: var(--primary);
+      color: #028A3E;
       font-weight: 800;
-      box-shadow: var(--shadow-sm);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     }
 
     .main-content {
@@ -237,7 +277,7 @@
     .preview-panel {
       flex: 1;
       padding: 0.5rem;
-      background-color: #eef0f3;
+      background-color: #EEF2F5;
       overflow-x: auto;
       display: flex;
       flex-direction: column;
@@ -263,7 +303,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      color: var(--primary);
+      color: var(--primary-dark);
     }
 
     .form-group {
@@ -282,17 +322,20 @@
     .form-input, .form-select, .form-textarea {
       width: 100%;
       padding: 0.625rem 0.75rem;
-      border: 1px solid #d1d5db;
+      border: 1px solid var(--border-color);
       border-radius: var(--radius-sm);
       font-size: 0.8125rem;
       font-family: inherit;
       background-color: #ffffff;
       outline: none;
       min-height: 40px;
+      color: var(--text-main);
+      transition: all 0.15s ease;
     }
 
     .form-input:focus, .form-select:focus, .form-textarea:focus {
-      border-color: var(--primary);
+      border-color: var(--np-green);
+      box-shadow: 0 0 0 3px rgba(3, 199, 90, 0.15);
     }
 
     /* Canvas Direct Cell Editing Inputs */
@@ -315,13 +358,13 @@
       display: block;
     }
     .canvas-input:hover {
-      background-color: #f0f9ff !important;
-      box-shadow: inset 0 0 0 1px #3b82f6 !important;
+      background-color: #f0fdf4 !important;
+      box-shadow: inset 0 0 0 1px #03C75A !important;
       border-radius: 2px;
     }
     .canvas-input:focus {
       background-color: #ffffff !important;
-      box-shadow: inset 0 0 0 2px #2563eb !important;
+      box-shadow: inset 0 0 0 2px #03C75A !important;
       border-radius: 2px;
     }
     @media print {
@@ -337,6 +380,7 @@
       gap: 0.375rem;
     }
 
+    /* 🟢 NAVER PAY BUTTONS */
     .btn {
       padding: 0.625rem 0.875rem;
       border-radius: var(--radius-sm);
@@ -353,10 +397,44 @@
       touch-action: manipulation;
     }
 
-    .btn-primary { background-color: var(--primary); color: #ffffff; }
-    .btn-outline { background-color: #ffffff; border-color: #d1d5db; color: var(--text-main); }
-    .btn-green { background-color: var(--accent-green); color: #ffffff; }
-    .btn-red-outline { background-color: #fef2f2; border-color: #fecaca; color: #dc2626; }
+    .btn-primary {
+      background-color: var(--np-green);
+      color: #ffffff;
+      box-shadow: 0 1px 2px rgba(3, 199, 90, 0.2);
+    }
+    .btn-primary:hover {
+      background-color: var(--np-green-hover);
+    }
+    .btn-primary:active {
+      background-color: var(--np-green-active);
+    }
+
+    .btn-outline {
+      background-color: #ffffff;
+      border-color: var(--border-color);
+      color: var(--text-main);
+    }
+    .btn-outline:hover {
+      background-color: #F9FAFB;
+      border-color: var(--border-hover);
+    }
+
+    .btn-green {
+      background-color: var(--np-green);
+      color: #ffffff;
+    }
+    .btn-green:hover {
+      background-color: var(--np-green-hover);
+    }
+
+    .btn-red-outline {
+      background-color: var(--accent-red-bg);
+      border-color: var(--accent-red-border);
+      color: var(--accent-red);
+    }
+    .btn-red-outline:hover {
+      background-color: #FEE4E2;
+    }
 
     .item-card {
       background-color: var(--bg-muted);
@@ -679,10 +757,10 @@
     }
     .splash-install-ios-guide b { color: #fde68a; }
 
-    /* ── Splash / Login Screen ── */
+    /* ── Splash / Login Screen (Naver Pay Theme) ── */
     .splash-screen {
       position: fixed; inset: 0; z-index: 9999;
-      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 45%, #1d4ed8 100%);
+      background: linear-gradient(145deg, #0F172A 0%, #111E2E 50%, #032E1D 100%);
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
       font-family: var(--font-main, 'Pretendard', sans-serif);
@@ -693,63 +771,64 @@
     }
     .splash-logo-wrap {
       display: flex; flex-direction: column; align-items: center;
-      margin-bottom: 3rem;
+      margin-bottom: 2.5rem;
     }
     .splash-icon {
-      width: 72px; height: 72px; background: rgba(255,255,255,0.12);
-      border-radius: 20px; display: flex; align-items: center;
+      width: 68px; height: 68px; background: rgba(3, 199, 90, 0.15);
+      border-radius: 18px; display: flex; align-items: center;
       justify-content: center; margin-bottom: 1.25rem;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-      border: 1px solid rgba(255,255,255,0.15);
+      box-shadow: 0 8px 32px rgba(3, 199, 90, 0.2);
+      border: 1px solid rgba(3, 199, 90, 0.35);
     }
     .splash-title {
-      font-size: 3rem; font-weight: 900; color: #ffffff;
-      letter-spacing: -0.02em; line-height: 1;
+      font-size: 2.75rem; font-weight: 900; color: #ffffff;
+      letter-spacing: -0.03em; line-height: 1;
     }
-    .splash-title span { color: #60a5fa; }
+    .splash-title span { color: #03C75A; }
     .splash-subtitle {
-      font-size: 0.875rem; color: rgba(255,255,255,0.55);
+      font-size: 0.8125rem; color: rgba(255,255,255,0.65);
       margin-top: 0.5rem; letter-spacing: 0.05em;
       text-transform: uppercase;
+      font-weight: 600;
     }
     .splash-label {
-      font-size: 0.8125rem; font-weight: 600; color: rgba(255,255,255,0.6);
-      text-align: center; margin-bottom: 1rem; letter-spacing: 0.04em;
+      font-size: 0.8125rem; font-weight: 700; color: rgba(255,255,255,0.7);
+      text-align: center; margin-bottom: 1rem; letter-spacing: 0.02em;
     }
     .splash-cards {
-      display: flex; flex-direction: column; gap: 0.875rem;
+      display: flex; flex-direction: column; gap: 0.75rem;
       width: 100%; max-width: 340px; padding: 0 1.25rem;
     }
     .splash-card {
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 16px; padding: 1.125rem 1.25rem;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px; padding: 1rem 1.25rem;
       cursor: pointer; transition: all 0.22s ease;
       display: flex; align-items: center; gap: 1rem;
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(10px);
     }
     .splash-card:hover, .splash-card:active {
-      background: rgba(255,255,255,0.16);
-      border-color: rgba(255,255,255,0.35);
+      background: rgba(255,255,255,0.15);
+      border-color: rgba(3, 199, 90, 0.6);
       transform: translateY(-2px);
-      box-shadow: 0 12px 32px rgba(0,0,0,0.25);
+      box-shadow: 0 10px 28px rgba(3, 199, 90, 0.18);
     }
     .splash-card-avatar {
-      width: 46px; height: 46px; border-radius: 12px;
+      width: 44px; height: 44px; border-radius: 12px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 1.375rem; flex-shrink: 0;
+      font-size: 1.25rem; flex-shrink: 0;
     }
     .splash-card-info { flex: 1; }
     .splash-card-name {
-      font-size: 1rem; font-weight: 800; color: #ffffff; line-height: 1.3;
+      font-size: 0.9375rem; font-weight: 800; color: #ffffff; line-height: 1.3;
     }
     .splash-card-sub {
       font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-top: 2px;
     }
     .splash-card-arrow { color: rgba(255,255,255,0.35); font-size: 1.125rem; }
     .splash-footer {
-      margin-top: 2.5rem; font-size: 0.6875rem;
-      color: rgba(255,255,255,0.3); text-align: center;
+      margin-top: 2rem; font-size: 0.6875rem;
+      color: rgba(255,255,255,0.35); text-align: center;
     }
 
     /* ── Splash Login Form Styles ── */
@@ -760,7 +839,7 @@
       padding: 1.75rem 1.5rem;
       width: 100%;
       max-width: 320px;
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(10px);
       box-shadow: 0 20px 50px rgba(0,0,0,0.3);
       display: flex;
       flex-direction: column;
@@ -769,53 +848,53 @@
       margin: 0 auto;
     }
     .login-form-title {
-      font-size: 1.15rem;
+      font-size: 1.125rem;
       color: #ffffff;
       font-weight: 800;
       margin-bottom: 0.25rem;
       text-align: center;
     }
     .login-form-subtitle {
-      font-size: 0.8125rem;
+      font-size: 0.75rem;
       color: rgba(255,255,255,0.6);
       margin-bottom: 1.25rem;
       text-align: center;
     }
     .login-input {
-      background: rgba(255,255,255,0.1);
-      border: 1.5px solid rgba(255,255,255,0.2);
-      border-radius: 12px;
       width: 100%;
-      height: 44px;
-      font-size: 1.25rem;
-      letter-spacing: 0.3em;
-      text-align: center;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 12px;
+      padding: 0.75rem;
       color: #ffffff;
+      font-size: 1.25rem;
+      text-align: center;
+      letter-spacing: 0.4em;
       outline: none;
       transition: all 0.2s ease;
-      margin-bottom: 0.75rem;
     }
     .login-input:focus {
-      background: rgba(255,255,255,0.15);
-      border-color: #60a5fa;
-      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.25);
+      background: rgba(255, 255, 255, 0.2);
+      border-color: #03C75A;
+      box-shadow: 0 0 0 3px rgba(3, 199, 90, 0.3);
     }
     .login-error {
-      color: #fca5a5;
+      color: #f87171;
       font-size: 0.75rem;
-      margin-bottom: 0.75rem;
-      font-weight: 600;
+      min-height: 1.25rem;
+      margin-top: 0.5rem;
       text-align: center;
-      min-height: 18px;
+      font-weight: 600;
     }
     .login-buttons {
       display: flex;
       gap: 0.5rem;
       width: 100%;
+      margin-top: 0.5rem;
     }
     .login-btn {
       flex: 1;
-      height: 40px;
+      padding: 0.75rem;
       border-radius: 10px;
       font-weight: 700;
       font-size: 0.875rem;
@@ -824,11 +903,11 @@
       transition: all 0.2s ease;
     }
     .login-btn-primary {
-      background: #3b82f6;
+      background: #03C75A;
       color: #ffffff;
     }
     .login-btn-primary:hover {
-      background: #2563eb;
+      background: #02B150;
     }
     .login-btn-secondary {
       background: rgba(255,255,255,0.15);
@@ -5005,7 +5084,7 @@ function ScheduleTab({
         React.createElement("button", {
           type: "button",
           className: "btn btn-primary",
-          style: { padding: '6px 12px', fontSize: '0.8125rem', fontWeight: '800', backgroundColor: '#1E6091', borderColor: '#1E6091', minHeight: '32px' },
+          style: { padding: '6px 12px', fontSize: '0.8125rem', fontWeight: '800', backgroundColor: '#03C75A', borderColor: '#03C75A', minHeight: '32px' },
           onClick: () => handleOpenAddEvent()
         }, "➕ 새 일정 등록")
       ),
@@ -5028,12 +5107,12 @@ function ScheduleTab({
           }, "🔒 비공개"),
           React.createElement("button", {
             type: "button",
-            style: { padding: '2px 7px', borderRadius: '4px', border: '1px solid #bbf7d0', cursor: 'pointer', backgroundColor: privacyFilter === 'my_public' ? '#16a34a' : '#f0fdf4', color: privacyFilter === 'my_public' ? '#fff' : '#15803d', fontWeight: privacyFilter === 'my_public' ? '800' : '700' },
+            style: { padding: '2px 7px', borderRadius: '4px', border: '1px solid #bbf7d0', cursor: 'pointer', backgroundColor: privacyFilter === 'my_public' ? '#03C75A' : '#f0fdf4', color: privacyFilter === 'my_public' ? '#fff' : '#028A3E', fontWeight: privacyFilter === 'my_public' ? '800' : '700' },
             onClick: () => setPrivacyFilter('my_public')
           }, "🔓 공개"),
           React.createElement("button", {
             type: "button",
-            style: { padding: '2px 7px', borderRadius: '4px', border: '1px solid #bfdbfe', cursor: 'pointer', backgroundColor: privacyFilter === 'others_public' ? '#2563eb' : '#eff6ff', color: privacyFilter === 'others_public' ? '#fff' : '#1d4ed8', fontWeight: privacyFilter === 'others_public' ? '800' : '700' },
+            style: { padding: '2px 7px', borderRadius: '4px', border: '1px solid #bfdbfe', cursor: 'pointer', backgroundColor: privacyFilter === 'others_public' ? '#3182F6' : '#eff6ff', color: privacyFilter === 'others_public' ? '#fff' : '#1d4ed8', fontWeight: privacyFilter === 'others_public' ? '800' : '700' },
             onClick: () => setPrivacyFilter('others_public')
           }, "🌐 공유")
         ),
@@ -5066,7 +5145,7 @@ function ScheduleTab({
       },
         ['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => React.createElement("div", {
           key: day,
-          style: { padding: '6px 0', color: idx === 0 ? '#ef4444' : (idx === 6 ? '#2563eb' : '#334155'), backgroundColor: idx === 0 ? '#fef2f2' : (idx === 6 ? '#eff6ff' : 'transparent') }
+          style: { padding: '6px 0', color: idx === 0 ? '#ef4444' : (idx === 6 ? '#3182F6' : '#334155'), backgroundColor: idx === 0 ? '#fef2f2' : (idx === 6 ? '#eff6ff' : 'transparent') }
         }, day))
       ),
 
@@ -5084,7 +5163,7 @@ function ScheduleTab({
             className: "cal-cell",
             style: {
               backgroundColor: cell.isCurrentMonth ? '#ffffff' : '#f8fafc',
-              outline: isSelected ? '2px solid #1E6091' : (isToday ? '2px solid #3b82f6' : 'none'),
+              outline: isSelected ? '2px solid #03C75A' : (isToday ? '2px solid #3182F6' : 'none'),
               outlineOffset: '-2px'
             },
             onClick: () => {
@@ -5105,8 +5184,8 @@ function ScheduleTab({
                 style: {
                   fontSize: '0.8125rem',
                   fontWeight: isToday ? '900' : '700',
-                  color: !cell.isCurrentMonth ? '#cbd5e1' : (dayOfWeek === 0 ? '#ef4444' : (dayOfWeek === 6 ? '#2563eb' : '#1e293b')),
-                  backgroundColor: isToday ? '#3b82f6' : 'transparent',
+                  color: !cell.isCurrentMonth ? '#cbd5e1' : (dayOfWeek === 0 ? '#ef4444' : (dayOfWeek === 6 ? '#3182F6' : '#1e293b')),
+                  backgroundColor: isToday ? '#03C75A' : 'transparent',
                   color: isToday ? '#ffffff' : undefined,
                   padding: isToday ? '1px 5px' : '0',
                   borderRadius: isToday ? '6px' : '0',
@@ -5121,11 +5200,11 @@ function ScheduleTab({
             /* 📱 [모바일 뷰] 컬러 점(Dot) 인디케이터 (글자 삐져나옴 완벽 해결) */
             React.createElement("div", { className: "cal-dot-container" },
               cell.events.slice(0, 4).map((ev, dIdx) => {
-                let dotColor = '#3b82f6';
-                if (ev.type === 'payment') dotColor = '#ef4444';
-                else if (ev.type === 'estimate') dotColor = '#ea580c';
-                else if (ev.is_shared) dotColor = '#10b981';
-                else dotColor = '#f59e0b';
+                let dotColor = '#03C75A';
+                if (ev.type === 'payment') dotColor = '#F04438';
+                else if (ev.type === 'estimate') dotColor = '#F79009';
+                else if (ev.is_shared) dotColor = '#3182F6';
+                else dotColor = '#03C75A';
 
                 return React.createElement("span", {
                   key: dIdx,
@@ -5148,13 +5227,13 @@ function ScheduleTab({
                 let badgeBorder = '#cbd5e1';
 
                 if (ev.type === 'payment') {
-                  badgeBg = '#fef2f2'; badgeColor = '#991b1b'; badgeBorder = '#fca5a5';
+                  badgeBg = '#FEF3F2'; badgeColor = '#D92D20'; badgeBorder = '#FECDCA';
                 } else if (ev.type === 'estimate') {
-                  badgeBg = '#fff7ed'; badgeColor = '#c2410c'; badgeBorder = '#fdba74';
+                  badgeBg = '#FFF6ED'; badgeColor = '#C4320A'; badgeBorder = '#FEDF89';
                 } else if (ev.is_shared) {
-                  badgeBg = '#eff6ff'; badgeColor = '#1d4ed8'; badgeBorder = '#bfdbfe';
+                  badgeBg = '#EFF4FE'; badgeColor = '#1B64DA'; badgeBorder = '#C2D9FC';
                 } else {
-                  badgeBg = '#fef3c7'; badgeColor = '#92400e'; badgeBorder = '#fde68a';
+                  badgeBg = '#E8F8F0'; badgeColor = '#028A3E'; badgeBorder = '#A3E9C4';
                 }
 
                 return React.createElement("div", {
@@ -5198,7 +5277,7 @@ function ScheduleTab({
         React.createElement("button", {
           type: "button",
           className: "btn btn-primary",
-          style: { fontSize: '0.75rem', padding: '5px 12px', minHeight: '30px', backgroundColor: '#1E6091', borderColor: '#1E6091', fontWeight: '800' },
+          style: { fontSize: '0.75rem', padding: '5px 12px', minHeight: '30px', backgroundColor: '#03C75A', borderColor: '#03C75A', fontWeight: '800' },
           onClick: () => handleOpenAddEvent(selectedDate)
         }, "➕ 이 날짜에 일정 추가")
       ),
@@ -5216,8 +5295,8 @@ function ScheduleTab({
               style: {
                 padding: '10px 12px',
                 borderRadius: '8px',
-                backgroundColor: isPrivate ? '#fffbeb' : '#f0fdf4',
-                border: `1px solid ${isPrivate ? '#fde68a' : '#bbf7d0'}`,
+                backgroundColor: isPrivate ? '#fffbeb' : '#E8F8F0',
+                border: `1px solid ${isPrivate ? '#fde68a' : '#A3E9C4'}`,
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
@@ -5233,15 +5312,15 @@ function ScheduleTab({
                       fontWeight: '800',
                       padding: '1px 6px',
                       borderRadius: '4px',
-                      backgroundColor: isPrivate ? '#fef3c7' : '#dcfce7',
-                      color: isPrivate ? '#92400e' : '#15803d'
+                      backgroundColor: isPrivate ? '#fef3c7' : '#D4F4E2',
+                      color: isPrivate ? '#92400e' : '#028A3E'
                     }
                   }, isPrivate ? '🔒 비공개' : '🔓 공개'),
                   React.createElement("span", { style: { fontWeight: '800', fontSize: '0.875rem', color: '#1e293b' } }, ev.title)
                 ),
                 ev.event_time && React.createElement("div", { style: { fontSize: '11px', color: '#64748b' } }, `⏰ 시간: ${ev.event_time}`),
                 ev.customer_name && React.createElement("div", { style: { fontSize: '11px', color: '#475569' } }, `🏢 거래처: ${ev.customer_name} (${ev.customer_phone || '-'})`),
-                ev.machine_info && React.createElement("div", { style: { fontSize: '11px', color: '#1d4ed8' } }, `🚜 기종: ${ev.machine_info}`),
+                ev.machine_info && React.createElement("div", { style: { fontSize: '11px', color: '#1B64DA' } }, `🚜 기종: ${ev.machine_info}`),
                 ev.memo && React.createElement("div", { style: { fontSize: '11px', color: '#64748b', marginTop: '2px' } }, `📝 메모: ${ev.memo}`)
               ),
               React.createElement("div", { style: { display: 'flex', gap: '4px' } },
@@ -5253,7 +5332,7 @@ function ScheduleTab({
                 }, "문서 열기") : React.createElement("button", {
                   type: "button",
                   className: "btn btn-primary",
-                  style: { fontSize: '11px', padding: '4px 8px', minHeight: '30px', backgroundColor: '#1E6091', borderColor: '#1E6091' },
+                  style: { fontSize: '11px', padding: '4px 8px', minHeight: '30px', backgroundColor: '#03C75A', borderColor: '#03C75A' },
                   onClick: () => handleOpenEditEvent(ev)
                 }, "수정")
               )
@@ -5270,7 +5349,7 @@ function ScheduleTab({
 
         /* 🔒 공개/비공개 선택 영역 (기본값: 🔒 비공개) */
         React.createElement("div", {
-          style: { padding: '10px 12px', backgroundColor: form.is_shared ? '#f0fdf4' : '#fffbeb', border: `2px solid ${form.is_shared ? '#86efac' : '#fde68a'}`, borderRadius: '8px', marginBottom: '1rem' }
+          style: { padding: '10px 12px', backgroundColor: form.is_shared ? '#E8F8F0' : '#fffbeb', border: `2px solid ${form.is_shared ? '#A3E9C4' : '#fde68a'}`, borderRadius: '8px', marginBottom: '1rem' }
         },
           React.createElement("label", { style: { display: 'block', fontSize: '0.8125rem', fontWeight: '900', color: '#1e293b', marginBottom: '6px' } }, "🛡️ 공개 여부 설정 (타 공급자 노출 제어)"),
           React.createElement("div", { style: { display: 'flex', gap: '12px' } },
@@ -5278,7 +5357,7 @@ function ScheduleTab({
               React.createElement("input", { type: "radio", name: "is_shared", checked: form.is_shared === false, onChange: () => setForm({ ...form, is_shared: false }) }),
               React.createElement("span", null, "🔒 비공개 (나만 보기 - 기본값)")
             ),
-            React.createElement("label", { style: { display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8125rem', color: '#15803d' } },
+            React.createElement("label", { style: { display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8125rem', color: '#028A3E' } },
               React.createElement("input", { type: "radio", name: "is_shared", checked: form.is_shared === true, onChange: () => setForm({ ...form, is_shared: true }) }),
               React.createElement("span", null, "🔓 공개 (다른 공급자와 공유)")
             )
@@ -5349,7 +5428,7 @@ function ScheduleTab({
           }, "🗑️ 삭제") : React.createElement("div", null),
           React.createElement("div", { style: { display: 'flex', gap: '8px' } },
             React.createElement("button", { type: "button", className: "btn btn-outline", onClick: () => setShowEventModal(false) }, "취소"),
-            React.createElement("button", { type: "button", className: "btn btn-primary", style: { backgroundColor: '#1E6091', borderColor: '#1E6091', fontWeight: '800' }, onClick: handleSaveEvent }, "💾 일정 저장")
+            React.createElement("button", { type: "button", className: "btn btn-primary", style: { backgroundColor: '#03C75A', borderColor: '#03C75A', fontWeight: '800' }, onClick: handleSaveEvent }, "💾 일정 저장")
           )
         )
       )
