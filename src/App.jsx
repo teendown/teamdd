@@ -218,8 +218,8 @@ export default function App() {
       const todayStr = now.toISOString().split('T')[0];
       setDocNo(generateNextDocNo(todayStr, documentsList, selectedSupplierKey, custData, '거래명세서', suppliersList, customersList));
       setDocDate(todayStr);
-      setDocTime(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
-      setRemark(doc.remark || '');
+      const cleanRemark = (doc.remark || '').split('---EXT---')[0].trim();
+      setRemark(cleanRemark);
       setEditingDocId(null);
       setIsSavedThisSession(false);
       alert(`✓ 지난 명세서(${doc.doc_no || doc.docNo})의 품목과 거래처를 새 거래명세서로 성공적으로 복사했습니다.`);
@@ -255,7 +255,8 @@ export default function App() {
       setDocNo(generateNextDocNo(todayStr, documentsList, selectedSupplierKey, custData, '거래명세서', suppliersList, customersList));
       setDocDate(todayStr);
       setDocTime(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
-      setRemark(doc.remark ? `${doc.remark} (견적서 ${doc.doc_no || doc.docNo} 기반)` : `(견적서 ${doc.doc_no || doc.docNo} 기반)`);
+      const cleanRemark = (doc.remark || '').split('---EXT---')[0].trim();
+      setRemark(cleanRemark ? `${cleanRemark} (견적서 ${doc.doc_no || doc.docNo} 기반)` : `(견적서 ${doc.doc_no || doc.docNo} 기반)`);
       setEditingDocId(null);
       setIsSavedThisSession(false);
       alert(`✓ 견적서(${doc.doc_no || doc.docNo}) 내용을 거래명세서로 성공적으로 가져왔습니다.`);
@@ -576,7 +577,7 @@ export default function App() {
     setDueDate(doc.dueDate || doc.due_date || '');
     setReceiverName(doc.receiverName || doc.receiver_name || '');
     setReceiveDate(doc.receiveDate || doc.receive_date || '');
-    setRemark(doc.remark || '');
+    setRemark((doc.remark || '').split('---EXT---')[0].trim());
     setIsDocShared(doc.is_shared === true);
     setEditingDocId(doc.id || null);
     setIsSavedThisSession(true);

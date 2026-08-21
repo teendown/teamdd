@@ -54,7 +54,7 @@ export async function saveDocument(docData) {
     vat: docData.vat || 0,
     vat_included: docData.vatIncluded !== false,
     paid: docData.paid || 0,
-    remark: docData.remark || '',
+    remark: (docData.remark || '').split('---EXT---')[0].trim(),
     paymentStatus: docData.paymentStatus,
     paymentMethod: docData.paymentMethod,
     paymentDate: docData.paymentDate,

@@ -27876,7 +27876,7 @@ ${suffix}`;
     if (table === "customers") {
       standardCols = ["id", "created_at", "code", "name", "bizno", "person", "phone", "addr", "machine", "memo"];
     } else if (table === "suppliers") {
-      standardCols = ["id", "created_at", "code", "name", "bizno", "person", "phone", "tel", "bank", "addr", "memo", "is_default"];
+      standardCols = ["id", "created_at", "code", "name", "bizno", "person", "phone", "tel", "fax", "email", "bank", "addr", "memo", "is_default"];
     } else if (table === "documents") {
       standardCols = ["id", "created_at", "doc_type", "doc_no", "doc_date", "doc_time", "customer_name", "customer_data", "supplier_key", "supplier_data", "items", "vat", "vat_included", "paid", "remark", "is_shared"];
     } else if (table === "schedules") {
@@ -27897,18 +27897,58 @@ ${suffix}`;
       }
     }
     if (Object.keys(extra).length > 0) {
-      payload.extra_data = { ...payload.extra_data || {}, ...extra };
+      if (table === "documents") {
+        const cleanRemark = (payload.remark || "").split("---EXT---")[0].trim();
+        payload.remark = cleanRemark ? `${cleanRemark}
+---EXT---
+${JSON.stringify(extra)}` : `
+---EXT---
+${JSON.stringify(extra)}`;
+      } else {
+        const cleanMemo = (payload.memo || "").split("---EXT---")[0].trim();
+        payload.memo = cleanMemo ? `${cleanMemo}
+---EXT---
+${JSON.stringify(extra)}` : `
+---EXT---
+${JSON.stringify(extra)}`;
+      }
     }
     return payload;
   }
   function unpackRow(r) {
     if (!r) return r;
-    const extra = r.extra_data;
-    if (extra && typeof extra === "object") {
-      const { extra_data, ...rest } = r;
-      return { ...extra, ...rest };
+    const res = { ...r };
+    if (res.memo && typeof res.memo === "string" && res.memo.includes("---EXT---")) {
+      const parts = res.memo.split("---EXT---");
+      res.memo = parts[0].trim();
+      if (parts[1]) {
+        try {
+          const ext = JSON.parse(parts[1].trim());
+          Object.assign(res, ext);
+        } catch (e) {
+        }
+      }
     }
-    return r;
+    if (res.remark && typeof res.remark === "string" && res.remark.includes("---EXT---")) {
+      const parts = res.remark.split("---EXT---");
+      res.remark = parts[0].trim();
+      if (parts[1]) {
+        try {
+          const ext = JSON.parse(parts[1].trim());
+          Object.assign(res, ext);
+        } catch (e) {
+        }
+      }
+    }
+    if (res.extra_data && typeof res.extra_data === "object") {
+      Object.assign(res, res.extra_data);
+      delete res.extra_data;
+    }
+    if (res.start_date && !res.event_date) res.event_date = res.start_date;
+    if (res.schedule_time && !res.event_time) res.event_time = res.schedule_time;
+    if (res.phone && !res.customer_phone) res.customer_phone = res.phone;
+    if (res.machine && !res.machine_info) res.machine_info = res.machine;
+    return res;
   }
 
   // src/api/supabaseClient.js
@@ -28316,7 +28356,7 @@ ${suffix}`;
       vat: docData.vat || 0,
       vat_included: docData.vatIncluded !== false,
       paid: docData.paid || 0,
-      remark: docData.remark || "",
+      remark: (docData.remark || "").split("---EXT---")[0].trim(),
       paymentStatus: docData.paymentStatus,
       paymentMethod: docData.paymentMethod,
       paymentDate: docData.paymentDate,
@@ -29238,20 +29278,24 @@ ${suffix}`;
           /* @__PURE__ */ import_react4.default.createElement("div", null, /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.75rem", color: "var(--c-blue-accent)", fontWeight: "800" } }, "\uCD1D \uD569\uACC4\uAE08\uC561"), /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "1.0625rem", fontWeight: "900", color: "var(--c-blue-accent)" } }, grandTotal.toLocaleString(), "\uC6D0")),
           /* @__PURE__ */ import_react4.default.createElement("div", null, /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.75rem", color: "#028A3E" } }, "\uC785\uAE08/\uC218\uAE08\uC561"), /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.9375rem", fontWeight: "800", color: "#028A3E" } }, paid.toLocaleString(), "\uC6D0")),
           /* @__PURE__ */ import_react4.default.createElement("div", null, /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.75rem", color: balance > 0 ? "#D92D20" : "var(--text-muted)" } }, "\uBBF8\uC218 \uC794\uC561"), /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "1.0625rem", fontWeight: "900", color: balance > 0 ? "#D92D20" : "#028A3E" } }, balance > 0 ? `${balance.toLocaleString()}\uC6D0` : "0\uC6D0 (\uC644\uB0A9)"))
-        ), doc.remark && /* @__PURE__ */ import_react4.default.createElement(
-          "div",
-          {
-            style: {
-              padding: "0.75rem 1rem",
-              backgroundColor: "#FFFFFF",
-              borderRadius: "8px",
-              border: "1px solid var(--border-color)",
-              fontSize: "0.8125rem"
-            }
-          },
-          /* @__PURE__ */ import_react4.default.createElement("strong", { style: { color: "var(--c-navy-primary)" } }, "\u{1F4DD} \uD2B9\uC774\uC0AC\uD56D: "),
-          doc.remark
-        )),
+        ), (() => {
+          const cleanRemark = (doc.remark || "").split("---EXT---")[0].trim();
+          if (!cleanRemark) return null;
+          return /* @__PURE__ */ import_react4.default.createElement(
+            "div",
+            {
+              style: {
+                padding: "0.75rem 1rem",
+                backgroundColor: "#FFFFFF",
+                borderRadius: "8px",
+                border: "1px solid var(--border-color)",
+                fontSize: "0.8125rem"
+              }
+            },
+            /* @__PURE__ */ import_react4.default.createElement("strong", { style: { color: "var(--c-navy-primary)" } }, "\u{1F4DD} \uD2B9\uC774\uC0AC\uD56D: "),
+            cleanRemark
+          );
+        })()),
         /* @__PURE__ */ import_react4.default.createElement(
           "div",
           {
@@ -32543,7 +32587,7 @@ IconFile=${currentUrl}favicon.ico\r
     const handleOpenEditPaid = (doc) => {
       setEditingDoc(doc);
       setInputPaid(Number(doc.paid) || 0);
-      setInputRemark(doc.remark || "");
+      setInputRemark((doc.remark || "").split("---EXT---")[0].trim());
     };
     const handleSavePaidModal = async () => {
       if (!editingDoc) return;
@@ -32561,6 +32605,7 @@ IconFile=${currentUrl}favicon.ico\r
         const status = balance <= 0 ? "\uC644\uB0A9" : paid > 0 ? "\uBD80\uBD84\uB0A9" : "\uBBF8\uC218";
         const custName = doc.customer_name || doc.customer_data?.name || doc.customer?.name || "-";
         const suppName = doc.supplier_data?.company || doc.supplier_data?.name || doc.supplier_key || doc.supplierKey || "-";
+        const cleanRemark = (doc.remark || "").split("---EXT---")[0].trim();
         return [
           `"${doc.doc_date || doc.docDate || ""}"`,
           `"${doc.doc_no || doc.docNo || ""}"`,
@@ -32573,7 +32618,7 @@ IconFile=${currentUrl}favicon.ico\r
           paid,
           balance,
           `"${status}"`,
-          `"${(doc.remark || "").replace(/"/g, '""')}"`
+          `"${cleanRemark.replace(/"/g, '""')}"`
         ];
       });
       const csvContent = "\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
@@ -34373,8 +34418,8 @@ IconFile=${currentUrl}favicon.ico\r
         const todayStr = now.toISOString().split("T")[0];
         setDocNo(generateNextDocNo(todayStr, documentsList, selectedSupplierKey, custData, "\uAC70\uB798\uBA85\uC138\uC11C", suppliersList, customersList));
         setDocDate(todayStr);
-        setDocTime(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
-        setRemark(doc.remark || "");
+        const cleanRemark = (doc.remark || "").split("---EXT---")[0].trim();
+        setRemark(cleanRemark);
         setEditingDocId(null);
         setIsSavedThisSession(false);
         alert(`\u2713 \uC9C0\uB09C \uBA85\uC138\uC11C(${doc.doc_no || doc.docNo})\uC758 \uD488\uBAA9\uACFC \uAC70\uB798\uCC98\uB97C \uC0C8 \uAC70\uB798\uBA85\uC138\uC11C\uB85C \uC131\uACF5\uC801\uC73C\uB85C \uBCF5\uC0AC\uD588\uC2B5\uB2C8\uB2E4.`);
@@ -34409,7 +34454,8 @@ IconFile=${currentUrl}favicon.ico\r
         setDocNo(generateNextDocNo(todayStr, documentsList, selectedSupplierKey, custData, "\uAC70\uB798\uBA85\uC138\uC11C", suppliersList, customersList));
         setDocDate(todayStr);
         setDocTime(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
-        setRemark(doc.remark ? `${doc.remark} (\uACAC\uC801\uC11C ${doc.doc_no || doc.docNo} \uAE30\uBC18)` : `(\uACAC\uC801\uC11C ${doc.doc_no || doc.docNo} \uAE30\uBC18)`);
+        const cleanRemark = (doc.remark || "").split("---EXT---")[0].trim();
+        setRemark(cleanRemark ? `${cleanRemark} (\uACAC\uC801\uC11C ${doc.doc_no || doc.docNo} \uAE30\uBC18)` : `(\uACAC\uC801\uC11C ${doc.doc_no || doc.docNo} \uAE30\uBC18)`);
         setEditingDocId(null);
         setIsSavedThisSession(false);
         alert(`\u2713 \uACAC\uC801\uC11C(${doc.doc_no || doc.docNo}) \uB0B4\uC6A9\uC744 \uAC70\uB798\uBA85\uC138\uC11C\uB85C \uC131\uACF5\uC801\uC73C\uB85C \uAC00\uC838\uC654\uC2B5\uB2C8\uB2E4.`);
@@ -34722,7 +34768,7 @@ IconFile=${currentUrl}favicon.ico\r
       setDueDate2(doc.dueDate || doc.due_date || "");
       setReceiverName(doc.receiverName || doc.receiver_name || "");
       setReceiveDate(doc.receiveDate || doc.receive_date || "");
-      setRemark(doc.remark || "");
+      setRemark((doc.remark || "").split("---EXT---")[0].trim());
       setIsDocShared(doc.is_shared === true);
       setEditingDocId(doc.id || null);
       setIsSavedThisSession(true);

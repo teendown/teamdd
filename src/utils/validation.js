@@ -23,7 +23,7 @@ export function packRow(r, table) {
   if (table === 'customers') {
     standardCols = ['id', 'created_at', 'code', 'name', 'bizno', 'person', 'phone', 'addr', 'machine', 'memo'];
   } else if (table === 'suppliers') {
-    standardCols = ['id', 'created_at', 'code', 'name', 'bizno', 'person', 'phone', 'tel', 'bank', 'addr', 'memo', 'is_default'];
+    standardCols = ['id', 'created_at', 'code', 'name', 'bizno', 'person', 'phone', 'tel', 'fax', 'email', 'bank', 'addr', 'memo', 'is_default'];
   } else if (table === 'documents') {
     standardCols = ['id', 'created_at', 'doc_type', 'doc_no', 'doc_date', 'doc_time', 'customer_name', 'customer_data', 'supplier_key', 'supplier_data', 'items', 'vat', 'vat_included', 'paid', 'remark', 'is_shared'];
   } else if (table === 'schedules') {
@@ -45,17 +45,52 @@ export function packRow(r, table) {
     }
   }
   if (Object.keys(extra).length > 0) {
-    payload.extra_data = { ...(payload.extra_data || {}), ...extra };
+    if (table === 'documents') {
+      const cleanRemark = (payload.remark || '').split('---EXT---')[0].trim();
+      payload.remark = cleanRemark ? `${cleanRemark}\n---EXT---\n${JSON.stringify(extra)}` : `\n---EXT---\n${JSON.stringify(extra)}`;
+    } else {
+      const cleanMemo = (payload.memo || '').split('---EXT---')[0].trim();
+      payload.memo = cleanMemo ? `${cleanMemo}\n---EXT---\n${JSON.stringify(extra)}` : `\n---EXT---\n${JSON.stringify(extra)}`;
+    }
   }
   return payload;
 }
 
 export function unpackRow(r) {
   if (!r) return r;
-  const extra = r.extra_data;
-  if (extra && typeof extra === 'object') {
-    const { extra_data, ...rest } = r;
-    return { ...extra, ...rest };
+  const res = { ...r };
+
+  if (res.memo && typeof res.memo === 'string' && res.memo.includes('---EXT---')) {
+    const parts = res.memo.split('---EXT---');
+    res.memo = parts[0].trim();
+    if (parts[1]) {
+      try {
+        const ext = JSON.parse(parts[1].trim());
+        Object.assign(res, ext);
+      } catch (e) {}
+    }
   }
-  return r;
+
+  if (res.remark && typeof res.remark === 'string' && res.remark.includes('---EXT---')) {
+    const parts = res.remark.split('---EXT---');
+    res.remark = parts[0].trim();
+    if (parts[1]) {
+      try {
+        const ext = JSON.parse(parts[1].trim());
+        Object.assign(res, ext);
+      } catch (e) {}
+    }
+  }
+
+  if (res.extra_data && typeof res.extra_data === 'object') {
+    Object.assign(res, res.extra_data);
+    delete res.extra_data;
+  }
+
+  if (res.start_date && !res.event_date) res.event_date = res.start_date;
+  if (res.schedule_time && !res.event_time) res.event_time = res.schedule_time;
+  if (res.phone && !res.customer_phone) res.customer_phone = res.phone;
+  if (res.machine && !res.machine_info) res.machine_info = res.machine;
+
+  return res;
 }

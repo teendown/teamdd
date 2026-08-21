@@ -277,20 +277,24 @@ export default function DocumentPreviewModal({
           </div>
 
           {/* 특이사항 */}
-          {doc.remark && (
-            <div
-              style={{
-                padding: '0.75rem 1rem',
-                backgroundColor: '#FFFFFF',
-                borderRadius: '8px',
-                border: '1px solid var(--border-color)',
-                fontSize: '0.8125rem'
-              }}
-            >
-              <strong style={{ color: 'var(--c-navy-primary)' }}>📝 특이사항: </strong>
-              {doc.remark}
-            </div>
-          )}
+          {(() => {
+            const cleanRemark = (doc.remark || '').split('---EXT---')[0].trim();
+            if (!cleanRemark) return null;
+            return (
+              <div
+                style={{
+                  padding: '0.75rem 1rem',
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  fontSize: '0.8125rem'
+                }}
+              >
+                <strong style={{ color: 'var(--c-navy-primary)' }}>📝 특이사항: </strong>
+                {cleanRemark}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Footer Action Bar */}

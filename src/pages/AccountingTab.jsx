@@ -188,7 +188,7 @@ export default function AccountingTab({
   const handleOpenEditPaid = (doc) => {
     setEditingDoc(doc);
     setInputPaid(Number(doc.paid) || 0);
-    setInputRemark(doc.remark || '');
+    setInputRemark((doc.remark || '').split('---EXT---')[0].trim());
   };
 
   const handleSavePaidModal = async () => {
@@ -208,6 +208,7 @@ export default function AccountingTab({
       const status = balance <= 0 ? '완납' : (paid > 0 ? '부분납' : '미수');
       const custName = doc.customer_name || doc.customer_data?.name || doc.customer?.name || '-';
       const suppName = doc.supplier_data?.company || doc.supplier_data?.name || doc.supplier_key || doc.supplierKey || '-';
+      const cleanRemark = (doc.remark || '').split('---EXT---')[0].trim();
       return [
         `"${doc.doc_date || doc.docDate || ''}"`,
         `"${doc.doc_no || doc.docNo || ''}"`,
@@ -220,7 +221,7 @@ export default function AccountingTab({
         paid,
         balance,
         `"${status}"`,
-        `"${(doc.remark || '').replace(/"/g, '""')}"`
+        `"${cleanRemark.replace(/"/g, '""')}"`
       ];
     });
     const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
