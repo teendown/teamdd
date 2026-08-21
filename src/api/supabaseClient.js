@@ -1,4 +1,5 @@
 // 🎨 TEAM D.D SUPABASE CLIENT & CORE DATABASE LAYER
+import { createClient } from '@supabase/supabase-js';
 import { DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_KEY, STORAGE_KEYS } from '../config/constants.js';
 import { getLocalItem, setLocalItem } from './storage.js';
 import { isValidUUID, packRow, unpackRow, areSupplierKeysEquivalent } from '../utils/validation.js';
@@ -7,19 +8,42 @@ let _sbClient = null;
 let _sbUrl = '';
 let _sbKey = '';
 
+function getCreateClientFn() {
+  if (typeof createClient === 'function') return createClient;
+  if (typeof window !== 'undefined' && window.supabase && typeof window.supabase.createClient === 'function') {
+    return window.supabase.createClient;
+  }
+  return null;
+}
+
+export function getValidSupabaseConfig(explicitUrl, explicitKey) {
+  let url = (explicitUrl !== undefined && explicitUrl !== null) ? explicitUrl : localStorage.getItem(STORAGE_KEYS.SUPABASE_URL);
+  let key = (explicitKey !== undefined && explicitKey !== null) ? explicitKey : localStorage.getItem(STORAGE_KEYS.SUPABASE_KEY);
+
+  url = (typeof url === 'string') ? url.trim() : '';
+  key = (typeof key === 'string') ? key.trim() : '';
+
+  if (!url || url === 'undefined' || url === 'null' || !url.startsWith('https://')) {
+    url = DEFAULT_SUPABASE_URL;
+  }
+  if (!key || key === 'undefined' || key === 'null' || key.length < 10) {
+    key = DEFAULT_SUPABASE_KEY;
+  }
+  return { url, key };
+}
+
 export function getSupabaseClient() {
-  const url = (localStorage.getItem(STORAGE_KEYS.SUPABASE_URL) || DEFAULT_SUPABASE_URL).trim();
-  const key = (localStorage.getItem(STORAGE_KEYS.SUPABASE_KEY) || DEFAULT_SUPABASE_KEY).trim();
+  const { url, key } = getValidSupabaseConfig();
   if (!url || !key) return null;
   if (_sbClient && url === _sbUrl && key === _sbKey) return _sbClient;
   
   try {
-    const supabaseLib = window.supabase;
-    if (!supabaseLib || !supabaseLib.createClient) {
-      console.warn('Supabase SDK not loaded on window');
+    const createFn = getCreateClientFn();
+    if (!createFn) {
+      console.warn('Supabase SDK createClient function not found');
       return null;
     }
-    _sbClient = supabaseLib.createClient(url, key, {
+    _sbClient = createFn(url, key, {
       auth: {
         persistSession: false,
         autoRefreshToken: false
@@ -35,19 +59,16 @@ export function getSupabaseClient() {
 }
 
 export async function sbTestConnection(url, key) {
-  if (!url || !key) {
-    return {
-      ok: false,
-      message: 'URL과 Anon Key를 입력해 주세요.'
-    };
-  }
+  const config = getValidSupabaseConfig(url, key);
+  const targetUrl = config.url;
+  const targetKey = config.key;
 
   try {
-    const supabaseLib = window.supabase;
-    if (!supabaseLib || !supabaseLib.createClient) {
+    const createFn = getCreateClientFn();
+    if (!createFn) {
       return { ok: false, message: 'Supabase 라이브러리를 불러올 수 없습니다.' };
     }
-    const client = supabaseLib.createClient(url.trim(), key.trim(), {
+    const client = createFn(targetUrl, targetKey, {
       auth: { persistSession: false }
     });
     const [resCust, resDoc, resSch] = await Promise.all([
@@ -66,7 +87,7 @@ export async function sbTestConnection(url, key) {
       }
       return {
         ok: false,
-        message: '연결 오류: ' + err.message
+        message: '연결 오류: ' + (err.message || JSON.stringify(err))
       };
     }
     return {

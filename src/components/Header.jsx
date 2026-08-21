@@ -1,6 +1,5 @@
-// 🎨 TEAM D.D HEADER COMPONENT
 import React, { useState } from 'react';
-import { SQL_ALL } from '../config/constants.js';
+import { SQL_ALL, DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_KEY } from '../config/constants.js';
 import { areSupplierKeysEquivalent } from '../utils/validation.js';
 
 export default function Header({
@@ -24,6 +23,16 @@ export default function Header({
 }) {
   const [showConfig, setShowConfig] = useState(false);
   const [copiedSQL, setCopiedSQL] = useState(false);
+
+  const handleResetToDefaults = () => {
+    setSupabaseUrl(DEFAULT_SUPABASE_URL);
+    setSupabaseKey(DEFAULT_SUPABASE_KEY);
+    localStorage.setItem('supabase_url', DEFAULT_SUPABASE_URL);
+    localStorage.setItem('supabase_anon_key', DEFAULT_SUPABASE_KEY);
+    setTimeout(() => {
+      onTestConnection();
+    }, 50);
+  };
 
   const supplierDisplayName = currentSupplier?.company || currentSupplier?.name || 
     (suppliersList.find(s => areSupplierKeysEquivalent(s.id, selectedSupplierKey))?.name) || 
@@ -136,14 +145,25 @@ export default function Header({
                 onChange={e => setSupabaseKey(e.target.value)}
               />
             </div>
-            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px' }}>
               <button
+                type="button"
                 className="btn btn-green"
-                style={{ flex: 1 }}
+                style={{ flex: 1, height: '38px', fontSize: '0.8125rem' }}
                 onClick={onTestConnection}
                 disabled={isTesting}
               >
                 {isTesting ? '테스트 중...' : '🔗 연결 테스트'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline"
+                style={{ height: '38px', fontSize: '0.75rem', padding: '0 10px', whiteSpace: 'nowrap' }}
+                title="기본 프로젝트 설정값으로 즉시 복원"
+                onClick={handleResetToDefaults}
+                disabled={isTesting}
+              >
+                🔄 기본값 복원
               </button>
             </div>
           </div>

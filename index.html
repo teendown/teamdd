@@ -28,7 +28,8 @@
   <link rel="stylesheet" href="./css/print.css">
   <link rel="stylesheet" href="./style.css?v=2.0">
 
-  <!-- Export Helpers CDN (html2canvas & jspdf) -->
+  <!-- Export Helpers & Database CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
@@ -74,6 +75,6 @@
   </script>
 
   <!-- High-Performance Bundled Application Entry -->
-  <script type="module" src="./app.bundle.js"></script>
+  <script src="./app.bundle.js?v=2.0.3"></script>
 </body>
 </html>

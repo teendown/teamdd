@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 // Configuration & Fixtures
+import { DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_KEY } from './config/constants.js';
 import { DEFAULT_SUPPLIERS, INITIAL_SUPPLIERS_LIST, DEMO_CUSTOMERS, DEMO_PARTS, DEMO_SCHEDULES } from './config/defaults.js';
 import { getLocalItem, setLocalItem, getDraftDocuments, saveDraftDocument, deleteDraftDocument, clearAllDrafts } from './api/storage.js';
 import { sbTestConnection, dbFetch, dbSave, dbDelete } from './api/supabaseClient.js';
@@ -48,8 +49,14 @@ export default function App() {
   const [draftsList, setDraftsList] = useState(() => getDraftDocuments());
 
   // Supabase Connection State
-  const [supabaseUrl, setSupabaseUrl] = useState(() => localStorage.getItem('supabase_url') || 'https://wmrfwrsaacolkpjyrffy.supabase.co');
-  const [supabaseKey, setSupabaseKey] = useState(() => localStorage.getItem('supabase_anon_key') || 'sb_publishable_nWgVPKLg5hHZqvCrOL9oUQ_GfuAGe9Y');
+  const [supabaseUrl, setSupabaseUrl] = useState(() => {
+    const saved = localStorage.getItem('supabase_url');
+    return (saved && saved.trim()) ? saved.trim() : DEFAULT_SUPABASE_URL;
+  });
+  const [supabaseKey, setSupabaseKey] = useState(() => {
+    const saved = localStorage.getItem('supabase_anon_key');
+    return (saved && saved.trim()) ? saved.trim() : DEFAULT_SUPABASE_KEY;
+  });
   const [isConnected, setIsConnected] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [connectionMessage, setConnectionMessage] = useState('');
@@ -326,11 +333,13 @@ export default function App() {
     localStorage.setItem('selected_supplier_key', selectedSupplierKey);
   }, [selectedSupplierKey, suppliersList]);
 
-  const handleTestConnection = async () => {
+  const handleTestConnection = async (explicitUrl, explicitKey) => {
     setIsTesting(true);
-    localStorage.setItem('supabase_url', supabaseUrl.trim());
-    localStorage.setItem('supabase_anon_key', supabaseKey.trim());
-    const result = await sbTestConnection(supabaseUrl, supabaseKey);
+    const targetUrl = (explicitUrl || supabaseUrl || '').trim();
+    const targetKey = (explicitKey || supabaseKey || '').trim();
+    if (targetUrl) localStorage.setItem('supabase_url', targetUrl);
+    if (targetKey) localStorage.setItem('supabase_anon_key', targetKey);
+    const result = await sbTestConnection(targetUrl, targetKey);
     setIsConnected(result.ok);
     setConnectionMessage(result.message);
     setIsTesting(false);
