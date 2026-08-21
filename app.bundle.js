@@ -28842,38 +28842,14 @@ ${JSON.stringify(extra)}`;
           borderRadius: "12px",
           border: "1px solid var(--border-color)",
           boxShadow: "0 2px 8px rgba(0, 27, 72, 0.06)",
-          padding: "0.625rem 0.875rem",
+          padding: "0.5rem 0.75rem",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           gap: "0.5rem"
         }
       },
-      /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", minWidth: 0 } }, /* @__PURE__ */ import_react.default.createElement(
-        "button",
-        {
-          type: "button",
-          className: "mobile-hamburger-btn",
-          onClick: () => setMobileMenuOpen(true),
-          style: {
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "38px",
-            height: "38px",
-            borderRadius: "10px",
-            background: "linear-gradient(135deg, #001B48 0%, #02457A 100%)",
-            color: "#ffffff",
-            border: "none",
-            fontSize: "1.25rem",
-            cursor: "pointer",
-            boxShadow: "0 2px 6px rgba(0, 27, 72, 0.25)",
-            flexShrink: 0
-          },
-          title: "\uC804\uCCB4 \uBA54\uB274 \uC5F4\uAE30"
-        },
-        "\u2630"
-      ), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", flexDirection: "column", justifyContent: "center" } }, /* @__PURE__ */ import_react.default.createElement(
+      /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", minWidth: 0 } }, /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", flexDirection: "column", justifyContent: "center" } }, /* @__PURE__ */ import_react.default.createElement(
         "h1",
         {
           className: "brand-title",
@@ -28883,15 +28859,14 @@ ${JSON.stringify(extra)}`;
             fontWeight: "900",
             color: "var(--c-navy-dark)",
             letterSpacing: "-0.02em",
-            lineHeight: 1.2
+            lineHeight: 1.1
           }
         },
         "TEAM ",
         /* @__PURE__ */ import_react.default.createElement("span", { style: { color: "var(--c-blue-accent)" } }, "D.D")
       ), /* @__PURE__ */ import_react.default.createElement("span", { className: "brand-sub", style: { fontSize: "0.6875rem", color: "var(--text-muted)", fontWeight: "600" } }, "\uB300\uD55C\uBBFC\uAD6D \uAC74\uC124\uAE30\uACC4 \uC815\uBE44 1\uB4F1")), /* @__PURE__ */ import_react.default.createElement(
-        "button",
+        "div",
         {
-          type: "button",
           className: "mobile-active-pill",
           onClick: () => setMobileMenuOpen(true),
           style: {
@@ -28899,21 +28874,47 @@ ${JSON.stringify(extra)}`;
             alignItems: "center",
             gap: "4px",
             background: "#eff6ff",
-            border: "1.5px solid #bfdbfe",
+            border: "1px solid #bfdbfe",
             color: "#1d4ed8",
-            padding: "4px 10px",
+            padding: "3px 8px",
             borderRadius: "20px",
-            fontSize: "0.8125rem",
+            fontSize: "0.75rem",
             fontWeight: "800",
             cursor: "pointer",
             whiteSpace: "nowrap"
           },
-          title: "\uBA54\uB274 \uBCC0\uACBD"
+          title: "\uD604\uC7AC \uD654\uBA74 (\uD074\uB9AD \uC2DC \uBA54\uB274 \uC5F4\uAE30)"
         },
-        /* @__PURE__ */ import_react.default.createElement("span", null, getActiveTabTitle()),
-        /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "9px", opacity: 0.7 } }, "\u25BC")
+        /* @__PURE__ */ import_react.default.createElement("span", null, getActiveTabTitle())
       )),
       /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "0.375rem", flexWrap: "wrap", justifyContent: "flex-end" } }, /* @__PURE__ */ import_react.default.createElement(
+        "button",
+        {
+          type: "button",
+          className: "mobile-menu-fixed-btn",
+          onClick: () => setMobileMenuOpen(true),
+          style: {
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "5px",
+            height: "32px",
+            padding: "0 10px",
+            borderRadius: "8px",
+            background: "linear-gradient(135deg, #001B48 0%, #02457A 100%)",
+            color: "#FFFFFF",
+            border: "none",
+            fontSize: "0.8125rem",
+            fontWeight: "900",
+            cursor: "pointer",
+            boxShadow: "0 2px 6px rgba(0, 27, 72, 0.25)",
+            whiteSpace: "nowrap"
+          },
+          title: "\uC804\uCCB4 \uBA54\uB274 \uC5F4\uAE30"
+        },
+        /* @__PURE__ */ import_react.default.createElement("span", null, "\u{1F4CB}"),
+        /* @__PURE__ */ import_react.default.createElement("span", null, "\uBA54\uB274"),
+        /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "9px", opacity: 0.8 } }, "\u25BC")
+      ), /* @__PURE__ */ import_react.default.createElement(
         "div",
         {
           style: {
@@ -28966,7 +28967,7 @@ ${JSON.stringify(extra)}`;
             gap: "3px"
           }
         },
-        /* @__PURE__ */ import_react.default.createElement("span", null, isConnected ? "\u{1F7E2} DB \uC5F0\uACB0\uB428" : "\u{1F534} \uB85C\uCEEC\uC800\uC7A5"),
+        /* @__PURE__ */ import_react.default.createElement("span", null, isConnected ? "\u{1F7E2} DB" : "\u{1F534} \uB85C\uCEEC"),
         /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "9px" } }, showConfig ? "\u25B2" : "\u25BC")
       ))
     ), showConfig && /* @__PURE__ */ import_react.default.createElement(

@@ -187,40 +187,15 @@ export default function Header({
           borderRadius: '12px',
           border: '1px solid var(--border-color)',
           boxShadow: '0 2px 8px rgba(0, 27, 72, 0.06)',
-          padding: '0.625rem 0.875rem',
+          padding: '0.5rem 0.75rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '0.5rem'
         }}
       >
-        {/* Left Side: Hamburger Trigger + Logo + Current Active Tag */}
+        {/* Left Side: Brand Logo + Current Screen Badge */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-          {/* Mobile Hamburger Button */}
-          <button
-            type="button"
-            className="mobile-hamburger-btn"
-            onClick={() => setMobileMenuOpen(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '38px',
-              height: '38px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, #001B48 0%, #02457A 100%)',
-              color: '#ffffff',
-              border: 'none',
-              fontSize: '1.25rem',
-              cursor: 'pointer',
-              boxShadow: '0 2px 6px rgba(0, 27, 72, 0.25)',
-              flexShrink: 0
-            }}
-            title="전체 메뉴 열기"
-          >
-            ☰
-          </button>
-          
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <h1
               className="brand-title"
@@ -230,7 +205,7 @@ export default function Header({
                 fontWeight: '900',
                 color: 'var(--c-navy-dark)',
                 letterSpacing: '-0.02em',
-                lineHeight: 1.2
+                lineHeight: 1.1
               }}
             >
               TEAM <span style={{ color: 'var(--c-blue-accent)' }}>D.D</span>
@@ -240,9 +215,8 @@ export default function Header({
             </span>
           </div>
 
-          {/* Current Active Tab Pill (Clickable on Mobile) */}
-          <button
-            type="button"
+          {/* Current Active Tab Pill (Mobile indicator) */}
+          <div
             className="mobile-active-pill"
             onClick={() => setMobileMenuOpen(true)}
             style={{
@@ -250,24 +224,51 @@ export default function Header({
               alignItems: 'center',
               gap: '4px',
               background: '#eff6ff',
-              border: '1.5px solid #bfdbfe',
+              border: '1px solid #bfdbfe',
               color: '#1d4ed8',
-              padding: '4px 10px',
+              padding: '3px 8px',
               borderRadius: '20px',
-              fontSize: '0.8125rem',
+              fontSize: '0.75rem',
               fontWeight: '800',
               cursor: 'pointer',
               whiteSpace: 'nowrap'
             }}
-            title="메뉴 변경"
+            title="현재 화면 (클릭 시 메뉴 열기)"
           >
             <span>{getActiveTabTitle()}</span>
-            <span style={{ fontSize: '9px', opacity: 0.7 }}>▼</span>
-          </button>
+          </div>
         </div>
 
-        {/* Right Side: Supplier Account + Logout + DB Status */}
+        {/* Right Side: [📋 메뉴 ▾] Fixed Button + Supplier + DB */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          {/* 📋 Fixed [메뉴 ▾] Button on Mobile */}
+          <button
+            type="button"
+            className="mobile-menu-fixed-btn"
+            onClick={() => setMobileMenuOpen(true)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              height: '32px',
+              padding: '0 10px',
+              borderRadius: '8px',
+              background: 'linear-gradient(135deg, #001B48 0%, #02457A 100%)',
+              color: '#FFFFFF',
+              border: 'none',
+              fontSize: '0.8125rem',
+              fontWeight: '900',
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(0, 27, 72, 0.25)',
+              whiteSpace: 'nowrap'
+            }}
+            title="전체 메뉴 열기"
+          >
+            <span>📋</span>
+            <span>메뉴</span>
+            <span style={{ fontSize: '9px', opacity: 0.8 }}>▼</span>
+          </button>
+
           {/* 🏢 로그인 계정 뱃지 */}
           <div
             style={{
@@ -324,7 +325,7 @@ export default function Header({
               gap: '3px'
             }}
           >
-            <span>{isConnected ? '🟢 DB 연결됨' : '🔴 로컬저장'}</span>
+            <span>{isConnected ? '🟢 DB' : '🔴 로컬'}</span>
             <span style={{ fontSize: '9px' }}>{showConfig ? '▲' : '▼'}</span>
           </button>
         </div>
