@@ -1,6 +1,7 @@
 // 🎨 TEAM D.D STATEMENT & ESTIMATE GENERATOR TAB
 import React, { useState, useMemo } from 'react';
 import DocumentCanvas from '../components/DocumentCanvas.jsx';
+import SmartItemListManager from '../components/SmartItemListManager.jsx';
 import { exportPagesToPNG, copyPageToClipboard, shareDocumentImage } from '../utils/exportUtils.js';
 
 export default function StatementTab({
@@ -508,132 +509,13 @@ export default function StatementTab({
           </div>
         )}
 
-        {/* 품목 리스트 */}
-        <div className="form-section">
-          <div className="section-title">
-            <span>📦 품목 리스트 ({items.length}건)</span>
-          </div>
-          {items.map((item, idx) => (
-            <div key={item.id || idx} className="item-card">
-              <div className="item-card-header">
-                <span style={{ fontSize: '11px', color: '#666', fontWeight: '800' }}>
-                  #{idx + 1} 품목
-                </span>
-                <button
-                  type="button"
-                  style={{
-                    border: 'none',
-                    background: 'none',
-                    color: '#dc2626',
-                    cursor: 'pointer',
-                    fontSize: '11px',
-                    padding: '4px',
-                    fontWeight: '700'
-                  }}
-                  onClick={() => setItems(items.length === 1 ? [{
-                    id: Date.now().toString(),
-                    code: '',
-                    name: '',
-                    unit: 'EA',
-                    qty: 1,
-                    price: 0
-                  }] : items.filter(i => i.id !== item.id))}
-                >
-                  🗑️ 삭제
-                </button>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: docType === '청구서' ? '110px 1fr' : '1fr', gap: '4px', marginBottom: '4px' }}>
-                {docType === '청구서' && (
-                  <input
-                    type="date"
-                    className="form-input"
-                    value={item.date || ''}
-                    onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, date: e.target.value } : i))}
-                    style={{ fontSize: '11px', padding: '0.4rem' }}
-                  />
-                )}
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="품명 및 규격"
-                  value={item.name}
-                  onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, name: e.target.value } : i))}
-                  style={{ fontWeight: '700' }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '65px 75px 1fr', gap: '4px' }}>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="단위"
-                  value={item.unit}
-                  onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, unit: e.target.value } : i))}
-                  style={{ textAlign: 'center' }}
-                />
-                <input
-                  type="number"
-                  className="form-input"
-                  placeholder="수량"
-                  value={item.qty === 0 ? '' : item.qty}
-                  onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, qty: Number(e.target.value) || 0 } : i))}
-                  style={{ textAlign: 'center', fontWeight: '700' }}
-                />
-                <input
-                  type="number"
-                  className="form-input"
-                  placeholder="단가 (금액)"
-                  value={item.price === 0 ? '' : item.price}
-                  onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, price: Number(e.target.value) || 0 } : i))}
-                  style={{ textAlign: 'right', fontWeight: '800', color: '#1d6bf3' }}
-                />
-              </div>
-
-              <input
-                type="text"
-                className="form-input"
-                placeholder="품목 비고 / 메모 (선택사항)"
-                value={item.memo || item.remark || ''}
-                onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, memo: e.target.value, remark: e.target.value } : i))}
-                style={{ marginTop: '4px', fontSize: '0.75rem' }}
-              />
-            </div>
-          ))}
-
-          <div style={{ marginTop: '0.5rem' }}>
-            <button
-              type="button"
-              className="btn btn-outline"
-              style={{
-                width: '100%',
-                minHeight: '44px',
-                fontSize: '0.875rem',
-                fontWeight: '800',
-                color: '#1d6bf3',
-                borderColor: '#3b82f6',
-                backgroundColor: '#eff6ff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                boxShadow: '0 2px 4px rgba(29,107,243,0.1)'
-              }}
-              onClick={() => setItems([...items, {
-                id: Date.now().toString(),
-                code: '',
-                name: '',
-                unit: 'EA',
-                qty: 1,
-                price: 0
-              }])}
-            >
-              <span>➕ 품목 행 추가 (새 품목 입력)</span>
-            </button>
-          </div>
-        </div>
+        {/* 📦 스마트 품목 관리자 (1줄 스택 리스트 + 단일 스마트 입력창 + 팝업 미리보기) */}
+        <SmartItemListManager
+          items={items}
+          setItems={setItems}
+          docType={docType}
+          vatIncluded={vatIncluded}
+        />
 
         {/* 부가세 토글 */}
         <div className="form-section">
