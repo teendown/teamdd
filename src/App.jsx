@@ -15,6 +15,7 @@ import { syncCustomersFromDocuments } from './services/customerService.js';
 
 // Components
 import Header from './components/Header.jsx';
+import Sidebar from './components/Sidebar.jsx';
 import SplashScreen from './components/SplashScreen.jsx';
 
 // Modals
@@ -26,8 +27,10 @@ import PastStatementImportModal from './modals/PastStatementImportModal.jsx';
 import CustomerEditModal from './modals/CustomerEditModal.jsx';
 import DesktopShortcutModal from './modals/DesktopShortcutModal.jsx';
 import OcrCustomerModal from './modals/OcrCustomerModal.jsx';
+import DocConvertModal from './modals/DocConvertModal.jsx';
 
 // Pages
+import DashboardTab from './pages/DashboardTab.jsx';
 import StatementTab from './pages/StatementTab.jsx';
 import AccountingTab from './pages/AccountingTab.jsx';
 import ScheduleTab from './pages/ScheduleTab.jsx';
@@ -35,9 +38,11 @@ import CustomerTab from './pages/CustomerTab.jsx';
 import SupplierTab from './pages/SupplierTab.jsx';
 import PartsTab from './pages/PartsTab.jsx';
 import DocHistoryTab from './pages/DocHistoryTab.jsx';
+import SettingsTab from './pages/SettingsTab.jsx';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('doc');
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [openAddCustomerModal, setOpenAddCustomerModal] = useState(false);
   const [editingDocId, setEditingDocId] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!sessionStorage.getItem('dd_logged_in'));
@@ -118,6 +123,7 @@ export default function App() {
   const [isPastStatementModalOpen, setIsPastStatementModalOpen] = useState(false);
   const [isOcrModalOpen, setIsOcrModalOpen] = useState(false);
   const [isDesktopShortcutModalOpen, setIsDesktopShortcutModalOpen] = useState(false);
+  const [isDocConvertModalOpen, setIsDocConvertModalOpen] = useState(false);
   const [pendingTab, setPendingTab] = useState(null);
   const [pendingReset, setPendingReset] = useState(false);
 
@@ -131,9 +137,12 @@ export default function App() {
     handleReloadDocuments();
   }, [handleReloadDocuments]);
 
+  const [scheduleSubView, setScheduleSubView] = useState('calendar');
+
   const handleDocTypeChange = (targetType) => {
-    if (docType === targetType) return;
+    if (docType === targetType && activeTab === 'doc') return;
     
+    // 1. 현재 작성 중인 내용을 현재 docType의 draft에 즉시 저장
     setDocDrafts(prev => ({
       ...prev,
       [docType]: {
@@ -142,30 +151,34 @@ export default function App() {
     }));
 
     setDocType(targetType);
+    setActiveTab('doc');
+
+    // 2. 변경할 targetType의 draft가 있으면 완벽 복원
     const draft = docDrafts[targetType];
     if (draft) {
-      setCustomer(draft.customer);
-      setDocNo(draft.docNo);
-      setDocDate(draft.docDate);
-      setDocTime(draft.docTime);
-      setItems(draft.items);
-      setVatIncluded(draft.vatIncluded);
-      setVat(draft.vat);
-      setPaid(draft.paid);
-      setPaymentStatus(draft.paymentStatus);
-      setPaymentMethod(draft.paymentMethod);
-      setPaymentDate(draft.paymentDate);
-      setValidityPeriod(draft.validityPeriod);
-      setDeliveryDate(draft.deliveryDate);
-      setDeliveryLocation(draft.deliveryLocation);
-      setPaymentTerms(draft.paymentTerms);
-      setBankAccount(draft.bankAccount);
-      setDueDate(draft.dueDate);
-      setReceiverName(draft.receiverName);
-      setReceiveDate(draft.receiveDate);
-      setRemark(draft.remark);
-      setEditingDocId(draft.editingDocId);
+      setCustomer(draft.customer || { name: '', person: '', phone: '', addr: '' });
+      setDocNo(draft.docNo || '');
+      setDocDate(draft.docDate || new Date().toISOString().split('T')[0]);
+      setDocTime(draft.docTime || '10:00');
+      setItems(draft.items && draft.items.length > 0 ? draft.items : [{ id: '1', code: '', name: '', unit: 'EA', qty: 1, price: 0 }]);
+      setVatIncluded(draft.vatIncluded !== false);
+      setVat(draft.vat || 0);
+      setPaid(draft.paid || 0);
+      setPaymentStatus(draft.paymentStatus || '미수금');
+      setPaymentMethod(draft.paymentMethod || '계좌이체');
+      setPaymentDate(draft.paymentDate || new Date().toISOString().split('T')[0]);
+      setValidityPeriod(draft.validityPeriod || '');
+      setDeliveryDate(draft.deliveryDate || '');
+      setDeliveryLocation(draft.deliveryLocation || '');
+      setPaymentTerms(draft.paymentTerms || '');
+      setBankAccount(draft.bankAccount || '');
+      setDueDate(draft.dueDate || '');
+      setReceiverName(draft.receiverName || '');
+      setReceiveDate(draft.receiveDate || '');
+      setRemark(draft.remark || '');
+      setEditingDocId(draft.editingDocId || null);
     } else {
+      // 3. 없으면 새 양식의 초기값 생성
       const now = new Date();
       const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       const emptyCust = { name: '', person: '', phone: '', addr: '' };
@@ -191,6 +204,23 @@ export default function App() {
       setRemark('');
       setEditingDocId(null);
     }
+  };
+
+  const handleRequestTabChange = (newTab, targetSubView = null) => {
+    // 만약 현재 명세서 작성 중이라면, 현재 내용을 draft에 자동 백업
+    if (activeTab === 'doc') {
+      setDocDrafts(prev => ({
+        ...prev,
+        [docType]: {
+          customer, docNo, docDate, docTime, items, vatIncluded, vat, paid, paymentStatus, paymentMethod, paymentDate, validityPeriod, deliveryDate, deliveryLocation, paymentTerms, bankAccount, dueDate, receiverName, receiveDate, remark, editingDocId
+        }
+      }));
+    }
+
+    if (targetSubView) {
+      setScheduleSubView(targetSubView);
+    }
+    setActiveTab(newTab);
   };
 
   const handleApplyPastStatement = (doc, actionType) => {
@@ -296,15 +326,6 @@ export default function App() {
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, [activeTab, isDocumentDirty]);
 
-  const handleRequestTabChange = (newTab) => {
-    if (newTab === activeTab) return;
-    if (activeTab === 'doc' && isDocumentDirty) {
-      setPendingTab(newTab);
-    } else {
-      setActiveTab(newTab);
-    }
-  };
-
   const handleRequestResetForm = () => {
     if (isDocumentDirty) {
       setPendingReset(true);
@@ -402,6 +423,67 @@ export default function App() {
     setSchedulesList(updated);
     alert('✓ 일정이 성공적으로 저장되었습니다.');
   };
+
+  const handleUpdateScheduleStatus = async (schId, newStatus) => {
+    const target = schedulesList.find(s => s.id === schId);
+    if (!target) return;
+    const updatedSch = { ...target, status: newStatus };
+    const updatedList = await dbSave('schedules', updatedSch, true, schedulesList);
+    setSchedulesList(updatedList);
+  };
+
+  const handleNavigateWorkToDoc = (work) => {
+    setDocType('거래명세서');
+    if (work.customer_name) {
+      const foundCust = customersList.find(c => c.name === work.customer_name);
+      setCustomer({
+        name: work.customer_name,
+        person: foundCust?.person || foundCust?.repName || '',
+        phone: work.phone || work.customer_phone || foundCust?.phone || '',
+        addr: foundCust?.addr || '',
+        bizno: foundCust?.bizno || '',
+        selectedMachine: work.machine || work.machine_info || (foundCust?.machine ? foundCust.machine.split(',')[0].trim() : '')
+      });
+    }
+    if (work.title) {
+      setItems([{
+        id: Date.now().toString(),
+        code: '',
+        name: `${work.machine ? `[${work.machine}] ` : ''}${work.title}`,
+        unit: '식',
+        qty: 1,
+        price: Number(work.amount) || 0
+      }]);
+    }
+    if (work.memo) {
+      setRemark(work.memo);
+    }
+    setActiveTab('doc');
+  };
+
+  const badgeCounts = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayWork = schedulesList.filter(s => {
+      const isMine = areSupplierKeysEquivalent(s.supplier_key, selectedSupplierKey);
+      const sDate = s.start_date || s.event_date;
+      const eDate = s.end_date || sDate;
+      return isMine && sDate <= todayStr && todayStr <= eDate && s.status !== 'completed';
+    }).length;
+
+    let unpaidCount = 0;
+    documentsList.forEach(doc => {
+      const isMine = areSupplierKeysEquivalent(doc.supplier_key || doc.supplierKey, selectedSupplierKey);
+      if (!isMine || doc.is_deleted || (doc.doc_type || doc.docType) === '견적서') return;
+      const items = doc.items || [];
+      const totalSupply = items.reduce((sum, i) => sum + (Number(i.qty) || 0) * (Number(i.price) || 0), 0);
+      const vat = doc.vat_included !== false ? Math.floor(totalSupply * 0.1) : (Number(doc.vat) || 0);
+      const grandTotal = totalSupply + vat;
+      const paid = Number(doc.paid) || 0;
+      if (grandTotal - paid > 0) unpaidCount += 1;
+    });
+
+    return { todayWork, unpaidCount };
+  }, [schedulesList, documentsList, selectedSupplierKey]);
 
   const handleDeleteSchedule = async (id) => {
     setSchedulesList(await dbDelete('schedules', id, schedulesList));
@@ -522,6 +604,70 @@ export default function App() {
     setIsSavedThisSession(true);
     alert(`✓ ${docType} (번호: ${finalSavedNo}) 저장/수정 완료!`);
     handleReloadDocuments();
+  };
+
+  const handleExecuteDocConvert = async (targetType) => {
+    if (!customer || !customer.name || customer.name.trim() === '') {
+      alert('❌ 거래처를 입력해야 문서 변환 저장이 가능합니다.');
+      return;
+    }
+    const validItems = items.filter(i => i.name && i.name.trim() !== '');
+    if (validItems.length === 0) {
+      alert('❌ 품목을 1개 이상 입력해 주세요.');
+      return;
+    }
+
+    try {
+      // 1. 현재 원본 문서 먼저 저장 (Save Original)
+      const origType = docType;
+      const saveRes = await dbSaveDocument({
+        id: editingDocId,
+        docType: origType,
+        docNo,
+        docDate,
+        docTime,
+        customer,
+        supplier: currentSupplier,
+        supplierKey: selectedSupplierKey,
+        items,
+        vat,
+        vatIncluded,
+        paid,
+        paymentStatus,
+        paymentMethod,
+        paymentDate,
+        validityPeriod,
+        deliveryDate,
+        deliveryLocation,
+        paymentTerms,
+        bankAccount,
+        dueDate,
+        receiverName,
+        receiveDate,
+        remark,
+        is_shared: !!isDocShared
+      });
+      const savedOrigNo = saveRes && saveRes.docNo ? saveRes.docNo : docNo;
+
+      // 2. 새로운 targetType 문서 번호 생성
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const newTargetDocNo = generateNextDocNo(todayStr, documentsList, selectedSupplierKey, customer, targetType, suppliersList, customersList);
+
+      // 3. targetType으로 전환 및 새 문서 세팅 (기존 품목 및 거래처 데이터는 그대로 유지)
+      setDocType(targetType);
+      setDocNo(newTargetDocNo);
+      setDocDate(todayStr);
+      setDocTime(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
+      setEditingDocId(null); // 신규 독립 문서
+      setIsDocConvertModalOpen(false);
+      handleReloadDocuments();
+
+      alert(`✓ 원본 [${origType}] (${savedOrigNo})가 저장되었습니다.\n✓ 새로운 [${targetType}] (${newTargetDocNo})로 복사 전환되었습니다!`);
+    } catch (err) {
+      console.error('문서 변환 오류:', err);
+      alert('문서 변환 중 오류가 발생했습니다.');
+    }
   };
 
   const handleUpdateDocumentPaid = async (docId, newPaid, newRemark) => {
@@ -646,330 +792,404 @@ export default function App() {
   }
 
   return (
-    <div className="app-container">
-      <Header
+    <div className="app-shell">
+      {/* 1. PC 고정 좌측 사이드바 & 모바일 슬라이드 드로어 */}
+      <Sidebar
         activeTab={activeTab}
-        setActiveTab={handleRequestTabChange}
-        isConnected={isConnected}
-        isTesting={isTesting}
-        connectionMessage={connectionMessage}
-        supabaseUrl={supabaseUrl}
-        setSupabaseUrl={setSupabaseUrl}
-        supabaseKey={supabaseKey}
-        setSupabaseKey={setSupabaseKey}
-        onTestConnection={handleTestConnection}
         docType={docType}
-        setDocType={handleDocTypeChange}
+        onSelectTab={handleRequestTabChange}
+        onSelectDocType={handleDocTypeChange}
+        isOpen={mobileSidebarOpen}
+        onClose={() => setMobileSidebarOpen(false)}
         userRole={userRole}
-        onLogout={handleLogout}
         currentSupplier={currentSupplier}
         selectedSupplierKey={selectedSupplierKey}
+        setSelectedSupplierKey={setSelectedSupplierKey}
         suppliersList={suppliersList}
+        onLogout={handleLogout}
+        badgeCounts={badgeCounts}
       />
 
-      <DesktopShortcutModal
-        isOpen={isDesktopShortcutModalOpen}
-        onClose={() => setIsDesktopShortcutModalOpen(false)}
-      />
-
-      <StatementAggregationModal
-        isOpen={isAggregationModalOpen}
-        onClose={() => setIsAggregationModalOpen(false)}
-        customer={customer}
-        selectedSupplierKey={selectedSupplierKey}
-        onApply={(aggregatedItems) => {
-          setItems(prev => {
-            const filtered = prev.filter(i => (i.name && i.name.trim() !== '') || i.price > 0);
-            return [...filtered, ...aggregatedItems];
-          });
-          setIsAggregationModalOpen(false);
-        }}
-      />
-
-      <CustomerEditModal
-        isOpen={quickCustomerModalOpen}
-        onClose={() => setQuickCustomerModalOpen(false)}
-        modalMode="add"
-        initialData={{ name: quickCustomerInitialName }}
-        customers={customersList}
-        onSaveCustomer={handleSaveCustomer}
-        onSelectAfterSave={(saved) => {
-          setCustomer({
-            name: saved.name,
-            person: saved.person || '',
-            phone: saved.phone || '',
-            addr: saved.addr || '',
-            selectedMachine: (saved.machine ? saved.machine.split(',')[0].trim() : '')
-          });
-          if (saved.machine) {
-            const firstMachine = saved.machine.split(',')[0].trim();
-            setItems(prev => {
-              const newItems = [...prev];
-              if (!newItems[0] || !newItems[0].name) {
-                if (newItems[0]) newItems[0].name = firstMachine;
-              }
-              return newItems;
-            });
-            setRemark(prev => {
-              const prefix = `[기종: ${firstMachine}] `;
-              return prev.includes(prefix) ? prev : prefix + prev;
-            });
-          }
-        }}
-      />
-
-      <EstimateImportModal
-        isOpen={isEstimateModalOpen}
-        onClose={() => setIsEstimateModalOpen(false)}
-        targetMode={estimateModalTargetMode}
-        initialCustomerName={customer.name || ''}
-        selectedSupplierKey={selectedSupplierKey}
-        onApplyEstimate={handleApplyEstimate}
-      />
-
-      <PastStatementImportModal
-        isOpen={isPastStatementModalOpen}
-        onClose={() => setIsPastStatementModalOpen(false)}
-        initialCustomerName={customer.name || ''}
-        selectedSupplierKey={selectedSupplierKey}
-        onApplyStatement={handleApplyPastStatement}
-      />
-
-      <OcrCustomerModal
-        isOpen={isOcrModalOpen}
-        onClose={() => setIsOcrModalOpen(false)}
-        customers={customersList}
-        onSaveCustomer={handleSaveCustomer}
-        onSelectCustomerAfterSave={(saved) => {
-          setCustomer({
-            name: saved.name,
-            person: saved.person || saved.repName || '',
-            phone: saved.phone || '',
-            addr: saved.addr || '',
-            bizno: saved.bizno || '',
-            selectedMachine: (saved.machine ? saved.machine.split(',')[0].trim() : '')
-          });
-          setActiveTab('doc');
-        }}
-      />
-
-      {previewDoc && (
-        <DocumentPreviewModal
-          doc={previewDoc}
+      {/* 2. 메인 뷰포트 영역 */}
+      <div className="main-viewport">
+        <Header
+          activeTab={activeTab}
+          setActiveTab={handleRequestTabChange}
+          isConnected={isConnected}
+          isTesting={isTesting}
+          connectionMessage={connectionMessage}
+          docType={docType}
+          onSelectDocType={handleDocTypeChange}
+          onOpenSidebar={() => setMobileSidebarOpen(true)}
+          userRole={userRole}
+          currentSupplier={currentSupplier}
+          selectedSupplierKey={selectedSupplierKey}
           suppliersList={suppliersList}
-          onClose={() => setPreviewDoc(null)}
-          onEdit={(doc) => {
-            handleLoadDocument(doc);
-            setPreviewDoc(null);
-          }}
-          onCopy={(doc) => {
-            handleCopyDocument(doc);
-            setPreviewDoc(null);
+        />
+
+        <DesktopShortcutModal
+          isOpen={isDesktopShortcutModalOpen}
+          onClose={() => setIsDesktopShortcutModalOpen(false)}
+        />
+
+        <StatementAggregationModal
+          isOpen={isAggregationModalOpen}
+          onClose={() => setIsAggregationModalOpen(false)}
+          customer={customer}
+          selectedSupplierKey={selectedSupplierKey}
+          onApply={(aggregatedItems) => {
+            setItems(prev => {
+              const filtered = prev.filter(i => (i.name && i.name.trim() !== '') || i.price > 0);
+              return [...filtered, ...aggregatedItems];
+            });
+            setIsAggregationModalOpen(false);
           }}
         />
-      )}
 
-      {isDraftsModalOpen && (
-        <DraftsModal
-          isOpen={isDraftsModalOpen}
-          draftsList={draftsList}
-          onClose={() => setIsDraftsModalOpen(false)}
-          onLoadDraft={(draft) => {
-            handleLoadDocument(draft);
-            setIsDraftsModalOpen(false);
-          }}
-          onDeleteDraft={(draftId) => {
-            setDraftsList(deleteDraftDocument(draftId));
-          }}
-          onClearAll={() => {
-            if (window.confirm('임시보관함의 모든 문서를 삭제하시겠습니까?')) {
-              setDraftsList(clearAllDrafts());
+        <CustomerEditModal
+          isOpen={quickCustomerModalOpen}
+          onClose={() => setQuickCustomerModalOpen(false)}
+          modalMode="add"
+          initialData={{ name: quickCustomerInitialName }}
+          customers={customersList}
+          onSaveCustomer={handleSaveCustomer}
+          onSelectAfterSave={(saved) => {
+            setCustomer({
+              name: saved.name,
+              person: saved.person || '',
+              phone: saved.phone || '',
+              addr: saved.addr || '',
+              selectedMachine: (saved.machine ? saved.machine.split(',')[0].trim() : '')
+            });
+            if (saved.machine) {
+              const firstMachine = saved.machine.split(',')[0].trim();
+              setItems(prev => {
+                const newItems = [...prev];
+                if (!newItems[0] || !newItems[0].name) {
+                  if (newItems[0]) newItems[0].name = firstMachine;
+                }
+                return newItems;
+              });
+              setRemark(prev => {
+                const prefix = `[기종: ${firstMachine}] `;
+                return prev.includes(prefix) ? prev : prefix + prev;
+              });
             }
           }}
         />
-      )}
 
-      <main className="main-content">
-        {activeTab === 'doc' && (
-          <StatementTab
-            docType={docType}
-            setDocType={setDocType}
-            docNo={docNo}
-            setDocNo={setDocNo}
-            docDate={docDate}
-            setDocDate={setDocDate}
-            docTime={docTime}
-            setDocTime={setDocTime}
-            selectedSupplierKey={selectedSupplierKey}
-            setSelectedSupplierKey={setSelectedSupplierKey}
+        <EstimateImportModal
+          isOpen={isEstimateModalOpen}
+          onClose={() => setIsEstimateModalOpen(false)}
+          targetMode={estimateModalTargetMode}
+          initialCustomerName={customer.name || ''}
+          selectedSupplierKey={selectedSupplierKey}
+          onApplyEstimate={handleApplyEstimate}
+          onPreviewDoc={setPreviewDoc}
+        />
+
+        <PastStatementImportModal
+          isOpen={isPastStatementModalOpen}
+          onClose={() => setIsPastStatementModalOpen(false)}
+          initialCustomerName={customer.name || ''}
+          selectedSupplierKey={selectedSupplierKey}
+          onApplyStatement={handleApplyPastStatement}
+          onPreviewDoc={setPreviewDoc}
+        />
+
+        <OcrCustomerModal
+          isOpen={isOcrModalOpen}
+          onClose={() => setIsOcrModalOpen(false)}
+          customers={customersList}
+          onSaveCustomer={handleSaveCustomer}
+          onSelectCustomerAfterSave={(saved) => {
+            setCustomer({
+              name: saved.name,
+              person: saved.person || saved.repName || '',
+              phone: saved.phone || '',
+              addr: saved.addr || '',
+              bizno: saved.bizno || '',
+              selectedMachine: (saved.machine ? saved.machine.split(',')[0].trim() : '')
+            });
+            setActiveTab('doc');
+          }}
+        />
+
+        {previewDoc && (
+          <DocumentPreviewModal
+            doc={previewDoc}
             suppliersList={suppliersList}
-            currentSupplier={currentSupplier}
-            setCurrentSupplier={setCurrentSupplier}
-            customer={customer}
-            setCustomer={setCustomer}
-            customersList={customersList}
-            items={items}
-            setItems={setItems}
-            onAggregateOpen={() => setIsAggregationModalOpen(true)}
-            onOpenEstimateModal={mode => {
-              setEstimateModalTargetMode(mode);
-              setIsEstimateModalOpen(true);
+            onClose={() => setPreviewDoc(null)}
+            onEdit={(doc) => {
+              handleLoadDocument(doc);
+              setPreviewDoc(null);
             }}
-            onOpenPastStatementModal={() => setIsPastStatementModalOpen(true)}
-            onOpenOcrModal={() => setIsOcrModalOpen(true)}
-            vat={vat}
-            setVat={setVat}
-            vatIncluded={vatIncluded}
-            setVatIncluded={setVatIncluded}
-            paid={paid}
-            setPaid={setPaid}
-            paymentStatus={paymentStatus}
-            setPaymentStatus={setPaymentStatus}
-            paymentMethod={paymentMethod}
-            setPaymentMethod={setPaymentMethod}
-            paymentDate={paymentDate}
-            setPaymentDate={setPaymentDate}
-            validityPeriod={validityPeriod}
-            setValidityPeriod={setValidityPeriod}
-            deliveryDate={deliveryDate}
-            setDeliveryDate={setDeliveryDate}
-            deliveryLocation={deliveryLocation}
-            setDeliveryLocation={setDeliveryLocation}
-            paymentTerms={paymentTerms}
-            setPaymentTerms={setPaymentTerms}
-            bankAccount={bankAccount}
-            setBankAccount={setBankAccount}
-            dueDate={dueDate}
-            setDueDate={setDueDate}
-            receiverName={receiverName}
-            setReceiverName={setReceiverName}
-            receiveDate={receiveDate}
-            setReceiveDate={setReceiveDate}
-            isDocShared={isDocShared}
-            setIsDocShared={setIsDocShared}
-            remark={remark}
-            setRemark={setRemark}
-            onResetForm={handleRequestResetForm}
-            onSaveDocument={handleSaveDocument}
-            onAddNewCustomer={name => {
-              setQuickCustomerInitialName(name || '');
-              setQuickCustomerModalOpen(true);
+            onCopy={(doc) => {
+              handleCopyDocument(doc);
+              setPreviewDoc(null);
             }}
-            editingDocId={editingDocId}
-            documentsList={documentsList}
-            onLoadDocument={handleLoadDocument}
-            onCopyDocument={handleCopyDocument}
           />
         )}
 
-        {activeTab === 'history' && (
-          <DocHistoryTab
-            onLoadDocument={handleLoadDocument}
-            onCopyDocument={handleCopyDocument}
-            onConvertToDoc={handleConvertToDocument}
-            isConnected={isConnected}
-            selectedSupplierKey={selectedSupplierKey}
-            onPreviewDocument={(doc) => setPreviewDoc(doc)}
-          />
-        )}
-
-        {activeTab === 'accounting' && (
-          <AccountingTab
-            documents={documentsList}
-            customersList={customersList}
-            suppliersList={suppliersList}
-            onUpdateDocumentPaid={handleUpdateDocumentPaid}
-            onDeleteDocument={dbDeleteDocument}
-            onPreviewDocument={(doc) => setPreviewDoc(doc)}
-          />
-        )}
-
-        {activeTab === 'schedule' && (
-          <ScheduleTab
-            schedules={schedulesList}
-            documentsList={documentsList}
-            selectedSupplierKey={selectedSupplierKey}
-            suppliersList={suppliersList}
-            onSaveSchedule={handleSaveSchedule}
-            onDeleteSchedule={handleDeleteSchedule}
-            onLoadDocument={handleLoadDocument}
-            onPreviewDocument={(doc) => setPreviewDoc(doc)}
-          />
-        )}
-
-        {activeTab === 'customers' && (
-          <CustomerTab
-            customers={customersList}
-            openAddModal={openAddCustomerModal}
-            setOpenAddModal={setOpenAddCustomerModal}
-            onSaveCustomer={handleSaveCustomer}
-            onDeleteCustomer={handleDeleteCustomer}
-            onOpenOcrModal={() => setIsOcrModalOpen(true)}
-            onSyncCustomers={async () => {
-              const synced = await syncCustomersFromDocuments(customersList, documentsList);
-              if (synced && synced.length > 0) setCustomersList(synced);
+        {isDraftsModalOpen && (
+          <DraftsModal
+            isOpen={isDraftsModalOpen}
+            draftsList={draftsList}
+            onClose={() => setIsDraftsModalOpen(false)}
+            onLoadDraft={(draft) => {
+              handleLoadDocument(draft);
+              setIsDraftsModalOpen(false);
             }}
-            onSelectCustomer={c => {
-              setCustomer(c);
-              if (c.selectedMachine) {
-                setItems(prev => {
-                  const newItems = [...prev];
-                  if (!newItems[0]?.name) {
-                    newItems[0].name = c.selectedMachine;
-                  }
-                  return newItems;
-                });
-                setRemark(prev => {
-                  const prefix = `[기종: ${c.selectedMachine}] `;
-                  return prev.includes(prefix) ? prev : prefix + prev;
-                });
+            onDeleteDraft={(draftId) => {
+              setDraftsList(deleteDraftDocument(draftId));
+            }}
+            onClearAll={() => {
+              if (window.confirm('임시보관함의 모든 문서를 삭제하시겠습니까?')) {
+                setDraftsList(clearAllDrafts());
               }
-              setActiveTab('doc');
             }}
           />
         )}
 
-        {activeTab === 'suppliers' && userRole === 'admin' && (
-          <SupplierTab
-            suppliers={suppliersList}
-            onSaveSupplier={handleSaveSupplier}
-            onDeleteSupplier={handleDeleteSupplier}
-            onSelectSupplier={s => {
-              setSelectedSupplierKey(s.id);
-              setActiveTab('doc');
-            }}
-          />
-        )}
+        <DocConvertModal
+          isOpen={isDocConvertModalOpen}
+          onClose={() => setIsDocConvertModalOpen(false)}
+          currentDocType={docType}
+          customerName={customer?.name || ''}
+          itemCount={items.filter(i => i.name && i.name.trim() !== '').length}
+          totalAmount={items.reduce((sum, i) => sum + (Number(i.qty) || 0) * (Number(i.price) || 0), 0) + (vatIncluded ? Math.floor(items.reduce((sum, i) => sum + (Number(i.qty) || 0) * (Number(i.price) || 0), 0) * 0.1) : (Number(vat) || 0))}
+          onConfirmConvert={handleExecuteDocConvert}
+        />
 
-        {activeTab === 'parts' && (
-          <PartsTab
-            parts={partsList}
-            onSavePart={handleSavePart}
-            onDeletePart={handleDeletePart}
-            onSelectPart={p => {
-              setItems(prev => [...prev, {
-                id: Date.now().toString(),
-                code: p.code,
-                name: p.name,
-                unit: p.unit || 'EA',
-                qty: 1,
-                price: p.price
-              }]);
-              setActiveTab('doc');
-            }}
-          />
-        )}
-      </main>
+        <main className="main-content">
+          {/* 1. 홈 (대시보드 탭) */}
+          {activeTab === 'dashboard' && (
+            <DashboardTab
+              documentsList={documentsList}
+              schedulesList={schedulesList}
+              customersList={customersList}
+              selectedSupplierKey={selectedSupplierKey}
+              currentSupplier={currentSupplier}
+              onNavigateTab={handleRequestTabChange}
+              onUpdateScheduleStatus={handleUpdateScheduleStatus}
+              onSelectCustomer={(c) => {
+                setCustomer(c);
+              }}
+              onOpenNewScheduleModal={() => {
+                handleRequestTabChange('schedule', 'work_orders');
+              }}
+            />
+          )}
+
+          {/* 2. 명세서 작성 탭 (거래명세서, 견적서, 청구서) */}
+          {activeTab === 'doc' && (
+            <StatementTab
+              docType={docType}
+              setDocType={handleDocTypeChange}
+              docNo={docNo}
+              setDocNo={setDocNo}
+              docDate={docDate}
+              setDocDate={setDocDate}
+              docTime={docTime}
+              setDocTime={setDocTime}
+              selectedSupplierKey={selectedSupplierKey}
+              setSelectedSupplierKey={setSelectedSupplierKey}
+              suppliersList={suppliersList}
+              currentSupplier={currentSupplier}
+              setCurrentSupplier={setCurrentSupplier}
+              customer={customer}
+              setCustomer={setCustomer}
+              customersList={customersList}
+              items={items}
+              setItems={setItems}
+              onAggregateOpen={() => setIsAggregationModalOpen(true)}
+              onOpenConvertModal={() => setIsDocConvertModalOpen(true)}
+              onOpenEstimateModal={mode => {
+                setEstimateModalTargetMode(mode);
+                setIsEstimateModalOpen(true);
+              }}
+              onOpenPastStatementModal={() => setIsPastStatementModalOpen(true)}
+              onOpenOcrModal={() => setIsOcrModalOpen(true)}
+              vat={vat}
+              setVat={setVat}
+              vatIncluded={vatIncluded}
+              setVatIncluded={setVatIncluded}
+              paid={paid}
+              setPaid={setPaid}
+              paymentStatus={paymentStatus}
+              setPaymentStatus={setPaymentStatus}
+              paymentMethod={paymentMethod}
+              setPaymentMethod={setPaymentMethod}
+              paymentDate={paymentDate}
+              setPaymentDate={setPaymentDate}
+              validityPeriod={validityPeriod}
+              setValidityPeriod={setValidityPeriod}
+              deliveryDate={deliveryDate}
+              setDeliveryDate={setDeliveryDate}
+              deliveryLocation={deliveryLocation}
+              setDeliveryLocation={setDeliveryLocation}
+              paymentTerms={paymentTerms}
+              setPaymentTerms={setPaymentTerms}
+              bankAccount={bankAccount}
+              setBankAccount={setBankAccount}
+              dueDate={dueDate}
+              setDueDate={setDueDate}
+              receiverName={receiverName}
+              setReceiverName={setReceiverName}
+              receiveDate={receiveDate}
+              setReceiveDate={setReceiveDate}
+              isDocShared={isDocShared}
+              setIsDocShared={setIsDocShared}
+              remark={remark}
+              setRemark={setRemark}
+              onResetForm={handleRequestResetForm}
+              onSaveDocument={handleSaveDocument}
+              onAddNewCustomer={name => {
+                setQuickCustomerInitialName(name || '');
+                setQuickCustomerModalOpen(true);
+              }}
+              editingDocId={editingDocId}
+              documentsList={documentsList}
+              onLoadDocument={handleLoadDocument}
+              onCopyDocument={handleCopyDocument}
+            />
+          )}
+
+          {/* 3. 문서조회 탭 */}
+          {activeTab === 'history' && (
+            <DocHistoryTab
+              onLoadDocument={handleLoadDocument}
+              onCopyDocument={handleCopyDocument}
+              onConvertToDoc={handleConvertToDocument}
+              isConnected={isConnected}
+              selectedSupplierKey={selectedSupplierKey}
+              onPreviewDocument={(doc) => setPreviewDoc(doc)}
+            />
+          )}
+
+          {/* 4. 일정 / 예약 탭 */}
+          {activeTab === 'schedule' && (
+            <ScheduleTab
+              schedules={schedulesList}
+              documentsList={documentsList}
+              selectedSupplierKey={selectedSupplierKey}
+              suppliersList={suppliersList}
+              onSaveSchedule={handleSaveSchedule}
+              onDeleteSchedule={handleDeleteSchedule}
+              onUpdateScheduleStatus={handleUpdateScheduleStatus}
+              onNavigateToDoc={handleNavigateWorkToDoc}
+              onLoadDocument={handleLoadDocument}
+              onPreviewDocument={(doc) => setPreviewDoc(doc)}
+            />
+          )}
+
+          {/* 5. 미수금 / 회계 탭 */}
+          {activeTab === 'accounting' && (
+            <AccountingTab
+              documents={documentsList}
+              customersList={customersList}
+              suppliersList={suppliersList}
+              onUpdateDocumentPaid={handleUpdateDocumentPaid}
+              onDeleteDocument={dbDeleteDocument}
+              onPreviewDocument={(doc) => setPreviewDoc(doc)}
+            />
+          )}
+
+          {/* 7. 고객관리 탭 */}
+          {activeTab === 'customers' && (
+            <CustomerTab
+              customers={customersList}
+              openAddModal={openAddCustomerModal}
+              setOpenAddModal={setOpenAddCustomerModal}
+              onSaveCustomer={handleSaveCustomer}
+              onDeleteCustomer={handleDeleteCustomer}
+              onOpenOcrModal={() => setIsOcrModalOpen(true)}
+              onSyncCustomers={async () => {
+                const synced = await syncCustomersFromDocuments(customersList, documentsList);
+                if (synced && synced.length > 0) setCustomersList(synced);
+              }}
+              onSelectCustomer={c => {
+                setCustomer(c);
+                if (c.selectedMachine) {
+                  setItems(prev => {
+                    const newItems = [...prev];
+                    if (!newItems[0]?.name) {
+                      newItems[0].name = c.selectedMachine;
+                    }
+                    return newItems;
+                  });
+                  setRemark(prev => {
+                    const prefix = `[기종: ${c.selectedMachine}] `;
+                    return prev.includes(prefix) ? prev : prefix + prev;
+                  });
+                }
+                setActiveTab('doc');
+              }}
+            />
+          )}
+
+          {/* 8. 공급자 관리 (관리자 전용) */}
+          {activeTab === 'suppliers' && userRole === 'admin' && (
+            <SupplierTab
+              suppliers={suppliersList}
+              onSaveSupplier={handleSaveSupplier}
+              onDeleteSupplier={handleDeleteSupplier}
+              onSelectSupplier={s => {
+                setSelectedSupplierKey(s.id);
+                setActiveTab('doc');
+              }}
+            />
+          )}
+
+          {/* 9. 부품재고 탭 */}
+          {activeTab === 'parts' && (
+            <PartsTab
+              parts={partsList}
+              onSavePart={handleSavePart}
+              onDeletePart={handleDeletePart}
+              onSelectPart={p => {
+                setItems(prev => [...prev, {
+                  id: Date.now().toString(),
+                  code: p.code,
+                  name: p.name,
+                  unit: p.unit || 'EA',
+                  qty: 1,
+                  price: p.price
+                }]);
+                setActiveTab('doc');
+              }}
+            />
+          )}
+
+          {/* 10. 설정 탭 */}
+          {activeTab === 'settings' && (
+            <SettingsTab
+              currentSupplier={currentSupplier}
+              selectedSupplierKey={selectedSupplierKey}
+              suppliersList={suppliersList}
+              onSaveSupplier={handleSaveSupplier}
+              supabaseUrl={supabaseUrl}
+              setSupabaseUrl={setSupabaseUrl}
+              supabaseKey={supabaseKey}
+              setSupabaseKey={setSupabaseKey}
+              isConnected={isConnected}
+              isTesting={isTesting}
+              connectionMessage={connectionMessage}
+              onTestConnection={handleTestConnection}
+            />
+          )}
+        </main>
+      </div>
 
       {/* Pending Unsaved Changes Navigation Confirmation Modal */}
       {(pendingTab || pendingReset) && (
         <div className="modal-overlay" style={{ zIndex: 9999 }}>
           <div className="modal-content" style={{ maxWidth: '420px', textAlign: 'center', padding: '1.75rem 1.25rem' }}>
             <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>💾</div>
-            <h3 style={{ fontSize: '1.125rem', fontWeight: '900', marginBottom: '0.5rem', color: '#0f172a' }}>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: '900', marginBottom: '0.5rem', color: 'var(--text-main)' }}>
               작성 중인 문서를 저장하시겠습니까?
             </h3>
-            <p style={{ fontSize: '0.8125rem', color: '#64748b', marginBottom: '1.25rem', lineHeight: '1.5' }}>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: '1.25rem', lineHeight: '1.5' }}>
               {pendingReset
                 ? '신규 문서를 작성하기 전에 현재 작성 중인 명세서를 저장하시겠습니까?'
                 : `'${pendingTab === 'history' ? '문서조회' : pendingTab === 'customers' ? '고객관리' : pendingTab === 'suppliers' ? '공급자' : '부품관리'}' 페이지로 이동하기 전에 저장하시겠습니까?`}
@@ -1009,7 +1229,7 @@ export default function App() {
               <button
                 type="button"
                 className="btn btn-outline"
-                style={{ width: '100%', minHeight: '36px', fontSize: '0.8125rem', color: '#475569' }}
+                style={{ width: '100%', minHeight: '36px', fontSize: '0.8125rem' }}
                 onClick={() => {
                   setPendingTab(null);
                   setPendingReset(false);

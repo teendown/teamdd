@@ -9,7 +9,8 @@ export default function EstimateImportModal({
   targetMode = 'convert_to_statement',
   initialCustomerName = '',
   selectedSupplierKey = '',
-  onApplyEstimate
+  onApplyEstimate,
+  onPreviewDoc
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCustomerOnly, setFilterCustomerOnly] = useState(true);
@@ -67,7 +68,7 @@ export default function EstimateImportModal({
 
   return (
     <div className="modal-overlay" style={{ zIndex: 1050 }}>
-      <div className="modal-content" style={{ maxWidth: '680px', width: '95%', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+      <div className="modal-content" style={{ maxWidth: '700px', width: '95%', maxHeight: '88vh', display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '2px solid #3b82f6', paddingBottom: '0.75rem' }}>
           <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: '900', color: '#1e293b' }}>
             {isConverting ? '📑 견적서 선택 ➡️ 거래명세서로 가져오기' : '📂 과거 견적서 목록 / 불러오기'}
@@ -108,51 +109,54 @@ export default function EstimateImportModal({
           </div>
         </div>
 
-        <div style={{ flex: 1, overflowY: 'auto', minHeight: '200px', maxHeight: '50vh', paddingRight: '4px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', minHeight: '200px', maxHeight: '55vh', paddingRight: '4px' }}>
           {isLoading ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>견적서 내역을 불러오는 중...</div>
           ) : displayedEstimates.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
               <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📄</div>
-              조건에 일치하는 과거 견적서가 없습니다.
-              {initialCustomerName && filterCustomerOnly && (
-                <div style={{ marginTop: '8px' }}>
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    style={{ fontSize: '11px' }}
-                    onClick={() => setFilterCustomerOnly(false)}
-                  >
-                    타 거래처 견적서 전체 보기
-                  </button>
-                </div>
-              )}
+              조건에 일치하는 견적서가 없습니다.
             </div>
           ) : (
             displayedEstimates.map(doc => {
               const items = doc.items || [];
               const validItems = items.filter(i => (i.name && i.name.trim() !== '') || (i.price || 0) > 0);
               const totalSupply = items.reduce((sum, item) => sum + (Number(item.qty) || 0) * (Number(item.price) || 0), 0);
-              const vatAmount = doc.vat_included !== false ? Math.floor(totalSupply * 0.1) : (Number(doc.vat) || 0);
-              const grandTotal = totalSupply + vatAmount;
-              const custName = doc.customer_name || doc.customer_data?.name || doc.customer?.name || '미지정 거래처';
-              const docDate = doc.doc_date || doc.docDate || '-';
+              const vat = doc.vat_included !== false ? Math.floor(totalSupply * 0.1) : 0;
+              const grandTotal = totalSupply + vat;
+              const custName = doc.customer_name || (doc.customer_data ? doc.customer_data.name : '') || (doc.customer ? doc.customer.name : '-') || '-';
+              const docDate = doc.doc_date || doc.docDate || (doc.created_at ? doc.created_at.split('T')[0] : '-');
 
               return (
                 <div
-                  key={doc.id}
+                  key={doc.id || doc.doc_no}
                   style={{
                     border: '1px solid #e2e8f0',
-                    borderRadius: '10px',
-                    padding: '0.875rem',
+                    borderRadius: '8px',
+                    padding: '0.85rem 1rem',
                     marginBottom: '0.75rem',
                     backgroundColor: '#ffffff',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => {
+                    if (onPreviewDoc) onPreviewDoc(doc);
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '4px' }}>
-                    <div>
-                      <span style={{ fontWeight: '900', fontSize: '0.9375rem', color: '#0f172a', marginRight: '8px' }}>{custName}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontWeight: '900', fontSize: '0.9375rem', color: '#0f172a' }}>{custName}</span>
+                      <span style={{
+                        fontSize: '10px',
+                        backgroundColor: '#eff6ff',
+                        color: '#2563eb',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        fontWeight: '700',
+                        border: '1px solid #bfdbfe'
+                      }}>
+                        🔍 클릭 시 미리보기
+                      </span>
                       <span style={{ fontSize: '0.75rem', color: '#64748b', fontFamily: 'monospace' }}>{doc.doc_no || doc.docNo}</span>
                     </div>
                     <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{`📅 견적일자: ${docDate}`}</span>
@@ -170,7 +174,17 @@ export default function EstimateImportModal({
                       <span style={{ color: '#64748b' }}>견적합계: </span>
                       <span style={{ fontWeight: '800', color: '#1d4ed8' }}>{`${grandTotal.toLocaleString()} 원`}</span>
                     </div>
-                    <div style={{ display: 'flex', gap: '6px' }}>
+                    <div style={{ display: 'flex', gap: '6px' }} onClick={e => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        style={{ fontSize: '0.75rem', padding: '0.35rem 0.6rem', color: '#2563eb', borderColor: '#bfdbfe', backgroundColor: '#eff6ff', fontWeight: '700' }}
+                        onClick={() => {
+                          if (onPreviewDoc) onPreviewDoc(doc);
+                        }}
+                      >
+                        🔍 미리보기
+                      </button>
                       <button
                         type="button"
                         className="btn btn-primary"

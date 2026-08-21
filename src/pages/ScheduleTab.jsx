@@ -31,6 +31,8 @@ export default function ScheduleTab({
   suppliersList = [],
   onSaveSchedule,
   onDeleteSchedule,
+  onUpdateScheduleStatus,
+  onNavigateToDoc,
   onLoadDocument,
   onPreviewDocument
 }) {

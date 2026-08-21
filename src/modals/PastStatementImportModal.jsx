@@ -8,7 +8,8 @@ export default function PastStatementImportModal({
   onClose,
   initialCustomerName = '',
   selectedSupplierKey = '',
-  onApplyStatement
+  onApplyStatement,
+  onPreviewDoc
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCustomerOnly, setFilterCustomerOnly] = useState(true);
@@ -83,7 +84,7 @@ export default function PastStatementImportModal({
           backgroundColor: '#ffffff',
           borderRadius: '12px',
           width: '100%',
-          maxWidth: '680px',
+          maxWidth: '700px',
           maxHeight: '90vh',
           display: 'flex',
           flexDirection: 'column',
@@ -92,9 +93,12 @@ export default function PastStatementImportModal({
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid #e2e8f0' }}>
-          <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: '900', color: '#1e293b' }}>
-            📂 지난 거래명세서 검색 및 불러오기
-          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '1.25rem' }}>📂</span>
+            <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: '900', color: '#1e293b' }}>
+              지난 거래명세서 검색 및 불러오기
+            </h3>
+          </div>
           <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#94a3b8' }}>
             ✕
           </button>
@@ -131,7 +135,7 @@ export default function PastStatementImportModal({
           </div>
         </div>
 
-        <div style={{ flex: 1, overflowY: 'auto', minHeight: '200px', maxHeight: '50vh', paddingRight: '4px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', minHeight: '200px', maxHeight: '52vh', paddingRight: '4px' }}>
           {isLoading ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>명세서 내역을 불러오는 중...</div>
           ) : displayedStatements.length === 0 ? (
@@ -167,20 +171,37 @@ export default function PastStatementImportModal({
                   style={{
                     border: '1px solid #e2e8f0',
                     borderRadius: '8px',
-                    padding: '0.75rem 1rem',
+                    padding: '0.85rem 1rem',
                     marginBottom: '0.75rem',
                     backgroundColor: '#ffffff',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     gap: '1rem',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                    transition: 'all 0.15s ease-in-out',
+                    cursor: 'pointer'
+                  }}
+                  className="hover:border-blue-400 hover:bg-blue-50/20"
+                  onClick={() => {
+                    if (onPreviewDoc) onPreviewDoc(doc);
                   }}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', flexWrap: 'wrap' }}>
                       <span style={{ fontWeight: '800', fontSize: '0.9375rem', color: '#0f172a' }}>{custName}</span>
                       {custMachine && <span style={{ fontSize: '11px', color: '#1d6bf3', fontWeight: '700' }}>{custMachine}</span>}
+                      <span style={{
+                        fontSize: '10px',
+                        backgroundColor: '#eff6ff',
+                        color: '#2563eb',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        fontWeight: '700',
+                        border: '1px solid #bfdbfe'
+                      }}>
+                        🔍 클릭 시 미리보기
+                      </span>
                       <span style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace', marginLeft: 'auto' }}>
                         {`일자: ${doc.doc_date || doc.docDate || '-'} | 번호: ${doc.doc_no || doc.docNo || '-'}`}
                       </span>
@@ -192,34 +213,60 @@ export default function PastStatementImportModal({
                       {`합계금액: ${grandTotal.toLocaleString()}원`}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flexShrink: 0 }}>
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      style={{
-                        fontSize: '0.75rem',
-                        padding: '6px 12px',
-                        backgroundColor: '#10b981',
-                        borderColor: '#10b981',
-                        fontWeight: '700',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}
-                      onClick={() => {
-                        onApplyStatement(doc, 'copy_to_new');
-                        onClose();
-                      }}
-                    >
-                      ✨ 새 명세서로 복사
-                    </button>
+
+                  <div
+                    style={{ display: 'flex', flexDirection: 'column', gap: '5px', flexShrink: 0 }}
+                    onClick={e => e.stopPropagation()} // 버튼 클릭 시 행 클릭 중복 방지
+                  >
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        style={{
+                          fontSize: '0.75rem',
+                          padding: '5px 8px',
+                          color: '#2563eb',
+                          borderColor: '#bfdbfe',
+                          backgroundColor: '#eff6ff',
+                          fontWeight: '700'
+                        }}
+                        onClick={() => {
+                          if (onPreviewDoc) onPreviewDoc(doc);
+                        }}
+                      >
+                        🔍 미리보기
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        style={{
+                          fontSize: '0.75rem',
+                          padding: '5px 10px',
+                          backgroundColor: '#10b981',
+                          borderColor: '#10b981',
+                          fontWeight: '700',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '3px'
+                        }}
+                        onClick={() => {
+                          onApplyStatement(doc, 'copy_to_new');
+                          onClose();
+                        }}
+                      >
+                        ✨ 새 명세서로 복사
+                      </button>
+                    </div>
+
                     <button
                       type="button"
                       className="btn btn-outline"
                       style={{
                         fontSize: '0.75rem',
                         padding: '4px 8px',
-                        color: '#475569'
+                        color: '#475569',
+                        width: '100%',
+                        textAlign: 'center'
                       }}
                       onClick={() => {
                         onApplyStatement(doc, 'edit_original');

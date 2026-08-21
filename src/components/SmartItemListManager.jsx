@@ -207,28 +207,43 @@ export default function SmartItemListManager({
             >
               {/* Top 1-Line Item Summary */}
               <div
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
+                style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', cursor: 'pointer', gap: '8px' }}
                 onClick={() => setExpandedItemId(isExpanded ? null : (item.id || idx))}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
-                  <span style={{ fontSize: '0.6875rem', fontWeight: '800', color: '#64748B', backgroundColor: '#F1F5F9', padding: '1px 5px', borderRadius: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', minWidth: 0, flex: 1 }}>
+                  <span style={{ fontSize: '0.6875rem', fontWeight: '800', color: '#64748B', backgroundColor: '#F1F5F9', padding: '2px 5px', borderRadius: '4px', marginTop: '1px', flexShrink: 0 }}>
                     #{idx + 1}
                   </span>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: '0.8125rem', fontWeight: '800', color: '#1E293B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div style={{ fontSize: '0.8125rem', fontWeight: '800', color: '#1E293B', wordBreak: 'break-all', lineHeight: '1.3' }}>
                       {item.name || '(품명 미입력)'}
+                      {item.spec && <span style={{ fontSize: '0.6875rem', fontWeight: 'normal', color: '#64748B', marginLeft: '4px' }}>({item.spec})</span>}
                     </div>
-                    <div style={{ fontSize: '0.6875rem', color: '#64748B', display: 'flex', gap: '6px', marginTop: '1px' }}>
-                      <span>{item.qty || 1} {item.unit || 'EA'}</span>
-                      <span>·</span>
-                      <span>단가 {(Number(item.price) || 0).toLocaleString()}원</span>
-                      {item.memo && <span style={{ color: '#028A3E' }}>· 📝 {item.memo}</span>}
+                    <div style={{ fontSize: '0.6875rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px', flexWrap: 'wrap' }}>
+                      <span style={{ whiteSpace: 'nowrap', fontWeight: '600' }}>{item.qty || 1} {item.unit || 'EA'}</span>
+                      <span style={{ color: '#CBD5E1' }}>·</span>
+                      <span style={{ whiteSpace: 'nowrap' }}>단가 {(Number(item.price) || 0).toLocaleString()}원</span>
                     </div>
+                    {item.memo && (
+                      <div style={{ 
+                        fontSize: '0.6875rem', 
+                        color: '#028A3E', 
+                        backgroundColor: '#F0FDF4', 
+                        border: '1px solid #DCFCE7', 
+                        borderRadius: '4px', 
+                        padding: '3px 6px', 
+                        marginTop: '4px',
+                        wordBreak: 'break-all',
+                        lineHeight: '1.35'
+                      }}>
+                        📝 {item.memo}
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, marginLeft: '8px' }}>
-                  <span style={{ fontSize: '0.875rem', fontWeight: '900', color: '#1D4ED8' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0, marginLeft: '4px' }}>
+                  <span style={{ fontSize: '0.875rem', fontWeight: '900', color: '#1D4ED8', whiteSpace: 'nowrap' }}>
                     {itemTotal.toLocaleString()}원
                   </span>
                   <button
@@ -241,7 +256,8 @@ export default function SmartItemListManager({
                       fontSize: '0.6875rem',
                       fontWeight: '700',
                       color: isExpanded ? '#1D4ED8' : '#475569',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
                     }}
                   >
                     {isExpanded ? '닫기 ▲' : '관리 ▾'}

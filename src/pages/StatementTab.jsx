@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import DocumentCanvas from '../components/DocumentCanvas.jsx';
 import SmartItemListManager from '../components/SmartItemListManager.jsx';
-import { exportPagesToPNG, copyPageToClipboard, shareDocumentImage } from '../utils/exportUtils.js';
+import { exportPagesToPNG, copyPageToClipboard, shareDocumentImage, exportDocumentToExcel } from '../utils/exportUtils.js';
 
 export default function StatementTab({
   docType,
@@ -24,6 +24,7 @@ export default function StatementTab({
   items = [],
   setItems,
   onAggregateOpen,
+  onOpenConvertModal,
   vat,
   setVat,
   vatIncluded,
@@ -60,7 +61,9 @@ export default function StatementTab({
   setIsDocShared,
   onSaveDraft,
   onOpenDraftsModal,
-  draftsCount = 0
+  draftsCount = 0,
+  onUpdateScheduleStatus,
+  onNavigateToDoc
 }) {
   const [showAutocomplete, setShowAutocomplete] = useState(false);
 
@@ -139,6 +142,28 @@ export default function StatementTab({
     }
   };
 
+  const handleExportExcel = async () => {
+    if (!validateBeforeAction()) return;
+    try {
+      await exportDocumentToExcel({
+        docType,
+        docNo,
+        docDate,
+        docTime,
+        supplier: currentSupplier,
+        customer,
+        items,
+        vat,
+        vatIncluded,
+        paid,
+        remark
+      });
+    } catch (err) {
+      console.error('엑셀 내보내기 오류:', err);
+      alert('엑셀 내보내기 중 오류가 발생했습니다.');
+    }
+  };
+
   const handleShare = async () => {
     if (!validateBeforeAction()) return;
     await shareDocumentImage(`${docType}_${docNo || '명세서'}`);
@@ -182,47 +207,29 @@ export default function StatementTab({
 
         {/* 문서 기본 설정 */}
         <div className="form-section">
-          <div className="section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>📄 {docType} 기본 설정</span>
-            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 'normal' }}>⚡ 원클릭 양식 전환</span>
-          </div>
-
-          <div
-            style={{
-              display: 'flex',
-              backgroundColor: '#f1f5f9',
-              padding: '4px',
-              borderRadius: '8px',
-              marginBottom: '1rem',
-              border: '1px solid #e2e8f0'
-            }}
-          >
-            {['거래명세서', '견적서', '청구서'].map(type => (
+          <div className="section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+            <span style={{ fontSize: '0.9375rem', fontWeight: '900' }}>📄 {docType} 기본 설정</span>
+            {onOpenConvertModal && (
               <button
-                key={type}
                 type="button"
+                className="btn btn-outline"
                 style={{
-                  flex: 1,
-                  padding: '6px 8px',
-                  fontSize: '0.8125rem',
-                  fontWeight: docType === type ? '800' : '600',
-                  backgroundColor: docType === type ? '#ffffff' : 'transparent',
-                  color: docType === type ? '#1d6bf3' : '#64748b',
-                  borderRadius: '6px',
-                  border: 'none',
-                  boxShadow: docType === type ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
+                  fontSize: '0.75rem',
+                  padding: '3px 8px',
+                  borderColor: '#93c5fd',
+                  color: '#1d4ed8',
+                  backgroundColor: '#eff6ff',
+                  fontWeight: '700',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
                   gap: '4px'
                 }}
-                onClick={() => setDocType(type)}
+                onClick={onOpenConvertModal}
+                title="현재 문서를 다른 양식으로 복사 변환"
               >
-                {type === '거래명세서' ? '📦 거래명세서' : (type === '견적서' ? '📋 견적서' : '🧾 청구서')}
+                🔄 다른 양식으로 변환
               </button>
-            ))}
+            )}
           </div>
 
           <div className="grid-2">
@@ -676,58 +683,129 @@ export default function StatementTab({
           </div>
         </div>
 
-        {/* 하단 실행 버튼 */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+        {/* 하단 실행 버튼 영역 */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.75rem' }}>
+          {/* 1. 메인 저장 버튼 (통일된 로열 블루) */}
           <button
             type="button"
             className="btn btn-primary"
             style={{
+              width: '100%',
               minHeight: '44px',
               fontSize: '0.9375rem',
               fontWeight: '800',
-              backgroundColor: '#16a34a',
-              borderColor: '#16a34a'
+              backgroundColor: '#2563eb',
+              borderColor: '#2563eb',
+              boxShadow: '0 2px 4px rgba(37,99,235,0.2)'
             }}
             onClick={onSaveDocument}
           >
-            💾 로컬 / DB 저장
+            💾 문서 저장
           </button>
 
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          {/* 2. 다른 양식으로 변환 발행 (소프트 블루 아웃라인) */}
+          {onOpenConvertModal && (
             <button
               type="button"
-              className="btn btn-green"
-              style={{ flex: 1, padding: '0.5rem', fontSize: '0.875rem' }}
+              className="btn btn-outline"
+              style={{
+                width: '100%',
+                minHeight: '36px',
+                fontSize: '0.8125rem',
+                fontWeight: '700',
+                color: '#1d4ed8',
+                borderColor: '#bfdbfe',
+                backgroundColor: '#eff6ff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+              onClick={onOpenConvertModal}
+            >
+              🔄 다른 양식으로 변환 발행 (견적서 / 청구서)...
+            </button>
+          )}
+
+          {/* 3. 내보내기 4대 기능 (이미지, PDF, 엑셀, 인쇄) - 4분할 조화로운 스타일 */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+            <button
+              type="button"
+              className="btn btn-outline"
+              style={{
+                padding: '0.5rem 0.25rem',
+                fontSize: '0.75rem',
+                fontWeight: '700',
+                color: '#1e293b',
+                borderColor: '#cbd5e1',
+                backgroundColor: '#ffffff'
+              }}
               onClick={handleExportPNG}
+              title="이미지(PNG) 다운로드"
             >
               📸 이미지
             </button>
             <button
               type="button"
-              className="btn btn-primary"
-              style={{ flex: 1, padding: '0.5rem', fontSize: '0.875rem' }}
-              onClick={() => { if (validateBeforeAction()) window.print(); }}
-            >
-              🖨️ 인쇄
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              style={{ flex: 1, padding: '0.5rem', fontSize: '0.875rem', backgroundColor: '#dc2626', borderColor: '#dc2626' }}
+              className="btn btn-outline"
+              style={{
+                padding: '0.5rem 0.25rem',
+                fontSize: '0.75rem',
+                fontWeight: '700',
+                color: '#1e293b',
+                borderColor: '#cbd5e1',
+                backgroundColor: '#ffffff'
+              }}
               onClick={handleExportPDF}
+              title="PDF 문서 다운로드"
             >
               📄 PDF
             </button>
+            <button
+              type="button"
+              className="btn btn-outline"
+              style={{
+                padding: '0.5rem 0.25rem',
+                fontSize: '0.75rem',
+                fontWeight: '700',
+                color: '#047857',
+                borderColor: '#a7f3d0',
+                backgroundColor: '#ecfdf5'
+              }}
+              onClick={handleExportExcel}
+              title="엑셀(.xlsx) 파일 다운로드"
+            >
+              📊 엑셀
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline"
+              style={{
+                padding: '0.5rem 0.25rem',
+                fontSize: '0.75rem',
+                fontWeight: '700',
+                color: '#1e293b',
+                borderColor: '#cbd5e1',
+                backgroundColor: '#ffffff'
+              }}
+              onClick={() => { if (validateBeforeAction()) window.print(); }}
+              title="인쇄"
+            >
+              🖨️ 인쇄
+            </button>
           </div>
 
+          {/* 4. 모바일 공유하기 */}
           <button
             type="button"
             className="btn btn-outline"
             style={{
-              minHeight: '40px',
+              minHeight: '38px',
+              fontSize: '0.8125rem',
               fontWeight: '700',
-              color: '#1d6bf3',
-              borderColor: '#1d6bf3',
+              color: '#475569',
+              borderColor: '#cbd5e1',
+              backgroundColor: '#f8fafc',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -735,7 +813,7 @@ export default function StatementTab({
             }}
             onClick={handleShare}
           >
-            📱 모바일 공유하기 (카톡/문자)
+            📱 모바일 공유하기 (카톡 / 문자)
           </button>
         </div>
       </div>
