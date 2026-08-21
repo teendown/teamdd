@@ -28693,7 +28693,7 @@ ${JSON.stringify(extra)}`;
         onTestConnection();
       }, 50);
     };
-    const supplierDisplayName = currentSupplier?.company || currentSupplier?.name || suppliersList.find((s) => areSupplierKeysEquivalent(s.id, selectedSupplierKey))?.name || (selectedSupplierKey === "sejin" ? "\uC138\uC9C4\uC911\uAE30" : selectedSupplierKey === "ds" ? "\uB514\uC5D0\uC2A4\uAC74\uC124\uAE30\uACC4" : "\uB300\uC131\uAC74\uC124\uAE30\uACC4");
+    const supplierDisplayName = currentSupplier?.company || currentSupplier?.name || suppliersList.find((s) => areSupplierKeysEquivalent(s.id, selectedSupplierKey))?.name || (selectedSupplierKey === "sejin" ? "\uC138\uC9C4\uAC74\uC124\uAE30\uACC4" : selectedSupplierKey === "ds" ? "\uB514\uC5D0\uC2A4\uAC74\uC124\uAE30\uACC4" : "\uB300\uC131\uAC74\uC124\uAE30\uACC4");
     const copySQL = () => {
       navigator.clipboard.writeText(SQL_ALL).then(() => {
         setCopiedSQL(true);
@@ -28726,74 +28726,250 @@ ${JSON.stringify(extra)}`;
       if (type) setDocType(type);
       setMobileMenuOpen(false);
     };
-    return /* @__PURE__ */ import_react.default.createElement("header", { className: "top-header" }, /* @__PURE__ */ import_react.default.createElement("div", { className: "header-card" }, /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", minWidth: 0 } }, /* @__PURE__ */ import_react.default.createElement(
-      "button",
+    const menuSections = [
       {
-        type: "button",
-        className: "mobile-hamburger-btn",
-        onClick: () => setMobileMenuOpen(true),
-        title: "\uC804\uCCB4 \uBA54\uB274 \uC5F4\uAE30"
+        category: "\uBB38\uC11C \uC791\uC131 (\uC2E0\uADDC \uBC1C\uD589)",
+        items: [
+          {
+            id: "doc_statement",
+            title: "\uAC70\uB798\uBA85\uC138\uC11C \uC791\uC131",
+            sub: "\uC2E0\uADDC \uAC70\uB798\uBA85\uC138\uC11C \uC791\uC131 \uBC0F \uC989\uC2DC \uCD9C\uB825",
+            icon: "\u{1F4C4}",
+            iconBg: "rgba(59, 130, 246, 0.15)",
+            iconColor: "#2563eb",
+            isActive: activeTab === "doc" && docType === "\uAC70\uB798\uBA85\uC138\uC11C",
+            onClick: () => handleSelectTab("doc", "\uAC70\uB798\uBA85\uC138\uC11C")
+          },
+          {
+            id: "doc_estimate",
+            title: "\uACAC\uC801\uC11C \uC791\uC131",
+            sub: "\uACE0\uAC1D \uC0AC\uC804 \uACAC\uC801\uC11C \uC0B0\uCD9C \uBC0F \uC800\uC7A5",
+            icon: "\u{1F4D1}",
+            iconBg: "rgba(147, 51, 234, 0.15)",
+            iconColor: "#7e22ce",
+            isActive: activeTab === "doc" && docType === "\uACAC\uC801\uC11C",
+            onClick: () => handleSelectTab("doc", "\uACAC\uC801\uC11C")
+          },
+          {
+            id: "doc_invoice",
+            title: "\uCCAD\uAD6C\uC11C \uC791\uC131",
+            sub: "\uC815\uC0B0 \uBC0F \uB300\uAE08 \uCCAD\uAD6C\uC11C \uBC1C\uD589",
+            icon: "\u{1F9FE}",
+            iconBg: "rgba(2, 132, 199, 0.15)",
+            iconColor: "#0369a1",
+            isActive: activeTab === "doc" && docType === "\uCCAD\uAD6C\uC11C",
+            onClick: () => handleSelectTab("doc", "\uCCAD\uAD6C\uC11C")
+          }
+        ]
       },
-      "\u2630"
-    ), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", flexDirection: "column" } }, /* @__PURE__ */ import_react.default.createElement("h1", { className: "brand-title", style: { margin: 0 } }, "TEAM ", /* @__PURE__ */ import_react.default.createElement("span", null, "D.D")), /* @__PURE__ */ import_react.default.createElement("span", { className: "brand-sub" }, "\uB300\uD55C\uBBFC\uAD6D \uAC74\uC124\uAE30\uACC4 \uC815\uBE44 1\uB4F1")), /* @__PURE__ */ import_react.default.createElement(
-      "button",
       {
-        type: "button",
-        className: "mobile-active-pill",
-        onClick: () => setMobileMenuOpen(true),
-        title: "\uBA54\uB274 \uBCC0\uACBD"
+        category: "\uC870\uD68C \uBC0F \uC5C5\uBB34 \uAD00\uB9AC",
+        items: [
+          {
+            id: "history",
+            title: "\uBB38\uC11C \uC870\uD68C / \uBC1C\uD589 \uB0B4\uC5ED",
+            sub: "\uC804\uCCB4 \uBC1C\uD589 \uBB38\uC11C \uAC80\uC0C9, \uBBF8\uB9AC\uBCF4\uAE30 \uBC0F \uC7AC\uC778\uC1C4",
+            icon: "\u{1F4C1}",
+            iconBg: "rgba(245, 158, 11, 0.15)",
+            iconColor: "#b45309",
+            isActive: activeTab === "history",
+            onClick: () => handleSelectTab("history")
+          },
+          {
+            id: "accounting",
+            title: "\uAC70\uB798\uCC98\uBCC4 \uD68C\uACC4 / \uBBF8\uC218\uAE08",
+            sub: "\uAC70\uB798\uCC98\uBCC4 \uC785\uAE08/\uBBF8\uC218 \uC815\uC0B0 \uBC0F \uD68C\uACC4 \uAD00\uB9AC",
+            icon: "\u{1F4A1}",
+            iconBg: "rgba(16, 185, 129, 0.15)",
+            iconColor: "#047857",
+            isActive: activeTab === "accounting",
+            onClick: () => handleSelectTab("accounting")
+          },
+          {
+            id: "schedule",
+            title: "\uC77C\uC815 / \uCE98\uB9B0\uB354 \uAD00\uB9AC",
+            sub: "\uC7A5\uBE44 \uC815\uBE44, \uCD9C\uC7A5 \uBC0F \uC608\uC57D \uC77C\uC815\uD45C",
+            icon: "\u{1F4C5}",
+            iconBg: "rgba(99, 102, 241, 0.15)",
+            iconColor: "#4338ca",
+            isActive: activeTab === "schedule",
+            onClick: () => handleSelectTab("schedule")
+          }
+        ]
       },
-      /* @__PURE__ */ import_react.default.createElement("span", null, getActiveTabTitle()),
-      /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "9px", opacity: 0.7 } }, "\u25BC")
-    )), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "0.375rem", flexWrap: "wrap", justifyContent: "flex-end" } }, /* @__PURE__ */ import_react.default.createElement(
+      {
+        category: "\uAE30\uC900 \uC815\uBCF4 \uAD00\uB9AC",
+        items: [
+          {
+            id: "customers",
+            title: "\uACE0\uAC1D (\uAC70\uB798\uCC98) \uAD00\uB9AC",
+            sub: "\uAC70\uB798\uCC98 \uC8FC\uC18C\uB85D \uBC0F \uBCF4\uC720 \uAE30\uC885 \uAD00\uB9AC",
+            icon: "\u{1F465}",
+            iconBg: "rgba(20, 184, 166, 0.15)",
+            iconColor: "#0f766e",
+            isActive: activeTab === "customers",
+            onClick: () => handleSelectTab("customers")
+          },
+          {
+            id: "parts",
+            title: "\uBD80\uD488 / \uB2E8\uAC00 \uAD00\uB9AC",
+            sub: "\uBD80\uD488 \uB2E8\uAC00\uD45C \uBC0F \uC7AC\uACE0 \uC218\uB7C9 \uAD00\uB9AC",
+            icon: "\u{1F6E0}\uFE0F",
+            iconBg: "rgba(239, 68, 68, 0.15)",
+            iconColor: "#b91c1c",
+            isActive: activeTab === "parts",
+            onClick: () => handleSelectTab("parts")
+          },
+          ...userRole === "admin" ? [{
+            id: "suppliers",
+            title: "\uACF5\uAE09\uC790 \uC815\uBCF4 \uAD00\uB9AC",
+            sub: "\uC0AC\uC5C5\uC790 \uB4F1\uB85D \uC815\uBCF4 \uBC0F \uC9C1\uC778(\uB3C4\uC7A5) \uC124\uC815",
+            icon: "\u{1F3E2}",
+            iconBg: "rgba(14, 165, 233, 0.15)",
+            iconColor: "#0369a1",
+            isActive: activeTab === "suppliers",
+            onClick: () => handleSelectTab("suppliers")
+          }] : []
+        ]
+      }
+    ];
+    return /* @__PURE__ */ import_react.default.createElement("header", { className: "top-header", style: { position: "sticky", top: 0, zIndex: 90 } }, /* @__PURE__ */ import_react.default.createElement(
       "div",
       {
+        className: "header-card",
         style: {
-          display: "inline-flex",
+          backgroundColor: "#FFFFFF",
+          borderRadius: "12px",
+          border: "1px solid var(--border-color)",
+          boxShadow: "0 2px 8px rgba(0, 27, 72, 0.06)",
+          padding: "0.625rem 0.875rem",
+          display: "flex",
           alignItems: "center",
-          gap: "4px",
-          backgroundColor: "var(--c-blue-lightest)",
-          border: "1.5px solid var(--c-blue-soft)",
-          padding: "3px 8px",
-          borderRadius: "20px",
-          fontSize: "0.75rem",
-          fontWeight: "800",
-          color: "var(--c-navy-dark)",
-          whiteSpace: "nowrap"
-        },
-        title: userRole === "admin" ? "\uAD00\uB9AC\uC790 \uBAA8\uB4DC" : `\uACF5\uAE09\uC790 \uACC4\uC815: ${supplierDisplayName}`
-      },
-      /* @__PURE__ */ import_react.default.createElement("span", null, userRole === "admin" ? "\u{1F451}" : "\u{1F3E2}"),
-      /* @__PURE__ */ import_react.default.createElement("span", { style: { color: "var(--c-navy-primary)" } }, userRole === "admin" ? "\uAD00\uB9AC\uC790" : supplierDisplayName)
-    ), /* @__PURE__ */ import_react.default.createElement(
-      "button",
-      {
-        type: "button",
-        onClick: onLogout,
-        className: "btn btn-outline btn-sm",
-        style: {
-          height: "28px",
-          fontSize: "0.6875rem",
-          fontWeight: "700",
-          color: "#D92D20",
-          borderColor: "#FECDCA",
-          backgroundColor: "#FEF3F2",
-          cursor: "pointer",
-          padding: "0 8px"
+          justifyContent: "space-between",
+          gap: "0.5rem"
         }
       },
-      "\uB85C\uADF8\uC544\uC6C3"
-    ), /* @__PURE__ */ import_react.default.createElement(
-      "button",
-      {
-        type: "button",
-        onClick: () => setShowConfig((prev) => !prev),
-        className: `status-badge ${isConnected ? "connected" : "disconnected"}`,
-        style: { padding: "0.3rem 0.5rem", fontSize: "0.6875rem" }
-      },
-      /* @__PURE__ */ import_react.default.createElement("span", null, isConnected ? "\u{1F7E2} DB \uC5F0\uACB0\uB428" : "\u{1F534} \uB85C\uCEEC\uC800\uC7A5"),
-      /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "9px" } }, showConfig ? "\u25B2" : "\u25BC")
-    ))), showConfig && /* @__PURE__ */ import_react.default.createElement(
+      /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", minWidth: 0 } }, /* @__PURE__ */ import_react.default.createElement(
+        "button",
+        {
+          type: "button",
+          className: "mobile-hamburger-btn",
+          onClick: () => setMobileMenuOpen(true),
+          style: {
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "38px",
+            height: "38px",
+            borderRadius: "10px",
+            background: "linear-gradient(135deg, #001B48 0%, #02457A 100%)",
+            color: "#ffffff",
+            border: "none",
+            fontSize: "1.25rem",
+            cursor: "pointer",
+            boxShadow: "0 2px 6px rgba(0, 27, 72, 0.25)",
+            flexShrink: 0
+          },
+          title: "\uC804\uCCB4 \uBA54\uB274 \uC5F4\uAE30"
+        },
+        "\u2630"
+      ), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", flexDirection: "column", justifyContent: "center" } }, /* @__PURE__ */ import_react.default.createElement(
+        "h1",
+        {
+          className: "brand-title",
+          style: {
+            margin: 0,
+            fontSize: "1.0625rem",
+            fontWeight: "900",
+            color: "var(--c-navy-dark)",
+            letterSpacing: "-0.02em",
+            lineHeight: 1.2
+          }
+        },
+        "TEAM ",
+        /* @__PURE__ */ import_react.default.createElement("span", { style: { color: "var(--c-blue-accent)" } }, "D.D")
+      ), /* @__PURE__ */ import_react.default.createElement("span", { className: "brand-sub", style: { fontSize: "0.6875rem", color: "var(--text-muted)", fontWeight: "600" } }, "\uB300\uD55C\uBBFC\uAD6D \uAC74\uC124\uAE30\uACC4 \uC815\uBE44 1\uB4F1")), /* @__PURE__ */ import_react.default.createElement(
+        "button",
+        {
+          type: "button",
+          className: "mobile-active-pill",
+          onClick: () => setMobileMenuOpen(true),
+          style: {
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "4px",
+            background: "#eff6ff",
+            border: "1.5px solid #bfdbfe",
+            color: "#1d4ed8",
+            padding: "4px 10px",
+            borderRadius: "20px",
+            fontSize: "0.8125rem",
+            fontWeight: "800",
+            cursor: "pointer",
+            whiteSpace: "nowrap"
+          },
+          title: "\uBA54\uB274 \uBCC0\uACBD"
+        },
+        /* @__PURE__ */ import_react.default.createElement("span", null, getActiveTabTitle()),
+        /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "9px", opacity: 0.7 } }, "\u25BC")
+      )),
+      /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "0.375rem", flexWrap: "wrap", justifyContent: "flex-end" } }, /* @__PURE__ */ import_react.default.createElement(
+        "div",
+        {
+          style: {
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "4px",
+            backgroundColor: "var(--c-blue-lightest)",
+            border: "1.5px solid var(--c-blue-soft)",
+            padding: "3px 8px",
+            borderRadius: "20px",
+            fontSize: "0.75rem",
+            fontWeight: "800",
+            color: "var(--c-navy-dark)",
+            whiteSpace: "nowrap"
+          },
+          title: userRole === "admin" ? "\uAD00\uB9AC\uC790 \uBAA8\uB4DC" : `\uACF5\uAE09\uC790: ${supplierDisplayName}`
+        },
+        /* @__PURE__ */ import_react.default.createElement("span", null, userRole === "admin" ? "\u{1F451}" : "\u{1F3E2}"),
+        /* @__PURE__ */ import_react.default.createElement("span", { style: { color: "var(--c-navy-primary)" } }, userRole === "admin" ? "\uAD00\uB9AC\uC790" : supplierDisplayName)
+      ), /* @__PURE__ */ import_react.default.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: onLogout,
+          className: "btn btn-outline btn-sm",
+          style: {
+            height: "28px",
+            fontSize: "0.6875rem",
+            fontWeight: "700",
+            color: "#D92D20",
+            borderColor: "#FECDCA",
+            backgroundColor: "#FEF3F2",
+            cursor: "pointer",
+            padding: "0 8px"
+          }
+        },
+        "\uB85C\uADF8\uC544\uC6C3"
+      ), /* @__PURE__ */ import_react.default.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: () => setShowConfig((prev) => !prev),
+          className: `status-badge ${isConnected ? "connected" : "disconnected"}`,
+          style: {
+            padding: "0.3rem 0.5rem",
+            fontSize: "0.6875rem",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "3px"
+          }
+        },
+        /* @__PURE__ */ import_react.default.createElement("span", null, isConnected ? "\u{1F7E2} DB \uC5F0\uACB0\uB428" : "\u{1F534} \uB85C\uCEEC\uC800\uC7A5"),
+        /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "9px" } }, showConfig ? "\u25B2" : "\u25BC")
+      ))
+    ), showConfig && /* @__PURE__ */ import_react.default.createElement(
       "div",
       {
         style: {
@@ -28802,7 +28978,7 @@ ${JSON.stringify(extra)}`;
           border: "1px solid #e5e7eb",
           borderRadius: "12px",
           padding: "1rem",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
+          boxShadow: "0 4px 16px rgba(0,0,0,0.1)"
         }
       },
       /* @__PURE__ */ import_react.default.createElement(
@@ -28969,133 +29145,259 @@ ${JSON.stringify(extra)}`;
         onClick: () => handleSelectTab("parts")
       },
       "\u{1F6E0}\uFE0F \uBD80\uD488\uAD00\uB9AC"
-    ))), mobileMenuOpen && /* @__PURE__ */ import_react.default.createElement("div", { className: "drawer-backdrop", onClick: () => setMobileMenuOpen(false) }, /* @__PURE__ */ import_react.default.createElement("div", { className: "drawer-panel", onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ import_react.default.createElement("div", { className: "drawer-header" }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("div", { style: { fontSize: "1.25rem", fontWeight: "900", color: "#ffffff", letterSpacing: "-0.02em" } }, "TEAM ", /* @__PURE__ */ import_react.default.createElement("span", { style: { color: "#97CADB" } }, "D.D")), /* @__PURE__ */ import_react.default.createElement("div", { style: { fontSize: "0.6875rem", color: "#D6E8EE", opacity: 0.8, marginTop: "2px" } }, "\uB300\uD55C\uBBFC\uAD6D \uAC74\uC124\uAE30\uACC4 \uC815\uBE44 1\uB4F1")), /* @__PURE__ */ import_react.default.createElement(
-      "button",
+    ))), mobileMenuOpen && /* @__PURE__ */ import_react.default.createElement(
+      "div",
       {
-        type: "button",
-        onClick: () => setMobileMenuOpen(false),
         style: {
-          background: "rgba(255,255,255,0.15)",
-          border: "none",
-          borderRadius: "50%",
-          color: "#ffffff",
-          width: "32px",
-          height: "32px",
+          position: "fixed",
+          inset: 0,
+          backgroundColor: "rgba(15, 23, 42, 0.7)",
+          backdropFilter: "blur(6px)",
+          WebkitBackdropFilter: "blur(6px)",
+          zIndex: 999999,
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "1rem",
-          cursor: "pointer",
-          fontWeight: "bold"
-        }
-      },
-      "\u2715"
-    )), /* @__PURE__ */ import_react.default.createElement("div", { style: { padding: "0.875rem 1rem", backgroundColor: "#F8FAFC", borderBottom: "1px solid #E2E8F0", display: "flex", justifyContent: "space-between", alignItems: "center" } }, /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px" } }, /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "1.25rem" } }, userRole === "admin" ? "\u{1F451}" : "\u{1F3E2}"), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("div", { style: { fontSize: "0.875rem", fontWeight: "800", color: "#0F172A" } }, userRole === "admin" ? "\uAD00\uB9AC\uC790 \uC2DC\uC2A4\uD15C" : supplierDisplayName), /* @__PURE__ */ import_react.default.createElement("div", { style: { fontSize: "0.6875rem", color: isConnected ? "#059669" : "#DC2626", fontWeight: "700" } }, isConnected ? "\u{1F7E2} DB \uC5F0\uACB0\uB428" : "\u{1F534} \uB85C\uCEEC\uC800\uC7A5 \uBAA8\uB4DC"))), /* @__PURE__ */ import_react.default.createElement(
-      "button",
-      {
-        type: "button",
-        onClick: () => {
-          setMobileMenuOpen(false);
-          onLogout();
+          justifyContent: "flex-start",
+          animation: "drawerFade 0.2s ease"
         },
-        className: "btn btn-outline btn-sm",
-        style: { fontSize: "0.6875rem", padding: "3px 8px", color: "#DC2626", borderColor: "#FECACA" }
+        onClick: () => setMobileMenuOpen(false)
       },
-      "\uB85C\uADF8\uC544\uC6C3"
-    )), /* @__PURE__ */ import_react.default.createElement("div", { style: { flex: 1, padding: "0.5rem 0", overflowY: "auto" } }, /* @__PURE__ */ import_react.default.createElement("div", { className: "drawer-section-title" }, "\u{1F4DD} \uBB38\uC11C \uC791\uC131 (\uBC1C\uD589)"), /* @__PURE__ */ import_react.default.createElement(
-      "button",
-      {
-        type: "button",
-        className: `drawer-menu-item ${activeTab === "doc" && docType === "\uAC70\uB798\uBA85\uC138\uC11C" ? "active" : ""}`,
-        onClick: () => handleSelectTab("doc", "\uAC70\uB798\uBA85\uC138\uC11C")
-      },
-      /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "1.125rem" } }, "\u{1F4C4}"),
-      /* @__PURE__ */ import_react.default.createElement("span", null, "\uAC70\uB798\uBA85\uC138\uC11C \uC791\uC131")
-    ), /* @__PURE__ */ import_react.default.createElement(
-      "button",
-      {
-        type: "button",
-        className: `drawer-menu-item ${activeTab === "doc" && docType === "\uACAC\uC801\uC11C" ? "active" : ""}`,
-        onClick: () => handleSelectTab("doc", "\uACAC\uC801\uC11C")
-      },
-      /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "1.125rem" } }, "\u{1F4D1}"),
-      /* @__PURE__ */ import_react.default.createElement("span", null, "\uACAC\uC801\uC11C \uC791\uC131")
-    ), /* @__PURE__ */ import_react.default.createElement(
-      "button",
-      {
-        type: "button",
-        className: `drawer-menu-item ${activeTab === "doc" && docType === "\uCCAD\uAD6C\uC11C" ? "active" : ""}`,
-        onClick: () => handleSelectTab("doc", "\uCCAD\uAD6C\uC11C")
-      },
-      /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "1.125rem" } }, "\u{1F9FE}"),
-      /* @__PURE__ */ import_react.default.createElement("span", null, "\uCCAD\uAD6C\uC11C \uC791\uC131")
-    ), /* @__PURE__ */ import_react.default.createElement("div", { className: "drawer-section-title" }, "\u{1F4C2} \uC5C5\uBB34 \uBC0F \uC870\uD68C"), /* @__PURE__ */ import_react.default.createElement(
-      "button",
-      {
-        type: "button",
-        className: `drawer-menu-item ${activeTab === "history" ? "active" : ""}`,
-        onClick: () => handleSelectTab("history")
-      },
-      /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "1.125rem" } }, "\u{1F4C1}"),
-      /* @__PURE__ */ import_react.default.createElement("span", null, "\uBB38\uC11C \uC870\uD68C / \uBC1C\uD589 \uB0B4\uC5ED")
-    ), /* @__PURE__ */ import_react.default.createElement(
-      "button",
-      {
-        type: "button",
-        className: `drawer-menu-item ${activeTab === "accounting" ? "active" : ""}`,
-        onClick: () => handleSelectTab("accounting")
-      },
-      /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "1.125rem" } }, "\u{1F4A1}"),
-      /* @__PURE__ */ import_react.default.createElement("span", null, "\uAC70\uB798\uCC98\uBCC4 \uD68C\uACC4 / \uBBF8\uC218\uAE08")
-    ), /* @__PURE__ */ import_react.default.createElement(
-      "button",
-      {
-        type: "button",
-        className: `drawer-menu-item ${activeTab === "schedule" ? "active" : ""}`,
-        onClick: () => handleSelectTab("schedule")
-      },
-      /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "1.125rem" } }, "\u{1F4C5}"),
-      /* @__PURE__ */ import_react.default.createElement("span", null, "\uC77C\uC815 / \uCE98\uB9B0\uB354 \uAD00\uB9AC")
-    ), /* @__PURE__ */ import_react.default.createElement("div", { className: "drawer-section-title" }, "\u2699\uFE0F \uAE30\uC900 \uC815\uBCF4 \uAD00\uB9AC"), /* @__PURE__ */ import_react.default.createElement(
-      "button",
-      {
-        type: "button",
-        className: `drawer-menu-item ${activeTab === "customers" ? "active" : ""}`,
-        onClick: () => handleSelectTab("customers")
-      },
-      /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "1.125rem" } }, "\u{1F465}"),
-      /* @__PURE__ */ import_react.default.createElement("span", null, "\uACE0\uAC1D (\uAC70\uB798\uCC98) \uAD00\uB9AC")
-    ), /* @__PURE__ */ import_react.default.createElement(
-      "button",
-      {
-        type: "button",
-        className: `drawer-menu-item ${activeTab === "parts" ? "active" : ""}`,
-        onClick: () => handleSelectTab("parts")
-      },
-      /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "1.125rem" } }, "\u{1F6E0}\uFE0F"),
-      /* @__PURE__ */ import_react.default.createElement("span", null, "\uBD80\uD488 / \uB2E8\uAC00 \uAD00\uB9AC")
-    ), userRole === "admin" && /* @__PURE__ */ import_react.default.createElement(
-      "button",
-      {
-        type: "button",
-        className: `drawer-menu-item ${activeTab === "suppliers" ? "active" : ""}`,
-        onClick: () => handleSelectTab("suppliers")
-      },
-      /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "1.125rem" } }, "\u{1F3E2}"),
-      /* @__PURE__ */ import_react.default.createElement("span", null, "\uACF5\uAE09\uC790 \uC815\uBCF4 \uAD00\uB9AC")
-    ), /* @__PURE__ */ import_react.default.createElement("div", { className: "drawer-section-title" }, "\u2601\uFE0F \uD074\uB77C\uC6B0\uB4DC \uBC0F \uC124\uC815"), /* @__PURE__ */ import_react.default.createElement(
-      "button",
-      {
-        type: "button",
-        className: "drawer-menu-item",
-        onClick: () => {
-          setMobileMenuOpen(false);
-          setShowConfig(true);
-        }
-      },
-      /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "1.125rem" } }, "\u2699\uFE0F"),
-      /* @__PURE__ */ import_react.default.createElement("span", null, "Supabase DB \uC124\uC815")
-    )), /* @__PURE__ */ import_react.default.createElement("div", { style: { padding: "0.875rem 1rem", borderTop: "1px solid #E2E8F0", backgroundColor: "#F8FAFC", textAlign: "center", fontSize: "0.6875rem", color: "#94A3B8" } }, "TEAM D.D \xB7 v2.0.6 Mobile Edition"))));
+      /* @__PURE__ */ import_react.default.createElement(
+        "div",
+        {
+          style: {
+            width: "85%",
+            maxWidth: "340px",
+            height: "100%",
+            backgroundColor: "#FFFFFF",
+            boxShadow: "10px 0 35px rgba(0, 27, 72, 0.35)",
+            display: "flex",
+            flexDirection: "column",
+            overflowY: "auto",
+            WebkitOverflowScrolling: "touch",
+            animation: "drawerSlide 0.25s cubic-bezier(0.16, 1, 0.3, 1)"
+          },
+          onClick: (e) => e.stopPropagation()
+        },
+        /* @__PURE__ */ import_react.default.createElement(
+          "div",
+          {
+            style: {
+              padding: "1.25rem 1.125rem 1rem",
+              background: "linear-gradient(145deg, #001B48 0%, #02457A 60%, #018ABE 100%)",
+              color: "#FFFFFF",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              borderBottom: "1px solid rgba(151, 202, 219, 0.2)"
+            }
+          },
+          /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("div", { style: { fontSize: "1.35rem", fontWeight: "900", color: "#FFFFFF", letterSpacing: "-0.02em", lineHeight: 1.1 } }, "TEAM ", /* @__PURE__ */ import_react.default.createElement("span", { style: { color: "#97CADB" } }, "D.D")), /* @__PURE__ */ import_react.default.createElement("div", { style: { fontSize: "0.6875rem", color: "#D6E8EE", opacity: 0.85, marginTop: "3px", fontWeight: "600" } }, "\uB300\uD55C\uBBFC\uAD6D \uAC74\uC124\uAE30\uACC4 \uC815\uBE44 1\uB4F1")),
+          /* @__PURE__ */ import_react.default.createElement(
+            "button",
+            {
+              type: "button",
+              onClick: () => setMobileMenuOpen(false),
+              style: {
+                background: "rgba(255, 255, 255, 0.18)",
+                border: "1px solid rgba(255, 255, 255, 0.3)",
+                borderRadius: "50%",
+                color: "#FFFFFF",
+                width: "34px",
+                height: "34px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "1rem",
+                cursor: "pointer",
+                fontWeight: "bold"
+              }
+            },
+            "\u2715"
+          )
+        ),
+        /* @__PURE__ */ import_react.default.createElement(
+          "div",
+          {
+            style: {
+              padding: "0.875rem 1rem",
+              backgroundColor: "#F8FAFC",
+              borderBottom: "1px solid #E2E8F0",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center"
+            }
+          },
+          /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px" } }, /* @__PURE__ */ import_react.default.createElement(
+            "div",
+            {
+              style: {
+                width: "36px",
+                height: "36px",
+                borderRadius: "10px",
+                backgroundColor: userRole === "admin" ? "#fef3c7" : "#dbeafe",
+                border: `1.5px solid ${userRole === "admin" ? "#fcd34d" : "#93c5fd"}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "1.125rem"
+              }
+            },
+            userRole === "admin" ? "\u{1F451}" : "\u{1F3E2}"
+          ), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("div", { style: { fontSize: "0.875rem", fontWeight: "800", color: "#0F172A" } }, userRole === "admin" ? "\uD1B5\uD569 \uAD00\uB9AC\uC790 \uBAA8\uB4DC" : supplierDisplayName), /* @__PURE__ */ import_react.default.createElement("div", { style: { fontSize: "0.6875rem", color: isConnected ? "#059669" : "#DC2626", fontWeight: "700", marginTop: "1px" } }, isConnected ? "\u{1F7E2} DB \uC5F0\uACB0 \uC815\uC0C1" : "\u{1F534} \uB85C\uCEEC\uC800\uC7A5 \uBAA8\uB4DC"))),
+          /* @__PURE__ */ import_react.default.createElement(
+            "button",
+            {
+              type: "button",
+              onClick: () => {
+                setMobileMenuOpen(false);
+                onLogout();
+              },
+              className: "btn btn-outline btn-sm",
+              style: { fontSize: "0.6875rem", padding: "4px 8px", color: "#DC2626", borderColor: "#FECACA", backgroundColor: "#FEF2F2" }
+            },
+            "\uB85C\uADF8\uC544\uC6C3"
+          )
+        ),
+        /* @__PURE__ */ import_react.default.createElement("div", { style: { flex: 1, padding: "0.75rem 0.875rem", overflowY: "auto" } }, menuSections.map((sec, secIdx) => /* @__PURE__ */ import_react.default.createElement("div", { key: secIdx, style: { marginBottom: "1.125rem" } }, /* @__PURE__ */ import_react.default.createElement(
+          "div",
+          {
+            style: {
+              fontSize: "0.6875rem",
+              fontWeight: "800",
+              color: "#64748B",
+              textTransform: "uppercase",
+              letterSpacing: "0.04em",
+              marginBottom: "0.375rem",
+              paddingLeft: "0.375rem"
+            }
+          },
+          sec.category
+        ), /* @__PURE__ */ import_react.default.createElement(
+          "div",
+          {
+            style: {
+              backgroundColor: "#FFFFFF",
+              borderRadius: "12px",
+              border: "1px solid #E2E8F0",
+              overflow: "hidden",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.03)"
+            }
+          },
+          sec.items.map((item, itemIdx) => /* @__PURE__ */ import_react.default.createElement(
+            "div",
+            {
+              key: item.id,
+              onClick: item.onClick,
+              style: {
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "0.75rem 0.875rem",
+                backgroundColor: item.isActive ? "#EFF6FF" : "#FFFFFF",
+                borderBottom: itemIdx < sec.items.length - 1 ? "1px solid #F1F5F9" : "none",
+                borderLeft: item.isActive ? "4px solid #1D4ED8" : "4px solid transparent",
+                cursor: "pointer",
+                transition: "background-color 0.15s ease"
+              }
+            },
+            /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "10px", minWidth: 0 } }, /* @__PURE__ */ import_react.default.createElement(
+              "div",
+              {
+                style: {
+                  width: "34px",
+                  height: "34px",
+                  borderRadius: "8px",
+                  backgroundColor: item.iconBg,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "1rem",
+                  flexShrink: 0
+                }
+              },
+              item.icon
+            ), /* @__PURE__ */ import_react.default.createElement("div", { style: { minWidth: 0 } }, /* @__PURE__ */ import_react.default.createElement(
+              "div",
+              {
+                style: {
+                  fontSize: "0.875rem",
+                  fontWeight: item.isActive ? "900" : "700",
+                  color: item.isActive ? "#1D4ED8" : "#1E293B",
+                  lineHeight: 1.2
+                }
+              },
+              item.title
+            ), /* @__PURE__ */ import_react.default.createElement("div", { style: { fontSize: "0.6875rem", color: "#64748B", marginTop: "2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, item.sub))),
+            /* @__PURE__ */ import_react.default.createElement("div", { style: { fontSize: "1rem", color: item.isActive ? "#1D4ED8" : "#94A3B8", fontWeight: "bold", marginLeft: "6px" } }, item.isActive ? "\u2713" : "\u203A")
+          ))
+        ))), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: "0.5rem" } }, /* @__PURE__ */ import_react.default.createElement(
+          "div",
+          {
+            style: {
+              fontSize: "0.6875rem",
+              fontWeight: "800",
+              color: "#64748B",
+              textTransform: "uppercase",
+              letterSpacing: "0.04em",
+              marginBottom: "0.375rem",
+              paddingLeft: "0.375rem"
+            }
+          },
+          "\uC2DC\uC2A4\uD15C \uC124\uC815"
+        ), /* @__PURE__ */ import_react.default.createElement(
+          "div",
+          {
+            onClick: () => {
+              setMobileMenuOpen(false);
+              setShowConfig(true);
+            },
+            style: {
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "0.75rem 0.875rem",
+              backgroundColor: "#FFFFFF",
+              borderRadius: "12px",
+              border: "1px solid #E2E8F0",
+              cursor: "pointer",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.03)"
+            }
+          },
+          /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "10px" } }, /* @__PURE__ */ import_react.default.createElement(
+            "div",
+            {
+              style: {
+                width: "34px",
+                height: "34px",
+                borderRadius: "8px",
+                backgroundColor: "#F1F5F9",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "1rem"
+              }
+            },
+            "\u2699\uFE0F"
+          ), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("div", { style: { fontSize: "0.875rem", fontWeight: "700", color: "#1E293B" } }, "Supabase DB \uC5F0\uACB0 \uC124\uC815"), /* @__PURE__ */ import_react.default.createElement("div", { style: { fontSize: "0.6875rem", color: "#64748B", marginTop: "2px" } }, "\uD074\uB77C\uC6B0\uB4DC \uD504\uB85C\uC81D\uD2B8 URL \uBC0F \uD0A4 \uAD00\uB9AC"))),
+          /* @__PURE__ */ import_react.default.createElement("div", { style: { fontSize: "1rem", color: "#94A3B8", fontWeight: "bold" } }, "\u203A")
+        ))),
+        /* @__PURE__ */ import_react.default.createElement(
+          "div",
+          {
+            style: {
+              padding: "0.875rem 1rem",
+              borderTop: "1px solid #E2E8F0",
+              backgroundColor: "#F8FAFC",
+              textAlign: "center",
+              fontSize: "0.6875rem",
+              color: "#94A3B8",
+              fontWeight: "600"
+            }
+          },
+          "TEAM D.D \xB7 v2.0.7 Mobile Edition"
+        )
+      )
+    ));
   }
 
   // src/components/SplashScreen.jsx
