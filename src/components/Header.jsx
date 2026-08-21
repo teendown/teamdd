@@ -179,7 +179,7 @@ export default function Header({
 
   return (
     <header className="top-header" style={{ position: 'sticky', top: 0, zIndex: 90 }}>
-      {/* ── Main Top Header Card ── */}
+      {/* ── Main Top Header Card: [ 메뉴 ] [ TEAM D.D ] [ 공급자 ] [ DB 동그라미 ] [ 로그아웃 ] ── */}
       <div
         className="header-card"
         style={{
@@ -187,125 +187,130 @@ export default function Header({
           borderRadius: '12px',
           border: '1px solid var(--border-color)',
           boxShadow: '0 2px 8px rgba(0, 27, 72, 0.06)',
-          padding: '0.5rem 0.875rem',
+          padding: '0.4rem 0.625rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '0.5rem'
+          gap: '6px',
+          flexWrap: 'nowrap'
         }}
       >
-        {/* Left Side: Brand Logo + Compact Supplier Tag */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <h1
-              className="brand-title"
-              style={{
-                margin: 0,
-                fontSize: '1.0625rem',
-                fontWeight: '900',
-                color: 'var(--c-navy-dark)',
-                letterSpacing: '-0.02em',
-                lineHeight: 1.1
-              }}
-            >
-              TEAM <span style={{ color: 'var(--c-blue-accent)' }}>D.D</span>
-            </h1>
-            <span className="brand-sub" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', fontWeight: '600' }}>
-              대한민국 건설기계 정비 1등
-            </span>
-          </div>
+        {/* 1. 📋 메뉴 버튼 */}
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen(true)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '3px',
+            height: '30px',
+            padding: '0 8px',
+            borderRadius: '8px',
+            background: 'linear-gradient(135deg, #001B48 0%, #02457A 100%)',
+            color: '#FFFFFF',
+            border: 'none',
+            fontSize: '0.8125rem',
+            fontWeight: '900',
+            cursor: 'pointer',
+            boxShadow: '0 2px 4px rgba(0, 27, 72, 0.2)',
+            whiteSpace: 'nowrap',
+            flexShrink: 0
+          }}
+          title="전체 메뉴 열기"
+        >
+          <span>☰</span>
+          <span>메뉴</span>
+        </button>
 
-          {/* 🏢 로그인 계정 뱃지 */}
-          <div
+        {/* 2. TEAM D.D 로고 */}
+        <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+          <h1
+            className="brand-title"
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              backgroundColor: 'var(--c-blue-lightest)',
-              border: '1px solid var(--c-blue-soft)',
-              padding: '3px 8px',
-              borderRadius: '20px',
-              fontSize: '0.75rem',
-              fontWeight: '800',
-              color: 'var(--c-navy-dark)',
-              whiteSpace: 'nowrap'
-            }}
-            title={userRole === 'admin' ? '관리자 모드' : `공급자: ${supplierDisplayName}`}
-          >
-            <span>{userRole === 'admin' ? '👑' : '🏢'}</span>
-            <span style={{ color: 'var(--c-navy-primary)' }}>
-              {userRole === 'admin' ? '관리자' : supplierDisplayName}
-            </span>
-          </div>
-        </div>
-
-        {/* Right Side: DB Pill + [📋 메뉴 ▾] + Desktop Logout */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-          {/* 🟢 DB 연결 상태 배지 */}
-          <button
-            type="button"
-            onClick={() => setShowConfig(prev => !prev)}
-            className={`status-badge ${isConnected ? 'connected' : 'disconnected'}`}
-            style={{
-              padding: '0.35rem 0.55rem',
-              fontSize: '0.6875rem',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '3px',
-              borderRadius: '20px'
-            }}
-          >
-            <span>{isConnected ? '🟢 DB' : '🔴 로컬'}</span>
-            <span style={{ fontSize: '8px' }}>{showConfig ? '▲' : '▼'}</span>
-          </button>
-
-          {/* 🚪 로그아웃 버튼 (Desktop Only) */}
-          <button
-            type="button"
-            onClick={onLogout}
-            className="desktop-only btn btn-outline btn-sm"
-            style={{
-              height: '28px',
-              fontSize: '0.6875rem',
-              fontWeight: '700',
-              color: '#D92D20',
-              borderColor: '#FECDCA',
-              backgroundColor: '#FEF3F2',
-              cursor: 'pointer',
-              padding: '0 8px'
-            }}
-          >
-            로그아웃
-          </button>
-
-          {/* 📋 Fixed [메뉴 ▾] Button (Mobile Primary) */}
-          <button
-            type="button"
-            className="mobile-menu-fixed-btn"
-            onClick={() => setMobileMenuOpen(true)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              height: '32px',
-              padding: '0 10px',
-              borderRadius: '8px',
-              background: 'linear-gradient(135deg, #001B48 0%, #02457A 100%)',
-              color: '#FFFFFF',
-              border: 'none',
-              fontSize: '0.8125rem',
+              margin: 0,
+              fontSize: '1rem',
               fontWeight: '900',
-              cursor: 'pointer',
-              boxShadow: '0 2px 6px rgba(0, 27, 72, 0.25)',
-              whiteSpace: 'nowrap'
+              color: 'var(--c-navy-dark)',
+              letterSpacing: '-0.02em',
+              whiteSpace: 'nowrap',
+              lineHeight: 1
             }}
-            title="전체 메뉴 열기"
           >
-            <span>메뉴</span>
-            <span style={{ fontSize: '9px', opacity: 0.8 }}>▼</span>
-          </button>
+            TEAM <span style={{ color: 'var(--c-blue-accent)' }}>D.D</span>
+          </h1>
         </div>
+
+        {/* 3. 🏢 공급자 (로그인 계정) 뱃지 */}
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '3px',
+            backgroundColor: 'var(--c-blue-lightest)',
+            border: '1px solid var(--c-blue-soft)',
+            padding: '2px 8px',
+            borderRadius: '16px',
+            fontSize: '0.75rem',
+            fontWeight: '800',
+            color: 'var(--c-navy-dark)',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            maxWidth: '120px',
+            flexShrink: 1
+          }}
+          title={userRole === 'admin' ? '관리자 모드' : `공급자: ${supplierDisplayName}`}
+        >
+          <span>{userRole === 'admin' ? '👑' : '🏢'}</span>
+          <span style={{ color: 'var(--c-navy-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {userRole === 'admin' ? '관리자' : supplierDisplayName}
+          </span>
+        </div>
+
+        {/* 4. 🟢 DB 상태 (동그라미만) */}
+        <button
+          type="button"
+          onClick={() => setShowConfig(prev => !prev)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '26px',
+            height: '26px',
+            borderRadius: '50%',
+            backgroundColor: isConnected ? '#ecfdf5' : '#fef2f2',
+            border: `1.5px solid ${isConnected ? '#10b981' : '#ef4444'}`,
+            cursor: 'pointer',
+            fontSize: '11px',
+            padding: 0,
+            flexShrink: 0
+          }}
+          title={isConnected ? '🟢 Supabase DB 연결됨 (클릭 시 설정)' : '🔴 로컬저장 모드 (클릭 시 설정)'}
+        >
+          <span>{isConnected ? '🟢' : '🔴'}</span>
+        </button>
+
+        {/* 5. 🚪 로그아웃 버튼 */}
+        <button
+          type="button"
+          onClick={onLogout}
+          style={{
+            height: '28px',
+            padding: '0 8px',
+            fontSize: '0.6875rem',
+            fontWeight: '800',
+            color: '#D92D20',
+            borderColor: '#FECDCA',
+            backgroundColor: '#FEF3F2',
+            borderRadius: '6px',
+            border: '1px solid #FECDCA',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            flexShrink: 0
+          }}
+        >
+          로그아웃
+        </button>
       </div>
 
       {/* Supabase DB 설정 패널 */}

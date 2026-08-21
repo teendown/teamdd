@@ -28842,97 +28842,25 @@ ${JSON.stringify(extra)}`;
           borderRadius: "12px",
           border: "1px solid var(--border-color)",
           boxShadow: "0 2px 8px rgba(0, 27, 72, 0.06)",
-          padding: "0.5rem 0.875rem",
+          padding: "0.4rem 0.625rem",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: "0.5rem"
+          gap: "6px",
+          flexWrap: "nowrap"
         }
       },
-      /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", minWidth: 0 } }, /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", flexDirection: "column", justifyContent: "center" } }, /* @__PURE__ */ import_react.default.createElement(
-        "h1",
-        {
-          className: "brand-title",
-          style: {
-            margin: 0,
-            fontSize: "1.0625rem",
-            fontWeight: "900",
-            color: "var(--c-navy-dark)",
-            letterSpacing: "-0.02em",
-            lineHeight: 1.1
-          }
-        },
-        "TEAM ",
-        /* @__PURE__ */ import_react.default.createElement("span", { style: { color: "var(--c-blue-accent)" } }, "D.D")
-      ), /* @__PURE__ */ import_react.default.createElement("span", { className: "brand-sub", style: { fontSize: "0.6875rem", color: "var(--text-muted)", fontWeight: "600" } }, "\uB300\uD55C\uBBFC\uAD6D \uAC74\uC124\uAE30\uACC4 \uC815\uBE44 1\uB4F1")), /* @__PURE__ */ import_react.default.createElement(
-        "div",
-        {
-          style: {
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "4px",
-            backgroundColor: "var(--c-blue-lightest)",
-            border: "1px solid var(--c-blue-soft)",
-            padding: "3px 8px",
-            borderRadius: "20px",
-            fontSize: "0.75rem",
-            fontWeight: "800",
-            color: "var(--c-navy-dark)",
-            whiteSpace: "nowrap"
-          },
-          title: userRole === "admin" ? "\uAD00\uB9AC\uC790 \uBAA8\uB4DC" : `\uACF5\uAE09\uC790: ${supplierDisplayName}`
-        },
-        /* @__PURE__ */ import_react.default.createElement("span", null, userRole === "admin" ? "\u{1F451}" : "\u{1F3E2}"),
-        /* @__PURE__ */ import_react.default.createElement("span", { style: { color: "var(--c-navy-primary)" } }, userRole === "admin" ? "\uAD00\uB9AC\uC790" : supplierDisplayName)
-      )),
-      /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 } }, /* @__PURE__ */ import_react.default.createElement(
+      /* @__PURE__ */ import_react.default.createElement(
         "button",
         {
           type: "button",
-          onClick: () => setShowConfig((prev) => !prev),
-          className: `status-badge ${isConnected ? "connected" : "disconnected"}`,
-          style: {
-            padding: "0.35rem 0.55rem",
-            fontSize: "0.6875rem",
-            cursor: "pointer",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "3px",
-            borderRadius: "20px"
-          }
-        },
-        /* @__PURE__ */ import_react.default.createElement("span", null, isConnected ? "\u{1F7E2} DB" : "\u{1F534} \uB85C\uCEEC"),
-        /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "8px" } }, showConfig ? "\u25B2" : "\u25BC")
-      ), /* @__PURE__ */ import_react.default.createElement(
-        "button",
-        {
-          type: "button",
-          onClick: onLogout,
-          className: "desktop-only btn btn-outline btn-sm",
-          style: {
-            height: "28px",
-            fontSize: "0.6875rem",
-            fontWeight: "700",
-            color: "#D92D20",
-            borderColor: "#FECDCA",
-            backgroundColor: "#FEF3F2",
-            cursor: "pointer",
-            padding: "0 8px"
-          }
-        },
-        "\uB85C\uADF8\uC544\uC6C3"
-      ), /* @__PURE__ */ import_react.default.createElement(
-        "button",
-        {
-          type: "button",
-          className: "mobile-menu-fixed-btn",
           onClick: () => setMobileMenuOpen(true),
           style: {
             display: "inline-flex",
             alignItems: "center",
-            gap: "4px",
-            height: "32px",
-            padding: "0 10px",
+            gap: "3px",
+            height: "30px",
+            padding: "0 8px",
             borderRadius: "8px",
             background: "linear-gradient(135deg, #001B48 0%, #02457A 100%)",
             color: "#FFFFFF",
@@ -28940,14 +28868,102 @@ ${JSON.stringify(extra)}`;
             fontSize: "0.8125rem",
             fontWeight: "900",
             cursor: "pointer",
-            boxShadow: "0 2px 6px rgba(0, 27, 72, 0.25)",
-            whiteSpace: "nowrap"
+            boxShadow: "0 2px 4px rgba(0, 27, 72, 0.2)",
+            whiteSpace: "nowrap",
+            flexShrink: 0
           },
           title: "\uC804\uCCB4 \uBA54\uB274 \uC5F4\uAE30"
         },
-        /* @__PURE__ */ import_react.default.createElement("span", null, "\uBA54\uB274"),
-        /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "9px", opacity: 0.8 } }, "\u25BC")
-      ))
+        /* @__PURE__ */ import_react.default.createElement("span", null, "\u2630"),
+        /* @__PURE__ */ import_react.default.createElement("span", null, "\uBA54\uB274")
+      ),
+      /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", alignItems: "center", flexShrink: 0 } }, /* @__PURE__ */ import_react.default.createElement(
+        "h1",
+        {
+          className: "brand-title",
+          style: {
+            margin: 0,
+            fontSize: "1rem",
+            fontWeight: "900",
+            color: "var(--c-navy-dark)",
+            letterSpacing: "-0.02em",
+            whiteSpace: "nowrap",
+            lineHeight: 1
+          }
+        },
+        "TEAM ",
+        /* @__PURE__ */ import_react.default.createElement("span", { style: { color: "var(--c-blue-accent)" } }, "D.D")
+      )),
+      /* @__PURE__ */ import_react.default.createElement(
+        "div",
+        {
+          style: {
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "3px",
+            backgroundColor: "var(--c-blue-lightest)",
+            border: "1px solid var(--c-blue-soft)",
+            padding: "2px 8px",
+            borderRadius: "16px",
+            fontSize: "0.75rem",
+            fontWeight: "800",
+            color: "var(--c-navy-dark)",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            maxWidth: "120px",
+            flexShrink: 1
+          },
+          title: userRole === "admin" ? "\uAD00\uB9AC\uC790 \uBAA8\uB4DC" : `\uACF5\uAE09\uC790: ${supplierDisplayName}`
+        },
+        /* @__PURE__ */ import_react.default.createElement("span", null, userRole === "admin" ? "\u{1F451}" : "\u{1F3E2}"),
+        /* @__PURE__ */ import_react.default.createElement("span", { style: { color: "var(--c-navy-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, userRole === "admin" ? "\uAD00\uB9AC\uC790" : supplierDisplayName)
+      ),
+      /* @__PURE__ */ import_react.default.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: () => setShowConfig((prev) => !prev),
+          style: {
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "26px",
+            height: "26px",
+            borderRadius: "50%",
+            backgroundColor: isConnected ? "#ecfdf5" : "#fef2f2",
+            border: `1.5px solid ${isConnected ? "#10b981" : "#ef4444"}`,
+            cursor: "pointer",
+            fontSize: "11px",
+            padding: 0,
+            flexShrink: 0
+          },
+          title: isConnected ? "\u{1F7E2} Supabase DB \uC5F0\uACB0\uB428 (\uD074\uB9AD \uC2DC \uC124\uC815)" : "\u{1F534} \uB85C\uCEEC\uC800\uC7A5 \uBAA8\uB4DC (\uD074\uB9AD \uC2DC \uC124\uC815)"
+        },
+        /* @__PURE__ */ import_react.default.createElement("span", null, isConnected ? "\u{1F7E2}" : "\u{1F534}")
+      ),
+      /* @__PURE__ */ import_react.default.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: onLogout,
+          style: {
+            height: "28px",
+            padding: "0 8px",
+            fontSize: "0.6875rem",
+            fontWeight: "800",
+            color: "#D92D20",
+            borderColor: "#FECDCA",
+            backgroundColor: "#FEF3F2",
+            borderRadius: "6px",
+            border: "1px solid #FECDCA",
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+            flexShrink: 0
+          }
+        },
+        "\uB85C\uADF8\uC544\uC6C3"
+      )
     ), showConfig && /* @__PURE__ */ import_react.default.createElement(
       "div",
       {
