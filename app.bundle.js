@@ -28842,7 +28842,7 @@ ${JSON.stringify(extra)}`;
           borderRadius: "12px",
           border: "1px solid var(--border-color)",
           boxShadow: "0 2px 8px rgba(0, 27, 72, 0.06)",
-          padding: "0.5rem 0.75rem",
+          padding: "0.5rem 0.875rem",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -28867,62 +28867,12 @@ ${JSON.stringify(extra)}`;
       ), /* @__PURE__ */ import_react.default.createElement("span", { className: "brand-sub", style: { fontSize: "0.6875rem", color: "var(--text-muted)", fontWeight: "600" } }, "\uB300\uD55C\uBBFC\uAD6D \uAC74\uC124\uAE30\uACC4 \uC815\uBE44 1\uB4F1")), /* @__PURE__ */ import_react.default.createElement(
         "div",
         {
-          className: "mobile-active-pill",
-          onClick: () => setMobileMenuOpen(true),
-          style: {
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "4px",
-            background: "#eff6ff",
-            border: "1px solid #bfdbfe",
-            color: "#1d4ed8",
-            padding: "3px 8px",
-            borderRadius: "20px",
-            fontSize: "0.75rem",
-            fontWeight: "800",
-            cursor: "pointer",
-            whiteSpace: "nowrap"
-          },
-          title: "\uD604\uC7AC \uD654\uBA74 (\uD074\uB9AD \uC2DC \uBA54\uB274 \uC5F4\uAE30)"
-        },
-        /* @__PURE__ */ import_react.default.createElement("span", null, getActiveTabTitle())
-      )),
-      /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "0.375rem", flexWrap: "wrap", justifyContent: "flex-end" } }, /* @__PURE__ */ import_react.default.createElement(
-        "button",
-        {
-          type: "button",
-          className: "mobile-menu-fixed-btn",
-          onClick: () => setMobileMenuOpen(true),
-          style: {
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "5px",
-            height: "32px",
-            padding: "0 10px",
-            borderRadius: "8px",
-            background: "linear-gradient(135deg, #001B48 0%, #02457A 100%)",
-            color: "#FFFFFF",
-            border: "none",
-            fontSize: "0.8125rem",
-            fontWeight: "900",
-            cursor: "pointer",
-            boxShadow: "0 2px 6px rgba(0, 27, 72, 0.25)",
-            whiteSpace: "nowrap"
-          },
-          title: "\uC804\uCCB4 \uBA54\uB274 \uC5F4\uAE30"
-        },
-        /* @__PURE__ */ import_react.default.createElement("span", null, "\u{1F4CB}"),
-        /* @__PURE__ */ import_react.default.createElement("span", null, "\uBA54\uB274"),
-        /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "9px", opacity: 0.8 } }, "\u25BC")
-      ), /* @__PURE__ */ import_react.default.createElement(
-        "div",
-        {
           style: {
             display: "inline-flex",
             alignItems: "center",
             gap: "4px",
             backgroundColor: "var(--c-blue-lightest)",
-            border: "1.5px solid var(--c-blue-soft)",
+            border: "1px solid var(--c-blue-soft)",
             padding: "3px 8px",
             borderRadius: "20px",
             fontSize: "0.75rem",
@@ -28934,12 +28884,31 @@ ${JSON.stringify(extra)}`;
         },
         /* @__PURE__ */ import_react.default.createElement("span", null, userRole === "admin" ? "\u{1F451}" : "\u{1F3E2}"),
         /* @__PURE__ */ import_react.default.createElement("span", { style: { color: "var(--c-navy-primary)" } }, userRole === "admin" ? "\uAD00\uB9AC\uC790" : supplierDisplayName)
+      )),
+      /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 } }, /* @__PURE__ */ import_react.default.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: () => setShowConfig((prev) => !prev),
+          className: `status-badge ${isConnected ? "connected" : "disconnected"}`,
+          style: {
+            padding: "0.35rem 0.55rem",
+            fontSize: "0.6875rem",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "3px",
+            borderRadius: "20px"
+          }
+        },
+        /* @__PURE__ */ import_react.default.createElement("span", null, isConnected ? "\u{1F7E2} DB" : "\u{1F534} \uB85C\uCEEC"),
+        /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "8px" } }, showConfig ? "\u25B2" : "\u25BC")
       ), /* @__PURE__ */ import_react.default.createElement(
         "button",
         {
           type: "button",
           onClick: onLogout,
-          className: "btn btn-outline btn-sm",
+          className: "desktop-only btn btn-outline btn-sm",
           style: {
             height: "28px",
             fontSize: "0.6875rem",
@@ -28956,19 +28925,28 @@ ${JSON.stringify(extra)}`;
         "button",
         {
           type: "button",
-          onClick: () => setShowConfig((prev) => !prev),
-          className: `status-badge ${isConnected ? "connected" : "disconnected"}`,
+          className: "mobile-menu-fixed-btn",
+          onClick: () => setMobileMenuOpen(true),
           style: {
-            padding: "0.3rem 0.5rem",
-            fontSize: "0.6875rem",
-            cursor: "pointer",
             display: "inline-flex",
             alignItems: "center",
-            gap: "3px"
-          }
+            gap: "4px",
+            height: "32px",
+            padding: "0 10px",
+            borderRadius: "8px",
+            background: "linear-gradient(135deg, #001B48 0%, #02457A 100%)",
+            color: "#FFFFFF",
+            border: "none",
+            fontSize: "0.8125rem",
+            fontWeight: "900",
+            cursor: "pointer",
+            boxShadow: "0 2px 6px rgba(0, 27, 72, 0.25)",
+            whiteSpace: "nowrap"
+          },
+          title: "\uC804\uCCB4 \uBA54\uB274 \uC5F4\uAE30"
         },
-        /* @__PURE__ */ import_react.default.createElement("span", null, isConnected ? "\u{1F7E2} DB" : "\u{1F534} \uB85C\uCEEC"),
-        /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "9px" } }, showConfig ? "\u25B2" : "\u25BC")
+        /* @__PURE__ */ import_react.default.createElement("span", null, "\uBA54\uB274"),
+        /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "9px", opacity: 0.8 } }, "\u25BC")
       ))
     ), showConfig && /* @__PURE__ */ import_react.default.createElement(
       "div",

@@ -187,14 +187,14 @@ export default function Header({
           borderRadius: '12px',
           border: '1px solid var(--border-color)',
           boxShadow: '0 2px 8px rgba(0, 27, 72, 0.06)',
-          padding: '0.5rem 0.75rem',
+          padding: '0.5rem 0.875rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '0.5rem'
         }}
       >
-        {/* Left Side: Brand Logo + Current Screen Badge */}
+        {/* Left Side: Brand Logo + Compact Supplier Tag */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <h1
@@ -215,60 +215,6 @@ export default function Header({
             </span>
           </div>
 
-          {/* Current Active Tab Pill (Mobile indicator) */}
-          <div
-            className="mobile-active-pill"
-            onClick={() => setMobileMenuOpen(true)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              background: '#eff6ff',
-              border: '1px solid #bfdbfe',
-              color: '#1d4ed8',
-              padding: '3px 8px',
-              borderRadius: '20px',
-              fontSize: '0.75rem',
-              fontWeight: '800',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap'
-            }}
-            title="현재 화면 (클릭 시 메뉴 열기)"
-          >
-            <span>{getActiveTabTitle()}</span>
-          </div>
-        </div>
-
-        {/* Right Side: [📋 메뉴 ▾] Fixed Button + Supplier + DB */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          {/* 📋 Fixed [메뉴 ▾] Button on Mobile */}
-          <button
-            type="button"
-            className="mobile-menu-fixed-btn"
-            onClick={() => setMobileMenuOpen(true)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px',
-              height: '32px',
-              padding: '0 10px',
-              borderRadius: '8px',
-              background: 'linear-gradient(135deg, #001B48 0%, #02457A 100%)',
-              color: '#FFFFFF',
-              border: 'none',
-              fontSize: '0.8125rem',
-              fontWeight: '900',
-              cursor: 'pointer',
-              boxShadow: '0 2px 6px rgba(0, 27, 72, 0.25)',
-              whiteSpace: 'nowrap'
-            }}
-            title="전체 메뉴 열기"
-          >
-            <span>📋</span>
-            <span>메뉴</span>
-            <span style={{ fontSize: '9px', opacity: 0.8 }}>▼</span>
-          </button>
-
           {/* 🏢 로그인 계정 뱃지 */}
           <div
             style={{
@@ -276,7 +222,7 @@ export default function Header({
               alignItems: 'center',
               gap: '4px',
               backgroundColor: 'var(--c-blue-lightest)',
-              border: '1.5px solid var(--c-blue-soft)',
+              border: '1px solid var(--c-blue-soft)',
               padding: '3px 8px',
               borderRadius: '20px',
               fontSize: '0.75rem',
@@ -291,12 +237,34 @@ export default function Header({
               {userRole === 'admin' ? '관리자' : supplierDisplayName}
             </span>
           </div>
+        </div>
 
-          {/* 🚪 로그아웃 버튼 */}
+        {/* Right Side: DB Pill + [📋 메뉴 ▾] + Desktop Logout */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+          {/* 🟢 DB 연결 상태 배지 */}
+          <button
+            type="button"
+            onClick={() => setShowConfig(prev => !prev)}
+            className={`status-badge ${isConnected ? 'connected' : 'disconnected'}`}
+            style={{
+              padding: '0.35rem 0.55rem',
+              fontSize: '0.6875rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '3px',
+              borderRadius: '20px'
+            }}
+          >
+            <span>{isConnected ? '🟢 DB' : '🔴 로컬'}</span>
+            <span style={{ fontSize: '8px' }}>{showConfig ? '▲' : '▼'}</span>
+          </button>
+
+          {/* 🚪 로그아웃 버튼 (Desktop Only) */}
           <button
             type="button"
             onClick={onLogout}
-            className="btn btn-outline btn-sm"
+            className="desktop-only btn btn-outline btn-sm"
             style={{
               height: '28px',
               fontSize: '0.6875rem',
@@ -311,22 +279,31 @@ export default function Header({
             로그아웃
           </button>
 
-          {/* 🟢 DB 연결 상태 배지 */}
+          {/* 📋 Fixed [메뉴 ▾] Button (Mobile Primary) */}
           <button
             type="button"
-            onClick={() => setShowConfig(prev => !prev)}
-            className={`status-badge ${isConnected ? 'connected' : 'disconnected'}`}
+            className="mobile-menu-fixed-btn"
+            onClick={() => setMobileMenuOpen(true)}
             style={{
-              padding: '0.3rem 0.5rem',
-              fontSize: '0.6875rem',
-              cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '3px'
+              gap: '4px',
+              height: '32px',
+              padding: '0 10px',
+              borderRadius: '8px',
+              background: 'linear-gradient(135deg, #001B48 0%, #02457A 100%)',
+              color: '#FFFFFF',
+              border: 'none',
+              fontSize: '0.8125rem',
+              fontWeight: '900',
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(0, 27, 72, 0.25)',
+              whiteSpace: 'nowrap'
             }}
+            title="전체 메뉴 열기"
           >
-            <span>{isConnected ? '🟢 DB' : '🔴 로컬'}</span>
-            <span style={{ fontSize: '9px' }}>{showConfig ? '▲' : '▼'}</span>
+            <span>메뉴</span>
+            <span style={{ fontSize: '9px', opacity: 0.8 }}>▼</span>
           </button>
         </div>
       </div>

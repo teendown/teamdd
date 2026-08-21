@@ -154,6 +154,25 @@
   border: 1px solid var(--c-blue-soft);
 }
 
+/* ── Responsive Visibility Utilities ── */
+.desktop-only {
+  display: none !important;
+}
+@media (min-width: 840px) {
+  .desktop-only {
+    display: inline-flex !important;
+  }
+}
+
+.mobile-only {
+  display: inline-flex !important;
+}
+@media (min-width: 840px) {
+  .mobile-only {
+    display: none !important;
+  }
+}
+
 /* ── Mobile Menu Fixed Button ── */
 .mobile-menu-fixed-btn {
   display: inline-flex;
