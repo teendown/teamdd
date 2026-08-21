@@ -28683,6 +28683,7 @@ ${JSON.stringify(extra)}`;
   }) {
     const [showConfig, setShowConfig] = (0, import_react.useState)(false);
     const [copiedSQL, setCopiedSQL] = (0, import_react.useState)(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = (0, import_react.useState)(false);
     const handleResetToDefaults = () => {
       setSupabaseUrl(DEFAULT_SUPABASE_URL);
       setSupabaseKey(DEFAULT_SUPABASE_KEY);
@@ -28699,20 +28700,66 @@ ${JSON.stringify(extra)}`;
         setTimeout(() => setCopiedSQL(false), 2500);
       });
     };
-    return /* @__PURE__ */ import_react.default.createElement("header", { className: "top-header" }, /* @__PURE__ */ import_react.default.createElement("div", { className: "header-card" }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("h1", { className: "brand-title" }, "TEAM D.D"), /* @__PURE__ */ import_react.default.createElement("span", { className: "brand-sub" }, "\uB300\uD55C\uBBFC\uAD6D \uAC74\uC124\uAE30\uACC4 \uC815\uBE44 1\uB4F1")), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" } }, /* @__PURE__ */ import_react.default.createElement(
+    const getActiveTabTitle = () => {
+      if (activeTab === "doc") {
+        return docType === "\uACAC\uC801\uC11C" ? "\u{1F4D1} \uACAC\uC801\uC11C" : docType === "\uCCAD\uAD6C\uC11C" ? "\u{1F9FE} \uCCAD\uAD6C\uC11C" : "\u{1F4C4} \uAC70\uB798\uBA85\uC138\uC11C";
+      }
+      switch (activeTab) {
+        case "history":
+          return "\u{1F4C1} \uBB38\uC11C\uC870\uD68C";
+        case "accounting":
+          return "\u{1F4A1} \uD68C\uACC4\uAD00\uB9AC";
+        case "schedule":
+          return "\u{1F4C5} \uC77C\uC815\uAD00\uB9AC";
+        case "customers":
+          return "\u{1F465} \uACE0\uAC1D\uAD00\uB9AC";
+        case "suppliers":
+          return "\u{1F3E2} \uACF5\uAE09\uC790";
+        case "parts":
+          return "\u{1F6E0}\uFE0F \uBD80\uD488\uAD00\uB9AC";
+        default:
+          return "\u{1F4C4} \uAC70\uB798\uBA85\uC138\uC11C";
+      }
+    };
+    const handleSelectTab = (tab, type = null) => {
+      setActiveTab(tab);
+      if (type) setDocType(type);
+      setMobileMenuOpen(false);
+    };
+    return /* @__PURE__ */ import_react.default.createElement("header", { className: "top-header" }, /* @__PURE__ */ import_react.default.createElement("div", { className: "header-card" }, /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", minWidth: 0 } }, /* @__PURE__ */ import_react.default.createElement(
+      "button",
+      {
+        type: "button",
+        className: "mobile-hamburger-btn",
+        onClick: () => setMobileMenuOpen(true),
+        title: "\uC804\uCCB4 \uBA54\uB274 \uC5F4\uAE30"
+      },
+      "\u2630"
+    ), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", flexDirection: "column" } }, /* @__PURE__ */ import_react.default.createElement("h1", { className: "brand-title", style: { margin: 0 } }, "TEAM ", /* @__PURE__ */ import_react.default.createElement("span", null, "D.D")), /* @__PURE__ */ import_react.default.createElement("span", { className: "brand-sub" }, "\uB300\uD55C\uBBFC\uAD6D \uAC74\uC124\uAE30\uACC4 \uC815\uBE44 1\uB4F1")), /* @__PURE__ */ import_react.default.createElement(
+      "button",
+      {
+        type: "button",
+        className: "mobile-active-pill",
+        onClick: () => setMobileMenuOpen(true),
+        title: "\uBA54\uB274 \uBCC0\uACBD"
+      },
+      /* @__PURE__ */ import_react.default.createElement("span", null, getActiveTabTitle()),
+      /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "9px", opacity: 0.7 } }, "\u25BC")
+    )), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "0.375rem", flexWrap: "wrap", justifyContent: "flex-end" } }, /* @__PURE__ */ import_react.default.createElement(
       "div",
       {
         style: {
           display: "inline-flex",
           alignItems: "center",
-          gap: "6px",
+          gap: "4px",
           backgroundColor: "var(--c-blue-lightest)",
           border: "1.5px solid var(--c-blue-soft)",
-          padding: "3px 10px",
+          padding: "3px 8px",
           borderRadius: "20px",
-          fontSize: "0.8125rem",
+          fontSize: "0.75rem",
           fontWeight: "800",
-          color: "var(--c-navy-dark)"
+          color: "var(--c-navy-dark)",
+          whiteSpace: "nowrap"
         },
         title: userRole === "admin" ? "\uAD00\uB9AC\uC790 \uBAA8\uB4DC" : `\uACF5\uAE09\uC790 \uACC4\uC815: ${supplierDisplayName}`
       },
@@ -28725,26 +28772,28 @@ ${JSON.stringify(extra)}`;
         onClick: onLogout,
         className: "btn btn-outline btn-sm",
         style: {
-          height: "30px",
-          fontSize: "0.75rem",
+          height: "28px",
+          fontSize: "0.6875rem",
           fontWeight: "700",
           color: "#D92D20",
           borderColor: "#FECDCA",
           backgroundColor: "#FEF3F2",
-          cursor: "pointer"
+          cursor: "pointer",
+          padding: "0 8px"
         }
       },
       "\uB85C\uADF8\uC544\uC6C3"
-    )), /* @__PURE__ */ import_react.default.createElement(
+    ), /* @__PURE__ */ import_react.default.createElement(
       "button",
       {
         type: "button",
         onClick: () => setShowConfig((prev) => !prev),
-        className: `status-badge ${isConnected ? "connected" : "disconnected"}`
+        className: `status-badge ${isConnected ? "connected" : "disconnected"}`,
+        style: { padding: "0.3rem 0.5rem", fontSize: "0.6875rem" }
       },
-      /* @__PURE__ */ import_react.default.createElement("span", null, isConnected ? "\u{1F7E2} DB \uC5F0\uACB0\uB428" : "\u{1F534} \uB85C\uCEEC\uC800\uC7A5 \uBAA8\uB4DC"),
-      /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "10px" } }, showConfig ? "\u25B2" : "\u25BC")
-    )), showConfig && /* @__PURE__ */ import_react.default.createElement(
+      /* @__PURE__ */ import_react.default.createElement("span", null, isConnected ? "\u{1F7E2} DB \uC5F0\uACB0\uB428" : "\u{1F534} \uB85C\uCEEC\uC800\uC7A5"),
+      /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "9px" } }, showConfig ? "\u25B2" : "\u25BC")
+    ))), showConfig && /* @__PURE__ */ import_react.default.createElement(
       "div",
       {
         style: {
@@ -28861,75 +28910,192 @@ ${JSON.stringify(extra)}`;
       "button",
       {
         className: `tab-btn ${activeTab === "doc" && docType === "\uAC70\uB798\uBA85\uC138\uC11C" ? "active" : ""}`,
-        onClick: () => {
-          setActiveTab("doc");
-          setDocType("\uAC70\uB798\uBA85\uC138\uC11C");
-        }
+        onClick: () => handleSelectTab("doc", "\uAC70\uB798\uBA85\uC138\uC11C")
       },
       "\u{1F4C4} \uAC70\uB798\uBA85\uC138\uC11C"
     ), /* @__PURE__ */ import_react.default.createElement(
       "button",
       {
         className: `tab-btn ${activeTab === "doc" && docType === "\uACAC\uC801\uC11C" ? "active" : ""}`,
-        onClick: () => {
-          setActiveTab("doc");
-          setDocType("\uACAC\uC801\uC11C");
-        }
+        onClick: () => handleSelectTab("doc", "\uACAC\uC801\uC11C")
       },
-      "\u{1F4C4} \uACAC\uC801\uC11C"
+      "\u{1F4D1} \uACAC\uC801\uC11C"
     ), /* @__PURE__ */ import_react.default.createElement(
       "button",
       {
         className: `tab-btn ${activeTab === "doc" && docType === "\uCCAD\uAD6C\uC11C" ? "active" : ""}`,
-        onClick: () => {
-          setActiveTab("doc");
-          setDocType("\uCCAD\uAD6C\uC11C");
-        }
+        onClick: () => handleSelectTab("doc", "\uCCAD\uAD6C\uC11C")
       },
-      "\u{1F4C4} \uCCAD\uAD6C\uC11C"
+      "\u{1F9FE} \uCCAD\uAD6C\uC11C"
     ), /* @__PURE__ */ import_react.default.createElement(
       "button",
       {
         className: `tab-btn ${activeTab === "history" ? "active" : ""}`,
-        onClick: () => setActiveTab("history")
+        onClick: () => handleSelectTab("history")
       },
       "\u{1F4C1} \uBB38\uC11C\uC870\uD68C"
     ), /* @__PURE__ */ import_react.default.createElement(
       "button",
       {
         className: `tab-btn ${activeTab === "accounting" ? "active" : ""}`,
-        onClick: () => setActiveTab("accounting")
+        onClick: () => handleSelectTab("accounting")
       },
       "\u{1F4A1} \uAC70\uB798\uCC98\uBCC4 \uD68C\uACC4"
     ), /* @__PURE__ */ import_react.default.createElement(
       "button",
       {
         className: `tab-btn ${activeTab === "schedule" ? "active" : ""}`,
-        onClick: () => setActiveTab("schedule")
+        onClick: () => handleSelectTab("schedule")
       },
       "\u{1F4C5} \uC77C\uC815\uAD00\uB9AC"
     ), /* @__PURE__ */ import_react.default.createElement(
       "button",
       {
         className: `tab-btn ${activeTab === "customers" ? "active" : ""}`,
-        onClick: () => setActiveTab("customers")
+        onClick: () => handleSelectTab("customers")
       },
       "\u{1F465} \uACE0\uAC1D\uAD00\uB9AC"
     ), userRole === "admin" && /* @__PURE__ */ import_react.default.createElement(
       "button",
       {
         className: `tab-btn ${activeTab === "suppliers" ? "active" : ""}`,
-        onClick: () => setActiveTab("suppliers")
+        onClick: () => handleSelectTab("suppliers")
       },
       "\u{1F3E2} \uACF5\uAE09\uC790"
     ), /* @__PURE__ */ import_react.default.createElement(
       "button",
       {
         className: `tab-btn ${activeTab === "parts" ? "active" : ""}`,
-        onClick: () => setActiveTab("parts")
+        onClick: () => handleSelectTab("parts")
       },
       "\u{1F6E0}\uFE0F \uBD80\uD488\uAD00\uB9AC"
-    ))));
+    ))), mobileMenuOpen && /* @__PURE__ */ import_react.default.createElement("div", { className: "drawer-backdrop", onClick: () => setMobileMenuOpen(false) }, /* @__PURE__ */ import_react.default.createElement("div", { className: "drawer-panel", onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ import_react.default.createElement("div", { className: "drawer-header" }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("div", { style: { fontSize: "1.25rem", fontWeight: "900", color: "#ffffff", letterSpacing: "-0.02em" } }, "TEAM ", /* @__PURE__ */ import_react.default.createElement("span", { style: { color: "#97CADB" } }, "D.D")), /* @__PURE__ */ import_react.default.createElement("div", { style: { fontSize: "0.6875rem", color: "#D6E8EE", opacity: 0.8, marginTop: "2px" } }, "\uB300\uD55C\uBBFC\uAD6D \uAC74\uC124\uAE30\uACC4 \uC815\uBE44 1\uB4F1")), /* @__PURE__ */ import_react.default.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: () => setMobileMenuOpen(false),
+        style: {
+          background: "rgba(255,255,255,0.15)",
+          border: "none",
+          borderRadius: "50%",
+          color: "#ffffff",
+          width: "32px",
+          height: "32px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "1rem",
+          cursor: "pointer",
+          fontWeight: "bold"
+        }
+      },
+      "\u2715"
+    )), /* @__PURE__ */ import_react.default.createElement("div", { style: { padding: "0.875rem 1rem", backgroundColor: "#F8FAFC", borderBottom: "1px solid #E2E8F0", display: "flex", justifyContent: "space-between", alignItems: "center" } }, /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px" } }, /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "1.25rem" } }, userRole === "admin" ? "\u{1F451}" : "\u{1F3E2}"), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("div", { style: { fontSize: "0.875rem", fontWeight: "800", color: "#0F172A" } }, userRole === "admin" ? "\uAD00\uB9AC\uC790 \uC2DC\uC2A4\uD15C" : supplierDisplayName), /* @__PURE__ */ import_react.default.createElement("div", { style: { fontSize: "0.6875rem", color: isConnected ? "#059669" : "#DC2626", fontWeight: "700" } }, isConnected ? "\u{1F7E2} DB \uC5F0\uACB0\uB428" : "\u{1F534} \uB85C\uCEEC\uC800\uC7A5 \uBAA8\uB4DC"))), /* @__PURE__ */ import_react.default.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: () => {
+          setMobileMenuOpen(false);
+          onLogout();
+        },
+        className: "btn btn-outline btn-sm",
+        style: { fontSize: "0.6875rem", padding: "3px 8px", color: "#DC2626", borderColor: "#FECACA" }
+      },
+      "\uB85C\uADF8\uC544\uC6C3"
+    )), /* @__PURE__ */ import_react.default.createElement("div", { style: { flex: 1, padding: "0.5rem 0", overflowY: "auto" } }, /* @__PURE__ */ import_react.default.createElement("div", { className: "drawer-section-title" }, "\u{1F4DD} \uBB38\uC11C \uC791\uC131 (\uBC1C\uD589)"), /* @__PURE__ */ import_react.default.createElement(
+      "button",
+      {
+        type: "button",
+        className: `drawer-menu-item ${activeTab === "doc" && docType === "\uAC70\uB798\uBA85\uC138\uC11C" ? "active" : ""}`,
+        onClick: () => handleSelectTab("doc", "\uAC70\uB798\uBA85\uC138\uC11C")
+      },
+      /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "1.125rem" } }, "\u{1F4C4}"),
+      /* @__PURE__ */ import_react.default.createElement("span", null, "\uAC70\uB798\uBA85\uC138\uC11C \uC791\uC131")
+    ), /* @__PURE__ */ import_react.default.createElement(
+      "button",
+      {
+        type: "button",
+        className: `drawer-menu-item ${activeTab === "doc" && docType === "\uACAC\uC801\uC11C" ? "active" : ""}`,
+        onClick: () => handleSelectTab("doc", "\uACAC\uC801\uC11C")
+      },
+      /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "1.125rem" } }, "\u{1F4D1}"),
+      /* @__PURE__ */ import_react.default.createElement("span", null, "\uACAC\uC801\uC11C \uC791\uC131")
+    ), /* @__PURE__ */ import_react.default.createElement(
+      "button",
+      {
+        type: "button",
+        className: `drawer-menu-item ${activeTab === "doc" && docType === "\uCCAD\uAD6C\uC11C" ? "active" : ""}`,
+        onClick: () => handleSelectTab("doc", "\uCCAD\uAD6C\uC11C")
+      },
+      /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "1.125rem" } }, "\u{1F9FE}"),
+      /* @__PURE__ */ import_react.default.createElement("span", null, "\uCCAD\uAD6C\uC11C \uC791\uC131")
+    ), /* @__PURE__ */ import_react.default.createElement("div", { className: "drawer-section-title" }, "\u{1F4C2} \uC5C5\uBB34 \uBC0F \uC870\uD68C"), /* @__PURE__ */ import_react.default.createElement(
+      "button",
+      {
+        type: "button",
+        className: `drawer-menu-item ${activeTab === "history" ? "active" : ""}`,
+        onClick: () => handleSelectTab("history")
+      },
+      /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "1.125rem" } }, "\u{1F4C1}"),
+      /* @__PURE__ */ import_react.default.createElement("span", null, "\uBB38\uC11C \uC870\uD68C / \uBC1C\uD589 \uB0B4\uC5ED")
+    ), /* @__PURE__ */ import_react.default.createElement(
+      "button",
+      {
+        type: "button",
+        className: `drawer-menu-item ${activeTab === "accounting" ? "active" : ""}`,
+        onClick: () => handleSelectTab("accounting")
+      },
+      /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "1.125rem" } }, "\u{1F4A1}"),
+      /* @__PURE__ */ import_react.default.createElement("span", null, "\uAC70\uB798\uCC98\uBCC4 \uD68C\uACC4 / \uBBF8\uC218\uAE08")
+    ), /* @__PURE__ */ import_react.default.createElement(
+      "button",
+      {
+        type: "button",
+        className: `drawer-menu-item ${activeTab === "schedule" ? "active" : ""}`,
+        onClick: () => handleSelectTab("schedule")
+      },
+      /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "1.125rem" } }, "\u{1F4C5}"),
+      /* @__PURE__ */ import_react.default.createElement("span", null, "\uC77C\uC815 / \uCE98\uB9B0\uB354 \uAD00\uB9AC")
+    ), /* @__PURE__ */ import_react.default.createElement("div", { className: "drawer-section-title" }, "\u2699\uFE0F \uAE30\uC900 \uC815\uBCF4 \uAD00\uB9AC"), /* @__PURE__ */ import_react.default.createElement(
+      "button",
+      {
+        type: "button",
+        className: `drawer-menu-item ${activeTab === "customers" ? "active" : ""}`,
+        onClick: () => handleSelectTab("customers")
+      },
+      /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "1.125rem" } }, "\u{1F465}"),
+      /* @__PURE__ */ import_react.default.createElement("span", null, "\uACE0\uAC1D (\uAC70\uB798\uCC98) \uAD00\uB9AC")
+    ), /* @__PURE__ */ import_react.default.createElement(
+      "button",
+      {
+        type: "button",
+        className: `drawer-menu-item ${activeTab === "parts" ? "active" : ""}`,
+        onClick: () => handleSelectTab("parts")
+      },
+      /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "1.125rem" } }, "\u{1F6E0}\uFE0F"),
+      /* @__PURE__ */ import_react.default.createElement("span", null, "\uBD80\uD488 / \uB2E8\uAC00 \uAD00\uB9AC")
+    ), userRole === "admin" && /* @__PURE__ */ import_react.default.createElement(
+      "button",
+      {
+        type: "button",
+        className: `drawer-menu-item ${activeTab === "suppliers" ? "active" : ""}`,
+        onClick: () => handleSelectTab("suppliers")
+      },
+      /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "1.125rem" } }, "\u{1F3E2}"),
+      /* @__PURE__ */ import_react.default.createElement("span", null, "\uACF5\uAE09\uC790 \uC815\uBCF4 \uAD00\uB9AC")
+    ), /* @__PURE__ */ import_react.default.createElement("div", { className: "drawer-section-title" }, "\u2601\uFE0F \uD074\uB77C\uC6B0\uB4DC \uBC0F \uC124\uC815"), /* @__PURE__ */ import_react.default.createElement(
+      "button",
+      {
+        type: "button",
+        className: "drawer-menu-item",
+        onClick: () => {
+          setMobileMenuOpen(false);
+          setShowConfig(true);
+        }
+      },
+      /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "1.125rem" } }, "\u2699\uFE0F"),
+      /* @__PURE__ */ import_react.default.createElement("span", null, "Supabase DB \uC124\uC815")
+    )), /* @__PURE__ */ import_react.default.createElement("div", { style: { padding: "0.875rem 1rem", borderTop: "1px solid #E2E8F0", backgroundColor: "#F8FAFC", textAlign: "center", fontSize: "0.6875rem", color: "#94A3B8" } }, "TEAM D.D \xB7 v2.0.6 Mobile Edition"))));
   }
 
   // src/components/SplashScreen.jsx

@@ -23,6 +23,7 @@ export default function Header({
 }) {
   const [showConfig, setShowConfig] = useState(false);
   const [copiedSQL, setCopiedSQL] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleResetToDefaults = () => {
     setSupabaseUrl(DEFAULT_SUPABASE_URL);
@@ -45,28 +46,75 @@ export default function Header({
     });
   };
 
+  const getActiveTabTitle = () => {
+    if (activeTab === 'doc') {
+      return docType === '견적서' ? '📑 견적서' : (docType === '청구서' ? '🧾 청구서' : '📄 거래명세서');
+    }
+    switch (activeTab) {
+      case 'history': return '📁 문서조회';
+      case 'accounting': return '💡 회계관리';
+      case 'schedule': return '📅 일정관리';
+      case 'customers': return '👥 고객관리';
+      case 'suppliers': return '🏢 공급자';
+      case 'parts': return '🛠️ 부품관리';
+      default: return '📄 거래명세서';
+    }
+  };
+
+  const handleSelectTab = (tab, type = null) => {
+    setActiveTab(tab);
+    if (type) setDocType(type);
+    setMobileMenuOpen(false);
+  };
+
   return (
     <header className="top-header">
       <div className="header-card">
-        <div>
-          <h1 className="brand-title">TEAM D.D</h1>
-          <span className="brand-sub">대한민국 건설기계 정비 1등</span>
+        {/* Left Side: Hamburger (mobile) + Brand + Active Tab Badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+          <button
+            type="button"
+            className="mobile-hamburger-btn"
+            onClick={() => setMobileMenuOpen(true)}
+            title="전체 메뉴 열기"
+          >
+            ☰
+          </button>
+          
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <h1 className="brand-title" style={{ margin: 0 }}>
+              TEAM <span>D.D</span>
+            </h1>
+            <span className="brand-sub">대한민국 건설기계 정비 1등</span>
+          </div>
+
+          <button
+            type="button"
+            className="mobile-active-pill"
+            onClick={() => setMobileMenuOpen(true)}
+            title="메뉴 변경"
+          >
+            <span>{getActiveTabTitle()}</span>
+            <span style={{ fontSize: '9px', opacity: 0.7 }}>▼</span>
+          </button>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+        {/* Right Side: Supplier Account + Logout + DB Status */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           {/* 🏢 로그인 계정 뱃지 */}
           <div
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '6px',
+              gap: '4px',
               backgroundColor: 'var(--c-blue-lightest)',
               border: '1.5px solid var(--c-blue-soft)',
-              padding: '3px 10px',
+              padding: '3px 8px',
               borderRadius: '20px',
-              fontSize: '0.8125rem',
+              fontSize: '0.75rem',
               fontWeight: '800',
-              color: 'var(--c-navy-dark)'
+              color: 'var(--c-navy-dark)',
+              whiteSpace: 'nowrap'
             }}
             title={userRole === 'admin' ? '관리자 모드' : `공급자 계정: ${supplierDisplayName}`}
           >
@@ -76,36 +124,39 @@ export default function Header({
             </span>
           </div>
 
-          {/* 🚪 로그아웃 버튼 */}
+          {/* 🚪 로그아웃 버튼 (Desktop) */}
           <button
             type="button"
             onClick={onLogout}
             className="btn btn-outline btn-sm"
             style={{
-              height: '30px',
-              fontSize: '0.75rem',
+              height: '28px',
+              fontSize: '0.6875rem',
               fontWeight: '700',
               color: '#D92D20',
               borderColor: '#FECDCA',
               backgroundColor: '#FEF3F2',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              padding: '0 8px'
             }}
           >
             로그아웃
           </button>
-        </div>
 
-        {/* 🟢 DB 연결 상태 배지 */}
-        <button
-          type="button"
-          onClick={() => setShowConfig(prev => !prev)}
-          className={`status-badge ${isConnected ? 'connected' : 'disconnected'}`}
-        >
-          <span>{isConnected ? '🟢 DB 연결됨' : '🔴 로컬저장 모드'}</span>
-          <span style={{ fontSize: '10px' }}>{showConfig ? '▲' : '▼'}</span>
-        </button>
+          {/* 🟢 DB 연결 상태 배지 */}
+          <button
+            type="button"
+            onClick={() => setShowConfig(prev => !prev)}
+            className={`status-badge ${isConnected ? 'connected' : 'disconnected'}`}
+            style={{ padding: '0.3rem 0.5rem', fontSize: '0.6875rem' }}
+          >
+            <span>{isConnected ? '🟢 DB 연결됨' : '🔴 로컬저장'}</span>
+            <span style={{ fontSize: '9px' }}>{showConfig ? '▲' : '▼'}</span>
+          </button>
+        </div>
       </div>
 
+      {/* Supabase DB 설정 패널 */}
       {showConfig && (
         <div
           style={{
@@ -216,67 +267,234 @@ export default function Header({
         </div>
       )}
 
-      {/* 탭 네비게이션 */}
+      {/* Desktop Top Tab Navigation (>=840px) */}
       <div className="tab-bar-container">
         <div className="tab-nav">
           <button
             className={`tab-btn ${activeTab === 'doc' && docType === '거래명세서' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('doc'); setDocType('거래명세서'); }}
+            onClick={() => handleSelectTab('doc', '거래명세서')}
           >
             📄 거래명세서
           </button>
           <button
             className={`tab-btn ${activeTab === 'doc' && docType === '견적서' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('doc'); setDocType('견적서'); }}
+            onClick={() => handleSelectTab('doc', '견적서')}
           >
-            📄 견적서
+            📑 견적서
           </button>
           <button
             className={`tab-btn ${activeTab === 'doc' && docType === '청구서' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('doc'); setDocType('청구서'); }}
+            onClick={() => handleSelectTab('doc', '청구서')}
           >
-            📄 청구서
+            🧾 청구서
           </button>
           <button
             className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
-            onClick={() => setActiveTab('history')}
+            onClick={() => handleSelectTab('history')}
           >
             📁 문서조회
           </button>
           <button
             className={`tab-btn ${activeTab === 'accounting' ? 'active' : ''}`}
-            onClick={() => setActiveTab('accounting')}
+            onClick={() => handleSelectTab('accounting')}
           >
             💡 거래처별 회계
           </button>
           <button
             className={`tab-btn ${activeTab === 'schedule' ? 'active' : ''}`}
-            onClick={() => setActiveTab('schedule')}
+            onClick={() => handleSelectTab('schedule')}
           >
             📅 일정관리
           </button>
           <button
             className={`tab-btn ${activeTab === 'customers' ? 'active' : ''}`}
-            onClick={() => setActiveTab('customers')}
+            onClick={() => handleSelectTab('customers')}
           >
             👥 고객관리
           </button>
           {userRole === 'admin' && (
             <button
               className={`tab-btn ${activeTab === 'suppliers' ? 'active' : ''}`}
-              onClick={() => setActiveTab('suppliers')}
+              onClick={() => handleSelectTab('suppliers')}
             >
               🏢 공급자
             </button>
           )}
           <button
             className={`tab-btn ${activeTab === 'parts' ? 'active' : ''}`}
-            onClick={() => setActiveTab('parts')}
+            onClick={() => handleSelectTab('parts')}
           >
             🛠️ 부품관리
           </button>
         </div>
       </div>
+
+      {/* 📱 Mobile Slide Drawer (전체 메뉴 햄버거 서랍) */}
+      {mobileMenuOpen && (
+        <div className="drawer-backdrop" onClick={() => setMobileMenuOpen(false)}>
+          <div className="drawer-panel" onClick={(e) => e.stopPropagation()}>
+            {/* Drawer Header */}
+            <div className="drawer-header">
+              <div>
+                <div style={{ fontSize: '1.25rem', fontWeight: '900', color: '#ffffff', letterSpacing: '-0.02em' }}>
+                  TEAM <span style={{ color: '#97CADB' }}>D.D</span>
+                </div>
+                <div style={{ fontSize: '0.6875rem', color: '#D6E8EE', opacity: 0.8, marginTop: '2px' }}>
+                  대한민국 건설기계 정비 1등
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.15)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  color: '#ffffff',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                  fontWeight: 'bold'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Profile Info Card inside Drawer */}
+            <div style={{ padding: '0.875rem 1rem', backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '1.25rem' }}>{userRole === 'admin' ? '👑' : '🏢'}</span>
+                <div>
+                  <div style={{ fontSize: '0.875rem', fontWeight: '800', color: '#0F172A' }}>
+                    {userRole === 'admin' ? '관리자 시스템' : supplierDisplayName}
+                  </div>
+                  <div style={{ fontSize: '0.6875rem', color: isConnected ? '#059669' : '#DC2626', fontWeight: '700' }}>
+                    {isConnected ? '🟢 DB 연결됨' : '🔴 로컬저장 모드'}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setMobileMenuOpen(false); onLogout(); }}
+                className="btn btn-outline btn-sm"
+                style={{ fontSize: '0.6875rem', padding: '3px 8px', color: '#DC2626', borderColor: '#FECACA' }}
+              >
+                로그아웃
+              </button>
+            </div>
+
+            {/* Navigation Menu Categories */}
+            <div style={{ flex: 1, padding: '0.5rem 0', overflowY: 'auto' }}>
+              {/* Group 1: 문서 작성 */}
+              <div className="drawer-section-title">📝 문서 작성 (발행)</div>
+              <button
+                type="button"
+                className={`drawer-menu-item ${activeTab === 'doc' && docType === '거래명세서' ? 'active' : ''}`}
+                onClick={() => handleSelectTab('doc', '거래명세서')}
+              >
+                <span style={{ fontSize: '1.125rem' }}>📄</span>
+                <span>거래명세서 작성</span>
+              </button>
+              <button
+                type="button"
+                className={`drawer-menu-item ${activeTab === 'doc' && docType === '견적서' ? 'active' : ''}`}
+                onClick={() => handleSelectTab('doc', '견적서')}
+              >
+                <span style={{ fontSize: '1.125rem' }}>📑</span>
+                <span>견적서 작성</span>
+              </button>
+              <button
+                type="button"
+                className={`drawer-menu-item ${activeTab === 'doc' && docType === '청구서' ? 'active' : ''}`}
+                onClick={() => handleSelectTab('doc', '청구서')}
+              >
+                <span style={{ fontSize: '1.125rem' }}>🧾</span>
+                <span>청구서 작성</span>
+              </button>
+
+              {/* Group 2: 업무 및 조회 */}
+              <div className="drawer-section-title">📂 업무 및 조회</div>
+              <button
+                type="button"
+                className={`drawer-menu-item ${activeTab === 'history' ? 'active' : ''}`}
+                onClick={() => handleSelectTab('history')}
+              >
+                <span style={{ fontSize: '1.125rem' }}>📁</span>
+                <span>문서 조회 / 발행 내역</span>
+              </button>
+              <button
+                type="button"
+                className={`drawer-menu-item ${activeTab === 'accounting' ? 'active' : ''}`}
+                onClick={() => handleSelectTab('accounting')}
+              >
+                <span style={{ fontSize: '1.125rem' }}>💡</span>
+                <span>거래처별 회계 / 미수금</span>
+              </button>
+              <button
+                type="button"
+                className={`drawer-menu-item ${activeTab === 'schedule' ? 'active' : ''}`}
+                onClick={() => handleSelectTab('schedule')}
+              >
+                <span style={{ fontSize: '1.125rem' }}>📅</span>
+                <span>일정 / 캘린더 관리</span>
+              </button>
+
+              {/* Group 3: 기준 정보 관리 */}
+              <div className="drawer-section-title">⚙️ 기준 정보 관리</div>
+              <button
+                type="button"
+                className={`drawer-menu-item ${activeTab === 'customers' ? 'active' : ''}`}
+                onClick={() => handleSelectTab('customers')}
+              >
+                <span style={{ fontSize: '1.125rem' }}>👥</span>
+                <span>고객 (거래처) 관리</span>
+              </button>
+              <button
+                type="button"
+                className={`drawer-menu-item ${activeTab === 'parts' ? 'active' : ''}`}
+                onClick={() => handleSelectTab('parts')}
+              >
+                <span style={{ fontSize: '1.125rem' }}>🛠️</span>
+                <span>부품 / 단가 관리</span>
+              </button>
+              {userRole === 'admin' && (
+                <button
+                  type="button"
+                  className={`drawer-menu-item ${activeTab === 'suppliers' ? 'active' : ''}`}
+                  onClick={() => handleSelectTab('suppliers')}
+                >
+                  <span style={{ fontSize: '1.125rem' }}>🏢</span>
+                  <span>공급자 정보 관리</span>
+                </button>
+              )}
+
+              {/* Group 4: 설정 */}
+              <div className="drawer-section-title">☁️ 클라우드 및 설정</div>
+              <button
+                type="button"
+                className="drawer-menu-item"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setShowConfig(true);
+                }}
+              >
+                <span style={{ fontSize: '1.125rem' }}>⚙️</span>
+                <span>Supabase DB 설정</span>
+              </button>
+            </div>
+
+            {/* Drawer Footer */}
+            <div style={{ padding: '0.875rem 1rem', borderTop: '1px solid #E2E8F0', backgroundColor: '#F8FAFC', textAlign: 'center', fontSize: '0.6875rem', color: '#94A3B8' }}>
+              TEAM D.D · v2.0.6 Mobile Edition
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }
