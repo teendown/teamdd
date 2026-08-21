@@ -413,7 +413,19 @@ export default function DocHistoryTab({
                     const currentDocType = doc.doc_type || doc.docType || '거래명세서';
 
                     return (
-                      <tr key={doc.id || doc.doc_no} style={{ backgroundColor: doc.is_deleted ? '#fff1f2' : undefined }}>
+                      <tr
+                        key={doc.id || doc.doc_no}
+                        style={{
+                          backgroundColor: doc.is_deleted ? '#fff1f2' : undefined,
+                          cursor: doc.is_deleted ? 'default' : 'pointer'
+                        }}
+                        title={doc.is_deleted ? '' : '클릭하여 문서 미리보기'}
+                        onClick={() => {
+                          if (doc.is_deleted) return;
+                          if (onPreviewDocument) onPreviewDocument(doc);
+                          else onLoadDocument(doc);
+                        }}
+                      >
                         <td>
                           <div style={{ fontWeight: '700' }}>{doc.doc_date || doc.docDate || '-'}</div>
                           <div style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace' }}>{doc.doc_no || doc.docNo}</div>
@@ -443,20 +455,20 @@ export default function DocHistoryTab({
                           {!doc.is_deleted && <br />}
                           {!doc.is_deleted && getPayBadge(doc)}
                         </td>
-                        <td>
+                        <td onClick={(e) => e.stopPropagation()}>
                           {doc.is_deleted ? (
                             <div style={{ display: 'flex', gap: '4px' }}>
                               <button
                                 className="btn btn-primary"
                                 style={{ padding: '4px 10px', fontSize: '11px', backgroundColor: '#10b981', borderColor: '#10b981' }}
-                                onClick={() => handleRestore(doc)}
+                                onClick={(e) => { e.stopPropagation(); handleRestore(doc); }}
                               >
                                 🔄 복원하기
                               </button>
                               <button
                                 className="btn btn-red-outline"
                                 style={{ padding: '4px 8px', fontSize: '11px' }}
-                                onClick={() => handlePermanentDelete(doc)}
+                                onClick={(e) => { e.stopPropagation(); handlePermanentDelete(doc); }}
                               >
                                 ❌ 영구삭제
                               </button>
@@ -466,15 +478,19 @@ export default function DocHistoryTab({
                               <button
                                 type="button"
                                 className="btn btn-outline"
-                                style={{ padding: '3px 7px', fontSize: '11px', fontWeight: '800' }}
-                                onClick={() => onPreviewDocument ? onPreviewDocument(doc) : onLoadDocument(doc)}
+                                style={{ padding: '3px 7px', fontSize: '11px', fontWeight: '800', backgroundColor: '#eff6ff', borderColor: '#bfdbfe', color: '#1d4ed8' }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (onPreviewDocument) onPreviewDocument(doc);
+                                  else onLoadDocument(doc);
+                                }}
                               >
-                                📄 보기
+                                👁️ 보기
                               </button>
                               <button
                                 className="btn btn-primary"
                                 style={{ padding: '3px 7px', fontSize: '11px' }}
-                                onClick={() => onLoadDocument(doc)}
+                                onClick={(e) => { e.stopPropagation(); onLoadDocument(doc); }}
                               >
                                 📥 불러오기
                               </button>
@@ -482,7 +498,7 @@ export default function DocHistoryTab({
                                 <button
                                   className="btn btn-primary"
                                   style={{ padding: '3px 7px', fontSize: '11px', backgroundColor: '#059669', borderColor: '#059669' }}
-                                  onClick={() => onConvertToDoc && onConvertToDoc(doc, '거래명세서')}
+                                  onClick={(e) => { e.stopPropagation(); onConvertToDoc && onConvertToDoc(doc, '거래명세서'); }}
                                 >
                                   📦 명세서로
                                 </button>
@@ -490,7 +506,7 @@ export default function DocHistoryTab({
                                 <button
                                   className="btn btn-primary"
                                   style={{ padding: '3px 7px', fontSize: '11px', backgroundColor: '#4f46e5', borderColor: '#4f46e5' }}
-                                  onClick={() => onConvertToDoc && onConvertToDoc(doc, '견적서')}
+                                  onClick={(e) => { e.stopPropagation(); onConvertToDoc && onConvertToDoc(doc, '견적서'); }}
                                 >
                                   📋 견적서로
                                 </button>
@@ -498,14 +514,14 @@ export default function DocHistoryTab({
                               <button
                                 className="btn btn-primary"
                                 style={{ padding: '3px 7px', fontSize: '11px', backgroundColor: '#10b981', borderColor: '#10b981' }}
-                                onClick={() => onCopyDocument(doc)}
+                                onClick={(e) => { e.stopPropagation(); onCopyDocument(doc); }}
                               >
                                 📋 복사
                               </button>
                               <button
                                 className="btn btn-red-outline"
                                 style={{ padding: '3px 7px', fontSize: '11px' }}
-                                onClick={() => handleSoftDelete(doc)}
+                                onClick={(e) => { e.stopPropagation(); handleSoftDelete(doc); }}
                               >
                                 🗑️
                               </button>
@@ -534,48 +550,64 @@ export default function DocHistoryTab({
                   <div
                     key={doc.id || doc.doc_no}
                     className="mobile-data-card"
-                    style={{ borderLeft: doc.is_deleted ? '4px solid #ef4444' : undefined }}
+                    style={{
+                      borderLeft: doc.is_deleted ? '4px solid #ef4444' : '4px solid #2563eb',
+                      cursor: doc.is_deleted ? 'default' : 'pointer',
+                      boxShadow: '0 2px 6px rgba(0, 27, 72, 0.06)',
+                      transition: 'all 0.15s ease'
+                    }}
+                    onClick={() => {
+                      if (doc.is_deleted) return;
+                      if (onPreviewDocument) onPreviewDocument(doc);
+                      else onLoadDocument(doc);
+                    }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                      <span
-                        style={{
-                          padding: '2px 6px',
-                          borderRadius: '4px',
-                          backgroundColor: currentDocType === '견적서' ? '#f3e8ff' : (currentDocType === '청구서' ? '#eff6ff' : '#f1f5f9'),
-                          color: currentDocType === '견적서' ? '#6b21a8' : (currentDocType === '청구서' ? '#1d4ed8' : '#334155'),
-                          fontWeight: '800',
-                          fontSize: '10px'
-                        }}
-                      >
-                        {currentDocType}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span
+                          style={{
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            backgroundColor: currentDocType === '견적서' ? '#f3e8ff' : (currentDocType === '청구서' ? '#eff6ff' : '#f1f5f9'),
+                            color: currentDocType === '견적서' ? '#6b21a8' : (currentDocType === '청구서' ? '#1d4ed8' : '#334155'),
+                            fontWeight: '800',
+                            fontSize: '10px'
+                          }}
+                        >
+                          {currentDocType}
+                        </span>
+                        {!doc.is_deleted && getPayBadge(doc)}
+                      </div>
                       <span style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace' }}>
                         {doc.doc_no || doc.docNo}{doc.revision > 0 && ` (Rev.${doc.revision})`}
                       </span>
                     </div>
-                    <div style={{ fontWeight: '800', fontSize: '0.9375rem', marginBottom: '2px' }}>
+                    <div style={{ fontWeight: '800', fontSize: '0.9375rem', marginBottom: '2px', color: '#0f172a' }}>
                       {custName}{custMachine && <span style={{ color: '#1d6bf3', fontSize: '11px' }}>{custMachine}</span>}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '6px' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '8px' }}>
                       <div>{`일자: ${doc.doc_date || doc.docDate || '-'} | 품목: ${itemSummary}`}</div>
-                      <div style={{ fontSize: '0.875rem', fontWeight: '900', color: '#1d6bf3', marginTop: '2px' }}>
+                      <div style={{ fontSize: '0.9375rem', fontWeight: '900', color: '#1d6bf3', marginTop: '2px' }}>
                         {`합계: ${total.toLocaleString()}원`}
                       </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                    <div
+                      style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       {doc.is_deleted ? (
                         <>
                           <button
                             className="btn btn-primary"
-                            style={{ flex: 1, minHeight: '32px', fontSize: '0.75rem', backgroundColor: '#10b981', borderColor: '#10b981' }}
-                            onClick={() => handleRestore(doc)}
+                            style={{ flex: 1, minHeight: '34px', fontSize: '0.75rem', backgroundColor: '#10b981', borderColor: '#10b981' }}
+                            onClick={(e) => { e.stopPropagation(); handleRestore(doc); }}
                           >
                             🔄 복원하기
                           </button>
                           <button
                             className="btn btn-red-outline"
-                            style={{ minHeight: '32px', fontSize: '0.75rem', padding: '0 10px' }}
-                            onClick={() => handlePermanentDelete(doc)}
+                            style={{ minHeight: '34px', fontSize: '0.75rem', padding: '0 10px' }}
+                            onClick={(e) => { e.stopPropagation(); handlePermanentDelete(doc); }}
                           >
                             ❌ 영구삭제
                           </button>
@@ -583,40 +615,60 @@ export default function DocHistoryTab({
                       ) : (
                         <>
                           <button
+                            type="button"
+                            className="btn btn-outline"
+                            style={{
+                              flex: 1,
+                              minHeight: '34px',
+                              fontSize: '0.75rem',
+                              fontWeight: '800',
+                              borderColor: '#3b82f6',
+                              color: '#1d4ed8',
+                              backgroundColor: '#eff6ff'
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (onPreviewDocument) onPreviewDocument(doc);
+                              else onLoadDocument(doc);
+                            }}
+                          >
+                            👁️ 미리보기
+                          </button>
+                          <button
                             className="btn btn-primary"
-                            style={{ flex: 1, minHeight: '32px', fontSize: '0.75rem' }}
-                            onClick={() => onLoadDocument(doc)}
+                            style={{ flex: 1, minHeight: '34px', fontSize: '0.75rem' }}
+                            onClick={(e) => { e.stopPropagation(); onLoadDocument(doc); }}
                           >
                             📥 불러오기
                           </button>
                           {currentDocType === '견적서' ? (
                             <button
                               className="btn btn-primary"
-                              style={{ flex: 1, minHeight: '32px', fontSize: '0.75rem', backgroundColor: '#059669', borderColor: '#059669' }}
-                              onClick={() => onConvertToDoc && onConvertToDoc(doc, '거래명세서')}
+                              style={{ flex: 1, minHeight: '34px', fontSize: '0.75rem', backgroundColor: '#059669', borderColor: '#059669' }}
+                              onClick={(e) => { e.stopPropagation(); onConvertToDoc && onConvertToDoc(doc, '거래명세서'); }}
                             >
                               📦 명세서로
                             </button>
                           ) : (
                             <button
                               className="btn btn-primary"
-                              style={{ flex: 1, minHeight: '32px', fontSize: '0.75rem', backgroundColor: '#4f46e5', borderColor: '#4f46e5' }}
-                              onClick={() => onConvertToDoc && onConvertToDoc(doc, '견적서')}
+                              style={{ flex: 1, minHeight: '34px', fontSize: '0.75rem', backgroundColor: '#4f46e5', borderColor: '#4f46e5' }}
+                              onClick={(e) => { e.stopPropagation(); onConvertToDoc && onConvertToDoc(doc, '견적서'); }}
                             >
                               📋 견적서로
                             </button>
                           )}
                           <button
                             className="btn btn-primary"
-                            style={{ padding: '3px 8px', fontSize: '11px', backgroundColor: '#10b981', borderColor: '#10b981' }}
-                            onClick={() => onCopyDocument(doc)}
+                            style={{ padding: '3px 8px', minHeight: '34px', fontSize: '11px', backgroundColor: '#10b981', borderColor: '#10b981' }}
+                            onClick={(e) => { e.stopPropagation(); onCopyDocument(doc); }}
                           >
                             📋 복사
                           </button>
                           <button
                             className="btn btn-red-outline"
-                            style={{ padding: '3px 8px', fontSize: '11px' }}
-                            onClick={() => handleSoftDelete(doc)}
+                            style={{ padding: '3px 8px', minHeight: '34px', fontSize: '11px' }}
+                            onClick={(e) => { e.stopPropagation(); handleSoftDelete(doc); }}
                           >
                             🗑️
                           </button>

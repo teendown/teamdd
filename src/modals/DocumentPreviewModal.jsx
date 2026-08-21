@@ -1,4 +1,4 @@
-// 🎨 TEAM D.D DOCUMENT PREVIEW MODAL
+// 🎨 TEAM D.D RESPONSIVE DOCUMENT PREVIEW MODAL
 import React from 'react';
 import { DEFAULT_SUPPLIERS } from '../config/defaults.js';
 import { areSupplierKeysEquivalent } from '../utils/validation.js';
@@ -36,115 +36,109 @@ export default function DocumentPreviewModal({
     window.print();
   };
 
+  const cleanRemark = (doc.remark || '').split('---EXT---')[0].trim();
+
   return (
     <div
-      className="modal-backdrop"
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(15, 23, 42, 0.7)',
-        backdropFilter: 'blur(4px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 9999,
-        padding: '1rem'
-      }}
+      className="doc-preview-backdrop"
       onClick={onClose}
     >
       <div
-        className="modal-content card-box"
-        style={{
-          maxWidth: '860px',
-          width: '100%',
-          maxHeight: '92vh',
-          overflowY: 'auto',
-          backgroundColor: '#FFFFFF',
-          borderRadius: '16px',
-          padding: '0',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-          display: 'flex',
-          flexDirection: 'column'
-        }}
+        className="doc-preview-container"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header Bar */}
-        <div
-          style={{
-            padding: '1rem 1.25rem',
-            backgroundColor: 'var(--c-navy-dark)',
-            color: '#FFFFFF',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            borderTopLeftRadius: '16px',
-            borderTopRightRadius: '16px'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '1.25rem' }}>📄</span>
-            <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: '900', color: '#FFFFFF' }}>
-              {`[${docType}] ${customer.name || '고객'} (${docNo})`}
-            </h3>
+        {/* Sticky Header Bar */}
+        <div className="doc-preview-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+            <span style={{ fontSize: '1.25rem', flexShrink: 0 }}>📄</span>
+            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                <span style={{
+                  backgroundColor: docType === '견적서' ? '#9333ea' : (docType === '청구서' ? '#2563eb' : '#0284c7'),
+                  color: '#ffffff',
+                  fontSize: '0.6875rem',
+                  fontWeight: '800',
+                  padding: '2px 6px',
+                  borderRadius: '4px'
+                }}>
+                  {docType}
+                </span>
+                <span style={{
+                  fontSize: '1rem',
+                  fontWeight: '900',
+                  color: '#FFFFFF',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {customer.name || '고객'}
+                </span>
+              </div>
+              <span style={{ fontSize: '0.6875rem', color: '#97CADB', fontFamily: 'monospace', marginTop: '1px' }}>
+                {docNo}{doc.revision > 0 && ` (Rev.${doc.revision})`}
+              </span>
+            </div>
           </div>
           <button
             type="button"
             onClick={onClose}
             style={{
-              background: 'none',
+              background: 'rgba(255,255,255,0.15)',
               border: 'none',
+              borderRadius: '50%',
               color: '#FFFFFF',
-              fontSize: '1.25rem',
+              width: '36px',
+              height: '36px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.125rem',
               cursor: 'pointer',
-              fontWeight: 'bold'
+              fontWeight: 'bold',
+              flexShrink: 0,
+              marginLeft: '8px'
             }}
           >
             ✕
           </button>
         </div>
 
-        {/* Body Content */}
-        <div style={{ padding: '1.5rem', flex: 1, backgroundColor: '#F8FAFC' }}>
+        {/* Scrollable Body Content */}
+        <div className="doc-preview-body">
           {/* Top Info Grid */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-              gap: '1rem',
-              marginBottom: '1.25rem'
-            }}
-          >
+          <div className="doc-preview-grid">
             {/* 공급자 정보 박스 */}
             <div
               style={{
-                padding: '1rem',
+                padding: '0.875rem 1rem',
                 backgroundColor: '#FFFFFF',
-                borderRadius: '10px',
+                borderRadius: '12px',
                 border: '1px solid var(--border-color)',
-                position: 'relative'
+                position: 'relative',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
               }}
             >
-              <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.875rem', fontWeight: '900', color: 'var(--c-navy-primary)' }}>
-                🏢 공급자 정보
-              </h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <h4 style={{ margin: 0, fontSize: '0.875rem', fontWeight: '900', color: 'var(--c-navy-primary)' }}>
+                  🏢 공급자 정보
+                </h4>
+                <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>{supplier.code || 'S0001'}</span>
+              </div>
               <div style={{ fontSize: '0.8125rem', display: 'flex', flexDirection: 'column', gap: '3px', color: 'var(--c-navy-dark)' }}>
                 <div><strong>상호: </strong>{supplier.name || supplier.company || '세진중기'}</div>
-                <div><strong>등록번호: </strong>{supplier.bizno || '123-45-67890'}</div>
+                <div><strong>등록번호: </strong>{supplier.bizno || '568-23-00015'}</div>
                 <div><strong>대표자: </strong>{supplier.person || supplier.owner || '허강'}</div>
-                <div><strong>연락처: </strong>{supplier.phone || supplier.tel || '010-0000-0000'}</div>
-                <div><strong>주소: </strong>{supplier.addr || '전북 김제시'}</div>
+                <div><strong>연락처: </strong>{supplier.phone || supplier.tel || '010-2644-2921'}</div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b' }}><strong>주소: </strong>{supplier.addr || '전북 전주시 덕진구'}</div>
               </div>
               {hasStamp && (
                 <div
                   style={{
                     position: 'absolute',
-                    right: '15px',
-                    bottom: '15px',
-                    width: '52px',
-                    height: '52px',
+                    right: '12px',
+                    bottom: '12px',
+                    width: '46px',
+                    height: '46px',
                     borderRadius: '50%',
                     border: '2px solid #DC2626',
                     color: '#DC2626',
@@ -154,7 +148,7 @@ export default function DocumentPreviewModal({
                     fontWeight: '900',
                     fontSize: '11px',
                     transform: 'rotate(-10deg)',
-                    backgroundColor: 'rgba(254, 226, 226, 0.3)'
+                    backgroundColor: 'rgba(254, 226, 226, 0.4)'
                   }}
                 >
                   인
@@ -165,199 +159,227 @@ export default function DocumentPreviewModal({
             {/* 공급받는자(거래처) 정보 박스 */}
             <div
               style={{
-                padding: '1rem',
+                padding: '0.875rem 1rem',
                 backgroundColor: '#FFFFFF',
-                borderRadius: '10px',
-                border: '1px solid var(--border-color)'
+                borderRadius: '12px',
+                border: '1px solid var(--border-color)',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
               }}
             >
-              <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.875rem', fontWeight: '900', color: 'var(--c-navy-primary)' }}>
-                👤 공급받는자(거래처)
-              </h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <h4 style={{ margin: 0, fontSize: '0.875rem', fontWeight: '900', color: 'var(--c-navy-primary)' }}>
+                  👤 공급받는자 (거래처)
+                </h4>
+                <span style={{ fontSize: '0.6875rem', color: '#2563eb', fontWeight: '700' }}>
+                  {docDate} {docTime}
+                </span>
+              </div>
               <div style={{ fontSize: '0.8125rem', display: 'flex', flexDirection: 'column', gap: '3px', color: 'var(--c-navy-dark)' }}>
-                <div><strong>상호: </strong>{customer.name || '미지정'}</div>
+                <div><strong style={{ fontSize: '0.875rem' }}>상호: </strong><span style={{ fontWeight: '800' }}>{customer.name || '미지정'}</span></div>
                 <div><strong>담당자: </strong>{customer.person || '-'}</div>
                 <div><strong>연락처: </strong>{customer.phone || '-'}</div>
-                <div><strong>발행일시: </strong>{`${docDate} ${docTime}`}</div>
-                <div><strong>문서번호: </strong>{docNo}</div>
+                {customer.selectedMachine && <div><strong>기종: </strong><span style={{ color: '#2563eb', fontWeight: '700' }}>{customer.selectedMachine}</span></div>}
+                <div style={{ fontSize: '0.75rem', color: '#64748b' }}><strong>주소: </strong>{customer.addr || '-'}</div>
               </div>
             </div>
           </div>
 
-          {/* Items Table */}
-          <div
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: '10px',
-              border: '1px solid var(--border-color)',
-              overflow: 'hidden',
-              marginBottom: '1.25rem'
-            }}
-          >
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
-              <thead style={{ backgroundColor: 'var(--c-blue-lightest)', borderBottom: '1px solid var(--border-color)', textAlign: 'center', fontWeight: '800' }}>
-                <tr>
-                  <th style={{ padding: '8px 6px', width: '40px' }}>No</th>
-                  <th style={{ padding: '8px 8px', textAlign: 'left' }}>품목 / 정비내역</th>
-                  <th style={{ padding: '8px 6px', width: '50px' }}>단위</th>
-                  <th style={{ padding: '8px 6px', width: '50px' }}>수량</th>
-                  <th style={{ padding: '8px 8px', textAlign: 'right', width: '90px' }}>단가</th>
-                  <th style={{ padding: '8px 8px', textAlign: 'right', width: '100px' }}>공급가액</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.length === 0 ? (
+          {/* Items Section: Desktop Table (>=640px) */}
+          <div className="preview-items-desktop">
+            <div
+              style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: '12px',
+                border: '1px solid var(--border-color)',
+                overflow: 'hidden',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+              }}
+            >
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
+                <thead style={{ backgroundColor: 'var(--c-blue-lightest)', borderBottom: '1px solid var(--border-color)', textAlign: 'center', fontWeight: '800' }}>
                   <tr>
-                    <td colSpan={6} style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                      등록된 품목 내역이 없습니다.
-                    </td>
+                    <th style={{ padding: '8px 6px', width: '40px' }}>No</th>
+                    <th style={{ padding: '8px 8px', textAlign: 'left' }}>품목 / 정비내역</th>
+                    <th style={{ padding: '8px 6px', width: '50px' }}>단위</th>
+                    <th style={{ padding: '8px 6px', width: '50px' }}>수량</th>
+                    <th style={{ padding: '8px 8px', textAlign: 'right', width: '90px' }}>단가</th>
+                    <th style={{ padding: '8px 8px', textAlign: 'right', width: '100px' }}>공급가액</th>
                   </tr>
-                ) : (
-                  items.map((item, idx) => {
-                    const itemQty = Number(item.qty) || 0;
-                    const itemPrice = Number(item.price) || 0;
-                    const itemSupply = itemQty * itemPrice;
-                    return (
-                      <tr
-                        key={item.id || idx}
-                        style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: idx % 2 === 1 ? '#FAFAFA' : '#FFFFFF' }}
-                      >
-                        <td style={{ padding: '6px 4px', textAlign: 'center', color: 'var(--text-muted)' }}>{idx + 1}</td>
-                        <td style={{ padding: '6px 8px', fontWeight: '700' }}>{item.name || '-'}</td>
-                        <td style={{ padding: '6px 4px', textAlign: 'center' }}>{item.unit || 'EA'}</td>
-                        <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: '700' }}>{itemQty.toLocaleString()}</td>
-                        <td style={{ padding: '6px 8px', textAlign: 'right' }}>{itemPrice.toLocaleString()}</td>
-                        <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: '800', color: 'var(--c-navy-primary)' }}>
-                          {itemSupply.toLocaleString()}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {items.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        등록된 품목 내역이 없습니다.
+                      </td>
+                    </tr>
+                  ) : (
+                    items.map((item, idx) => {
+                      const itemQty = Number(item.qty) || 0;
+                      const itemPrice = Number(item.price) || 0;
+                      const itemSupply = itemQty * itemPrice;
+                      return (
+                        <tr
+                          key={item.id || idx}
+                          style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: idx % 2 === 1 ? '#FAFAFA' : '#FFFFFF' }}
+                        >
+                          <td style={{ padding: '6px 4px', textAlign: 'center', color: 'var(--text-muted)' }}>{idx + 1}</td>
+                          <td style={{ padding: '6px 8px', fontWeight: '700' }}>{item.name || '-'}</td>
+                          <td style={{ padding: '6px 4px', textAlign: 'center' }}>{item.unit || 'EA'}</td>
+                          <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: '700' }}>{itemQty.toLocaleString()}</td>
+                          <td style={{ padding: '6px 8px', textAlign: 'right' }}>{itemPrice.toLocaleString()}</td>
+                          <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: '800', color: 'var(--c-navy-primary)' }}>
+                            {itemSupply.toLocaleString()}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          {/* Financial Summary Bar */}
+          {/* Items Section: Mobile Cards List (<640px) */}
+          <div className="preview-items-mobile">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+              <span style={{ fontSize: '0.8125rem', fontWeight: '800', color: 'var(--c-navy-primary)' }}>
+                📦 품목 / 정비내역 ({items.length}건)
+              </span>
+            </div>
+            {items.length === 0 ? (
+              <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', backgroundColor: '#ffffff', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                등록된 품목 내역이 없습니다.
+              </div>
+            ) : (
+              items.map((item, idx) => {
+                const itemQty = Number(item.qty) || 0;
+                const itemPrice = Number(item.price) || 0;
+                const itemSupply = itemQty * itemPrice;
+                return (
+                  <div key={item.id || idx} className="preview-item-mobile-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '0.6875rem', fontWeight: '800', color: '#64748b', backgroundColor: '#f1f5f9', padding: '1px 5px', borderRadius: '4px' }}>
+                          #{idx + 1}
+                        </span>
+                        <span style={{ fontWeight: '800', fontSize: '0.875rem', color: '#0f172a', lineHeight: 1.3 }}>
+                          {item.name || '품목명 없음'}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '0.6875rem', color: '#64748b' }}>{item.unit || 'EA'}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px', fontSize: '0.75rem', color: '#475569' }}>
+                      <div>{`수량: ${itemQty.toLocaleString()} ${item.unit || 'EA'}  |  단가: ${itemPrice.toLocaleString()}원`}</div>
+                      <div style={{ fontWeight: '900', fontSize: '0.875rem', color: '#1d4ed8' }}>
+                        {itemSupply.toLocaleString()}원
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Financial Summary Grid */}
           <div
+            className="doc-preview-summary-grid"
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-              gap: '8px',
-              padding: '1rem',
               backgroundColor: '#FFFFFF',
-              borderRadius: '10px',
+              borderRadius: '12px',
               border: '1px solid var(--border-color)',
-              textAlign: 'center',
-              marginBottom: '1rem'
+              padding: '0.75rem',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
             }}
           >
-            <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>공급가액</div>
-              <div style={{ fontSize: '0.9375rem', fontWeight: '800', color: 'var(--c-navy-dark)' }}>{totalSupply.toLocaleString()}원</div>
+            <div style={{ textAlign: 'center', padding: '4px' }}>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>공급가액</div>
+              <div style={{ fontSize: '0.875rem', fontWeight: '800', color: 'var(--c-navy-dark)' }}>{totalSupply.toLocaleString()}원</div>
             </div>
-            <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>부가세 (10%)</div>
-              <div style={{ fontSize: '0.9375rem', fontWeight: '800', color: 'var(--c-navy-dark)' }}>{vatAmount.toLocaleString()}원</div>
+            <div style={{ textAlign: 'center', padding: '4px' }}>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>부가세 (10%)</div>
+              <div style={{ fontSize: '0.875rem', fontWeight: '800', color: 'var(--c-navy-dark)' }}>{vatAmount.toLocaleString()}원</div>
             </div>
-            <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--c-blue-accent)', fontWeight: '800' }}>총 합계금액</div>
-              <div style={{ fontSize: '1.0625rem', fontWeight: '900', color: 'var(--c-blue-accent)' }}>{grandTotal.toLocaleString()}원</div>
+            <div style={{ textAlign: 'center', padding: '6px 4px', gridColumn: 'span 2', backgroundColor: '#eff6ff', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
+              <div style={{ fontSize: '0.6875rem', color: '#1e40af', fontWeight: '800' }}>총 합계금액</div>
+              <div style={{ fontSize: '1.125rem', fontWeight: '900', color: '#1d4ed8' }}>{grandTotal.toLocaleString()}원</div>
             </div>
-            <div>
-              <div style={{ fontSize: '0.75rem', color: '#028A3E' }}>입금/수금액</div>
-              <div style={{ fontSize: '0.9375rem', fontWeight: '800', color: '#028A3E' }}>{paid.toLocaleString()}원</div>
+            <div style={{ textAlign: 'center', padding: '4px' }}>
+              <div style={{ fontSize: '0.6875rem', color: '#028A3E' }}>수금/입금액</div>
+              <div style={{ fontSize: '0.875rem', fontWeight: '800', color: '#028A3E' }}>{paid.toLocaleString()}원</div>
             </div>
-            <div>
-              <div style={{ fontSize: '0.75rem', color: balance > 0 ? '#D92D20' : 'var(--text-muted)' }}>미수 잔액</div>
-              <div style={{ fontSize: '1.0625rem', fontWeight: '900', color: balance > 0 ? '#D92D20' : '#028A3E' }}>
+            <div style={{ textAlign: 'center', padding: '4px' }}>
+              <div style={{ fontSize: '0.6875rem', color: balance > 0 ? '#D92D20' : '#028A3E' }}>미수 잔액</div>
+              <div style={{ fontSize: '0.875rem', fontWeight: '900', color: balance > 0 ? '#D92D20' : '#028A3E' }}>
                 {balance > 0 ? `${balance.toLocaleString()}원` : '0원 (완납)'}
               </div>
             </div>
           </div>
 
-          {/* 특이사항 */}
-          {(() => {
-            const cleanRemark = (doc.remark || '').split('---EXT---')[0].trim();
-            if (!cleanRemark) return null;
-            return (
-              <div
-                style={{
-                  padding: '0.75rem 1rem',
-                  backgroundColor: '#FFFFFF',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-color)',
-                  fontSize: '0.8125rem'
-                }}
-              >
-                <strong style={{ color: 'var(--c-navy-primary)' }}>📝 특이사항: </strong>
-                {cleanRemark}
-              </div>
-            );
-          })()}
+          {/* 특이사항 / 비고 */}
+          {cleanRemark && (
+            <div
+              style={{
+                padding: '0.75rem 1rem',
+                backgroundColor: '#FFFFFF',
+                borderRadius: '10px',
+                border: '1px solid var(--border-color)',
+                fontSize: '0.8125rem',
+                lineHeight: '1.5',
+                marginTop: '0.75rem',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+              }}
+            >
+              <strong style={{ color: 'var(--c-navy-primary)' }}>📝 특이사항: </strong>
+              {cleanRemark}
+            </div>
+          )}
         </div>
 
-        {/* Footer Action Bar */}
-        <div
-          style={{
-            padding: '1rem 1.25rem',
-            backgroundColor: '#FFFFFF',
-            borderTop: '1px solid var(--border-color)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '0.5rem',
-            borderBottomLeftRadius: '16px',
-            borderBottomRightRadius: '16px'
-          }}
-        >
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+        {/* Sticky Footer Action Bar */}
+        <div className="doc-preview-footer">
+          <button
+            type="button"
+            className="btn btn-outline"
+            style={{ flex: 1, minHeight: '38px', fontSize: '0.8125rem', fontWeight: '800', whiteSpace: 'nowrap' }}
+            onClick={handlePrint}
+          >
+            🖨️ 인쇄 / PDF
+          </button>
+          {onCopy && (
             <button
               type="button"
               className="btn btn-outline"
-              style={{ height: '36px', fontSize: '0.8125rem', fontWeight: '800' }}
-              onClick={handlePrint}
+              style={{ flex: 1, minHeight: '38px', fontSize: '0.8125rem', fontWeight: '800', whiteSpace: 'nowrap' }}
+              onClick={() => {
+                onCopy(doc);
+                onClose();
+              }}
             >
-              🖨️ 인쇄 / PDF 저장
+              📑 복사
             </button>
-          </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            {onCopy && (
-              <button
-                type="button"
-                className="btn btn-outline"
-                style={{ height: '36px', fontSize: '0.8125rem', fontWeight: '800' }}
-                onClick={() => {
-                  onCopy(doc);
-                  onClose();
-                }}
-              >
-                📑 새 명세서로 복사
-              </button>
-            )}
-            {onEdit && (
-              <button
-                type="button"
-                className="btn btn-primary"
-                style={{ height: '36px', fontSize: '0.8125rem', fontWeight: '900' }}
-                onClick={() => {
-                  onEdit(doc);
-                  onClose();
-                }}
-              >
-                ✏️ 이 문서 편집하기 (작성 탭)
-              </button>
-            )}
+          )}
+          {onEdit && (
             <button
               type="button"
-              className="btn btn-outline"
-              style={{ height: '36px', fontSize: '0.8125rem' }}
-              onClick={onClose}
+              className="btn btn-primary"
+              style={{ flex: 1.2, minHeight: '38px', fontSize: '0.8125rem', fontWeight: '900', whiteSpace: 'nowrap', backgroundColor: '#1d4ed8' }}
+              onClick={() => {
+                onEdit(doc);
+                onClose();
+              }}
             >
-              닫기
+              ✏️ 편집 (작성 탭)
             </button>
-          </div>
+          )}
+          <button
+            type="button"
+            className="btn btn-outline"
+            style={{ minHeight: '38px', fontSize: '0.8125rem', padding: '0 14px' }}
+            onClick={onClose}
+          >
+            닫기
+          </button>
         </div>
       </div>
     </div>

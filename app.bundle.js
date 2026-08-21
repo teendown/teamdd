@@ -29099,145 +29099,116 @@ ${JSON.stringify(extra)}`;
     const handlePrint = () => {
       window.print();
     };
+    const cleanRemark = (doc.remark || "").split("---EXT---")[0].trim();
     return /* @__PURE__ */ import_react4.default.createElement(
       "div",
       {
-        className: "modal-backdrop",
-        style: {
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: "rgba(15, 23, 42, 0.7)",
-          backdropFilter: "blur(4px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 9999,
-          padding: "1rem"
-        },
+        className: "doc-preview-backdrop",
         onClick: onClose
       },
       /* @__PURE__ */ import_react4.default.createElement(
         "div",
         {
-          className: "modal-content card-box",
-          style: {
-            maxWidth: "860px",
-            width: "100%",
-            maxHeight: "92vh",
-            overflowY: "auto",
-            backgroundColor: "#FFFFFF",
-            borderRadius: "16px",
-            padding: "0",
-            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-            display: "flex",
-            flexDirection: "column"
-          },
+          className: "doc-preview-container",
           onClick: (e) => e.stopPropagation()
         },
-        /* @__PURE__ */ import_react4.default.createElement(
-          "div",
+        /* @__PURE__ */ import_react4.default.createElement("div", { className: "doc-preview-header" }, /* @__PURE__ */ import_react4.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", minWidth: 0 } }, /* @__PURE__ */ import_react4.default.createElement("span", { style: { fontSize: "1.25rem", flexShrink: 0 } }, "\u{1F4C4}"), /* @__PURE__ */ import_react4.default.createElement("div", { style: { display: "flex", flexDirection: "column", minWidth: 0 } }, /* @__PURE__ */ import_react4.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" } }, /* @__PURE__ */ import_react4.default.createElement("span", { style: {
+          backgroundColor: docType === "\uACAC\uC801\uC11C" ? "#9333ea" : docType === "\uCCAD\uAD6C\uC11C" ? "#2563eb" : "#0284c7",
+          color: "#ffffff",
+          fontSize: "0.6875rem",
+          fontWeight: "800",
+          padding: "2px 6px",
+          borderRadius: "4px"
+        } }, docType), /* @__PURE__ */ import_react4.default.createElement("span", { style: {
+          fontSize: "1rem",
+          fontWeight: "900",
+          color: "#FFFFFF",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis"
+        } }, customer.name || "\uACE0\uAC1D")), /* @__PURE__ */ import_react4.default.createElement("span", { style: { fontSize: "0.6875rem", color: "#97CADB", fontFamily: "monospace", marginTop: "1px" } }, docNo, doc.revision > 0 && ` (Rev.${doc.revision})`))), /* @__PURE__ */ import_react4.default.createElement(
+          "button",
           {
+            type: "button",
+            onClick: onClose,
             style: {
-              padding: "1rem 1.25rem",
-              backgroundColor: "var(--c-navy-dark)",
+              background: "rgba(255,255,255,0.15)",
+              border: "none",
+              borderRadius: "50%",
               color: "#FFFFFF",
+              width: "36px",
+              height: "36px",
               display: "flex",
-              justifyContent: "space-between",
               alignItems: "center",
-              borderTopLeftRadius: "16px",
-              borderTopRightRadius: "16px"
+              justifyContent: "center",
+              fontSize: "1.125rem",
+              cursor: "pointer",
+              fontWeight: "bold",
+              flexShrink: 0,
+              marginLeft: "8px"
             }
           },
-          /* @__PURE__ */ import_react4.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px" } }, /* @__PURE__ */ import_react4.default.createElement("span", { style: { fontSize: "1.25rem" } }, "\u{1F4C4}"), /* @__PURE__ */ import_react4.default.createElement("h3", { style: { margin: 0, fontSize: "1.125rem", fontWeight: "900", color: "#FFFFFF" } }, `[${docType}] ${customer.name || "\uACE0\uAC1D"} (${docNo})`)),
-          /* @__PURE__ */ import_react4.default.createElement(
-            "button",
-            {
-              type: "button",
-              onClick: onClose,
-              style: {
-                background: "none",
-                border: "none",
-                color: "#FFFFFF",
-                fontSize: "1.25rem",
-                cursor: "pointer",
-                fontWeight: "bold"
-              }
-            },
-            "\u2715"
-          )
-        ),
-        /* @__PURE__ */ import_react4.default.createElement("div", { style: { padding: "1.5rem", flex: 1, backgroundColor: "#F8FAFC" } }, /* @__PURE__ */ import_react4.default.createElement(
+          "\u2715"
+        )),
+        /* @__PURE__ */ import_react4.default.createElement("div", { className: "doc-preview-body" }, /* @__PURE__ */ import_react4.default.createElement("div", { className: "doc-preview-grid" }, /* @__PURE__ */ import_react4.default.createElement(
           "div",
           {
             style: {
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-              gap: "1rem",
-              marginBottom: "1.25rem"
+              padding: "0.875rem 1rem",
+              backgroundColor: "#FFFFFF",
+              borderRadius: "12px",
+              border: "1px solid var(--border-color)",
+              position: "relative",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.03)"
             }
           },
-          /* @__PURE__ */ import_react4.default.createElement(
+          /* @__PURE__ */ import_react4.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" } }, /* @__PURE__ */ import_react4.default.createElement("h4", { style: { margin: 0, fontSize: "0.875rem", fontWeight: "900", color: "var(--c-navy-primary)" } }, "\u{1F3E2} \uACF5\uAE09\uC790 \uC815\uBCF4"), /* @__PURE__ */ import_react4.default.createElement("span", { style: { fontSize: "0.6875rem", color: "var(--text-muted)" } }, supplier.code || "S0001")),
+          /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.8125rem", display: "flex", flexDirection: "column", gap: "3px", color: "var(--c-navy-dark)" } }, /* @__PURE__ */ import_react4.default.createElement("div", null, /* @__PURE__ */ import_react4.default.createElement("strong", null, "\uC0C1\uD638: "), supplier.name || supplier.company || "\uC138\uC9C4\uC911\uAE30"), /* @__PURE__ */ import_react4.default.createElement("div", null, /* @__PURE__ */ import_react4.default.createElement("strong", null, "\uB4F1\uB85D\uBC88\uD638: "), supplier.bizno || "568-23-00015"), /* @__PURE__ */ import_react4.default.createElement("div", null, /* @__PURE__ */ import_react4.default.createElement("strong", null, "\uB300\uD45C\uC790: "), supplier.person || supplier.owner || "\uD5C8\uAC15"), /* @__PURE__ */ import_react4.default.createElement("div", null, /* @__PURE__ */ import_react4.default.createElement("strong", null, "\uC5F0\uB77D\uCC98: "), supplier.phone || supplier.tel || "010-2644-2921"), /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.75rem", color: "#64748b" } }, /* @__PURE__ */ import_react4.default.createElement("strong", null, "\uC8FC\uC18C: "), supplier.addr || "\uC804\uBD81 \uC804\uC8FC\uC2DC \uB355\uC9C4\uAD6C")),
+          hasStamp && /* @__PURE__ */ import_react4.default.createElement(
             "div",
             {
               style: {
-                padding: "1rem",
-                backgroundColor: "#FFFFFF",
-                borderRadius: "10px",
-                border: "1px solid var(--border-color)",
-                position: "relative"
+                position: "absolute",
+                right: "12px",
+                bottom: "12px",
+                width: "46px",
+                height: "46px",
+                borderRadius: "50%",
+                border: "2px solid #DC2626",
+                color: "#DC2626",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontWeight: "900",
+                fontSize: "11px",
+                transform: "rotate(-10deg)",
+                backgroundColor: "rgba(254, 226, 226, 0.4)"
               }
             },
-            /* @__PURE__ */ import_react4.default.createElement("h4", { style: { margin: "0 0 0.5rem 0", fontSize: "0.875rem", fontWeight: "900", color: "var(--c-navy-primary)" } }, "\u{1F3E2} \uACF5\uAE09\uC790 \uC815\uBCF4"),
-            /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.8125rem", display: "flex", flexDirection: "column", gap: "3px", color: "var(--c-navy-dark)" } }, /* @__PURE__ */ import_react4.default.createElement("div", null, /* @__PURE__ */ import_react4.default.createElement("strong", null, "\uC0C1\uD638: "), supplier.name || supplier.company || "\uC138\uC9C4\uC911\uAE30"), /* @__PURE__ */ import_react4.default.createElement("div", null, /* @__PURE__ */ import_react4.default.createElement("strong", null, "\uB4F1\uB85D\uBC88\uD638: "), supplier.bizno || "123-45-67890"), /* @__PURE__ */ import_react4.default.createElement("div", null, /* @__PURE__ */ import_react4.default.createElement("strong", null, "\uB300\uD45C\uC790: "), supplier.person || supplier.owner || "\uD5C8\uAC15"), /* @__PURE__ */ import_react4.default.createElement("div", null, /* @__PURE__ */ import_react4.default.createElement("strong", null, "\uC5F0\uB77D\uCC98: "), supplier.phone || supplier.tel || "010-0000-0000"), /* @__PURE__ */ import_react4.default.createElement("div", null, /* @__PURE__ */ import_react4.default.createElement("strong", null, "\uC8FC\uC18C: "), supplier.addr || "\uC804\uBD81 \uAE40\uC81C\uC2DC")),
-            hasStamp && /* @__PURE__ */ import_react4.default.createElement(
-              "div",
-              {
-                style: {
-                  position: "absolute",
-                  right: "15px",
-                  bottom: "15px",
-                  width: "52px",
-                  height: "52px",
-                  borderRadius: "50%",
-                  border: "2px solid #DC2626",
-                  color: "#DC2626",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: "900",
-                  fontSize: "11px",
-                  transform: "rotate(-10deg)",
-                  backgroundColor: "rgba(254, 226, 226, 0.3)"
-                }
-              },
-              "\uC778"
-            )
-          ),
-          /* @__PURE__ */ import_react4.default.createElement(
-            "div",
-            {
-              style: {
-                padding: "1rem",
-                backgroundColor: "#FFFFFF",
-                borderRadius: "10px",
-                border: "1px solid var(--border-color)"
-              }
-            },
-            /* @__PURE__ */ import_react4.default.createElement("h4", { style: { margin: "0 0 0.5rem 0", fontSize: "0.875rem", fontWeight: "900", color: "var(--c-navy-primary)" } }, "\u{1F464} \uACF5\uAE09\uBC1B\uB294\uC790(\uAC70\uB798\uCC98)"),
-            /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.8125rem", display: "flex", flexDirection: "column", gap: "3px", color: "var(--c-navy-dark)" } }, /* @__PURE__ */ import_react4.default.createElement("div", null, /* @__PURE__ */ import_react4.default.createElement("strong", null, "\uC0C1\uD638: "), customer.name || "\uBBF8\uC9C0\uC815"), /* @__PURE__ */ import_react4.default.createElement("div", null, /* @__PURE__ */ import_react4.default.createElement("strong", null, "\uB2F4\uB2F9\uC790: "), customer.person || "-"), /* @__PURE__ */ import_react4.default.createElement("div", null, /* @__PURE__ */ import_react4.default.createElement("strong", null, "\uC5F0\uB77D\uCC98: "), customer.phone || "-"), /* @__PURE__ */ import_react4.default.createElement("div", null, /* @__PURE__ */ import_react4.default.createElement("strong", null, "\uBC1C\uD589\uC77C\uC2DC: "), `${docDate} ${docTime}`), /* @__PURE__ */ import_react4.default.createElement("div", null, /* @__PURE__ */ import_react4.default.createElement("strong", null, "\uBB38\uC11C\uBC88\uD638: "), docNo))
+            "\uC778"
           )
         ), /* @__PURE__ */ import_react4.default.createElement(
           "div",
           {
             style: {
+              padding: "0.875rem 1rem",
               backgroundColor: "#FFFFFF",
-              borderRadius: "10px",
+              borderRadius: "12px",
+              border: "1px solid var(--border-color)",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.03)"
+            }
+          },
+          /* @__PURE__ */ import_react4.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" } }, /* @__PURE__ */ import_react4.default.createElement("h4", { style: { margin: 0, fontSize: "0.875rem", fontWeight: "900", color: "var(--c-navy-primary)" } }, "\u{1F464} \uACF5\uAE09\uBC1B\uB294\uC790 (\uAC70\uB798\uCC98)"), /* @__PURE__ */ import_react4.default.createElement("span", { style: { fontSize: "0.6875rem", color: "#2563eb", fontWeight: "700" } }, docDate, " ", docTime)),
+          /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.8125rem", display: "flex", flexDirection: "column", gap: "3px", color: "var(--c-navy-dark)" } }, /* @__PURE__ */ import_react4.default.createElement("div", null, /* @__PURE__ */ import_react4.default.createElement("strong", { style: { fontSize: "0.875rem" } }, "\uC0C1\uD638: "), /* @__PURE__ */ import_react4.default.createElement("span", { style: { fontWeight: "800" } }, customer.name || "\uBBF8\uC9C0\uC815")), /* @__PURE__ */ import_react4.default.createElement("div", null, /* @__PURE__ */ import_react4.default.createElement("strong", null, "\uB2F4\uB2F9\uC790: "), customer.person || "-"), /* @__PURE__ */ import_react4.default.createElement("div", null, /* @__PURE__ */ import_react4.default.createElement("strong", null, "\uC5F0\uB77D\uCC98: "), customer.phone || "-"), customer.selectedMachine && /* @__PURE__ */ import_react4.default.createElement("div", null, /* @__PURE__ */ import_react4.default.createElement("strong", null, "\uAE30\uC885: "), /* @__PURE__ */ import_react4.default.createElement("span", { style: { color: "#2563eb", fontWeight: "700" } }, customer.selectedMachine)), /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.75rem", color: "#64748b" } }, /* @__PURE__ */ import_react4.default.createElement("strong", null, "\uC8FC\uC18C: "), customer.addr || "-"))
+        )), /* @__PURE__ */ import_react4.default.createElement("div", { className: "preview-items-desktop" }, /* @__PURE__ */ import_react4.default.createElement(
+          "div",
+          {
+            style: {
+              backgroundColor: "#FFFFFF",
+              borderRadius: "12px",
               border: "1px solid var(--border-color)",
               overflow: "hidden",
-              marginBottom: "1.25rem"
+              boxShadow: "0 1px 3px rgba(0,0,0,0.03)"
             }
           },
           /* @__PURE__ */ import_react4.default.createElement("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: "0.8125rem" } }, /* @__PURE__ */ import_react4.default.createElement("thead", { style: { backgroundColor: "var(--c-blue-lightest)", borderBottom: "1px solid var(--border-color)", textAlign: "center", fontWeight: "800" } }, /* @__PURE__ */ import_react4.default.createElement("tr", null, /* @__PURE__ */ import_react4.default.createElement("th", { style: { padding: "8px 6px", width: "40px" } }, "No"), /* @__PURE__ */ import_react4.default.createElement("th", { style: { padding: "8px 8px", textAlign: "left" } }, "\uD488\uBAA9 / \uC815\uBE44\uB0B4\uC5ED"), /* @__PURE__ */ import_react4.default.createElement("th", { style: { padding: "8px 6px", width: "50px" } }, "\uB2E8\uC704"), /* @__PURE__ */ import_react4.default.createElement("th", { style: { padding: "8px 6px", width: "50px" } }, "\uC218\uB7C9"), /* @__PURE__ */ import_react4.default.createElement("th", { style: { padding: "8px 8px", textAlign: "right", width: "90px" } }, "\uB2E8\uAC00"), /* @__PURE__ */ import_react4.default.createElement("th", { style: { padding: "8px 8px", textAlign: "right", width: "100px" } }, "\uACF5\uAE09\uAC00\uC561"))), /* @__PURE__ */ import_react4.default.createElement("tbody", null, items.length === 0 ? /* @__PURE__ */ import_react4.default.createElement("tr", null, /* @__PURE__ */ import_react4.default.createElement("td", { colSpan: 6, style: { padding: "1.5rem", textAlign: "center", color: "var(--text-muted)" } }, "\uB4F1\uB85D\uB41C \uD488\uBAA9 \uB0B4\uC5ED\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.")) : items.map((item, idx) => {
@@ -29258,105 +29229,88 @@ ${JSON.stringify(extra)}`;
               /* @__PURE__ */ import_react4.default.createElement("td", { style: { padding: "6px 8px", textAlign: "right", fontWeight: "800", color: "var(--c-navy-primary)" } }, itemSupply.toLocaleString())
             );
           })))
-        ), /* @__PURE__ */ import_react4.default.createElement(
+        )), /* @__PURE__ */ import_react4.default.createElement("div", { className: "preview-items-mobile" }, /* @__PURE__ */ import_react4.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2px" } }, /* @__PURE__ */ import_react4.default.createElement("span", { style: { fontSize: "0.8125rem", fontWeight: "800", color: "var(--c-navy-primary)" } }, "\u{1F4E6} \uD488\uBAA9 / \uC815\uBE44\uB0B4\uC5ED (", items.length, "\uAC74)")), items.length === 0 ? /* @__PURE__ */ import_react4.default.createElement("div", { style: { padding: "1rem", textAlign: "center", color: "var(--text-muted)", backgroundColor: "#ffffff", borderRadius: "10px", border: "1px solid var(--border-color)" } }, "\uB4F1\uB85D\uB41C \uD488\uBAA9 \uB0B4\uC5ED\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.") : items.map((item, idx) => {
+          const itemQty = Number(item.qty) || 0;
+          const itemPrice = Number(item.price) || 0;
+          const itemSupply = itemQty * itemPrice;
+          return /* @__PURE__ */ import_react4.default.createElement("div", { key: item.id || idx, className: "preview-item-mobile-card" }, /* @__PURE__ */ import_react4.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "6px" } }, /* @__PURE__ */ import_react4.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "6px" } }, /* @__PURE__ */ import_react4.default.createElement("span", { style: { fontSize: "0.6875rem", fontWeight: "800", color: "#64748b", backgroundColor: "#f1f5f9", padding: "1px 5px", borderRadius: "4px" } }, "#", idx + 1), /* @__PURE__ */ import_react4.default.createElement("span", { style: { fontWeight: "800", fontSize: "0.875rem", color: "#0f172a", lineHeight: 1.3 } }, item.name || "\uD488\uBAA9\uBA85 \uC5C6\uC74C")), /* @__PURE__ */ import_react4.default.createElement("span", { style: { fontSize: "0.6875rem", color: "#64748b" } }, item.unit || "EA")), /* @__PURE__ */ import_react4.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "2px", fontSize: "0.75rem", color: "#475569" } }, /* @__PURE__ */ import_react4.default.createElement("div", null, `\uC218\uB7C9: ${itemQty.toLocaleString()} ${item.unit || "EA"}  |  \uB2E8\uAC00: ${itemPrice.toLocaleString()}\uC6D0`), /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontWeight: "900", fontSize: "0.875rem", color: "#1d4ed8" } }, itemSupply.toLocaleString(), "\uC6D0")));
+        })), /* @__PURE__ */ import_react4.default.createElement(
+          "div",
+          {
+            className: "doc-preview-summary-grid",
+            style: {
+              backgroundColor: "#FFFFFF",
+              borderRadius: "12px",
+              border: "1px solid var(--border-color)",
+              padding: "0.75rem",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.03)"
+            }
+          },
+          /* @__PURE__ */ import_react4.default.createElement("div", { style: { textAlign: "center", padding: "4px" } }, /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.6875rem", color: "var(--text-muted)" } }, "\uACF5\uAE09\uAC00\uC561"), /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.875rem", fontWeight: "800", color: "var(--c-navy-dark)" } }, totalSupply.toLocaleString(), "\uC6D0")),
+          /* @__PURE__ */ import_react4.default.createElement("div", { style: { textAlign: "center", padding: "4px" } }, /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.6875rem", color: "var(--text-muted)" } }, "\uBD80\uAC00\uC138 (10%)"), /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.875rem", fontWeight: "800", color: "var(--c-navy-dark)" } }, vatAmount.toLocaleString(), "\uC6D0")),
+          /* @__PURE__ */ import_react4.default.createElement("div", { style: { textAlign: "center", padding: "6px 4px", gridColumn: "span 2", backgroundColor: "#eff6ff", borderRadius: "8px", border: "1px solid #bfdbfe" } }, /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.6875rem", color: "#1e40af", fontWeight: "800" } }, "\uCD1D \uD569\uACC4\uAE08\uC561"), /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "1.125rem", fontWeight: "900", color: "#1d4ed8" } }, grandTotal.toLocaleString(), "\uC6D0")),
+          /* @__PURE__ */ import_react4.default.createElement("div", { style: { textAlign: "center", padding: "4px" } }, /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.6875rem", color: "#028A3E" } }, "\uC218\uAE08/\uC785\uAE08\uC561"), /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.875rem", fontWeight: "800", color: "#028A3E" } }, paid.toLocaleString(), "\uC6D0")),
+          /* @__PURE__ */ import_react4.default.createElement("div", { style: { textAlign: "center", padding: "4px" } }, /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.6875rem", color: balance > 0 ? "#D92D20" : "#028A3E" } }, "\uBBF8\uC218 \uC794\uC561"), /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.875rem", fontWeight: "900", color: balance > 0 ? "#D92D20" : "#028A3E" } }, balance > 0 ? `${balance.toLocaleString()}\uC6D0` : "0\uC6D0 (\uC644\uB0A9)"))
+        ), cleanRemark && /* @__PURE__ */ import_react4.default.createElement(
           "div",
           {
             style: {
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
-              gap: "8px",
-              padding: "1rem",
+              padding: "0.75rem 1rem",
               backgroundColor: "#FFFFFF",
               borderRadius: "10px",
               border: "1px solid var(--border-color)",
-              textAlign: "center",
-              marginBottom: "1rem"
+              fontSize: "0.8125rem",
+              lineHeight: "1.5",
+              marginTop: "0.75rem",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.03)"
             }
           },
-          /* @__PURE__ */ import_react4.default.createElement("div", null, /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.75rem", color: "var(--text-muted)" } }, "\uACF5\uAE09\uAC00\uC561"), /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.9375rem", fontWeight: "800", color: "var(--c-navy-dark)" } }, totalSupply.toLocaleString(), "\uC6D0")),
-          /* @__PURE__ */ import_react4.default.createElement("div", null, /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.75rem", color: "var(--text-muted)" } }, "\uBD80\uAC00\uC138 (10%)"), /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.9375rem", fontWeight: "800", color: "var(--c-navy-dark)" } }, vatAmount.toLocaleString(), "\uC6D0")),
-          /* @__PURE__ */ import_react4.default.createElement("div", null, /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.75rem", color: "var(--c-blue-accent)", fontWeight: "800" } }, "\uCD1D \uD569\uACC4\uAE08\uC561"), /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "1.0625rem", fontWeight: "900", color: "var(--c-blue-accent)" } }, grandTotal.toLocaleString(), "\uC6D0")),
-          /* @__PURE__ */ import_react4.default.createElement("div", null, /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.75rem", color: "#028A3E" } }, "\uC785\uAE08/\uC218\uAE08\uC561"), /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.9375rem", fontWeight: "800", color: "#028A3E" } }, paid.toLocaleString(), "\uC6D0")),
-          /* @__PURE__ */ import_react4.default.createElement("div", null, /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "0.75rem", color: balance > 0 ? "#D92D20" : "var(--text-muted)" } }, "\uBBF8\uC218 \uC794\uC561"), /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: "1.0625rem", fontWeight: "900", color: balance > 0 ? "#D92D20" : "#028A3E" } }, balance > 0 ? `${balance.toLocaleString()}\uC6D0` : "0\uC6D0 (\uC644\uB0A9)"))
-        ), (() => {
-          const cleanRemark = (doc.remark || "").split("---EXT---")[0].trim();
-          if (!cleanRemark) return null;
-          return /* @__PURE__ */ import_react4.default.createElement(
-            "div",
-            {
-              style: {
-                padding: "0.75rem 1rem",
-                backgroundColor: "#FFFFFF",
-                borderRadius: "8px",
-                border: "1px solid var(--border-color)",
-                fontSize: "0.8125rem"
-              }
-            },
-            /* @__PURE__ */ import_react4.default.createElement("strong", { style: { color: "var(--c-navy-primary)" } }, "\u{1F4DD} \uD2B9\uC774\uC0AC\uD56D: "),
-            cleanRemark
-          );
-        })()),
-        /* @__PURE__ */ import_react4.default.createElement(
-          "div",
+          /* @__PURE__ */ import_react4.default.createElement("strong", { style: { color: "var(--c-navy-primary)" } }, "\u{1F4DD} \uD2B9\uC774\uC0AC\uD56D: "),
+          cleanRemark
+        )),
+        /* @__PURE__ */ import_react4.default.createElement("div", { className: "doc-preview-footer" }, /* @__PURE__ */ import_react4.default.createElement(
+          "button",
           {
-            style: {
-              padding: "1rem 1.25rem",
-              backgroundColor: "#FFFFFF",
-              borderTop: "1px solid var(--border-color)",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: "0.5rem",
-              borderBottomLeftRadius: "16px",
-              borderBottomRightRadius: "16px"
+            type: "button",
+            className: "btn btn-outline",
+            style: { flex: 1, minHeight: "38px", fontSize: "0.8125rem", fontWeight: "800", whiteSpace: "nowrap" },
+            onClick: handlePrint
+          },
+          "\u{1F5A8}\uFE0F \uC778\uC1C4 / PDF"
+        ), onCopy && /* @__PURE__ */ import_react4.default.createElement(
+          "button",
+          {
+            type: "button",
+            className: "btn btn-outline",
+            style: { flex: 1, minHeight: "38px", fontSize: "0.8125rem", fontWeight: "800", whiteSpace: "nowrap" },
+            onClick: () => {
+              onCopy(doc);
+              onClose();
             }
           },
-          /* @__PURE__ */ import_react4.default.createElement("div", { style: { display: "flex", gap: "0.5rem" } }, /* @__PURE__ */ import_react4.default.createElement(
-            "button",
-            {
-              type: "button",
-              className: "btn btn-outline",
-              style: { height: "36px", fontSize: "0.8125rem", fontWeight: "800" },
-              onClick: handlePrint
-            },
-            "\u{1F5A8}\uFE0F \uC778\uC1C4 / PDF \uC800\uC7A5"
-          )),
-          /* @__PURE__ */ import_react4.default.createElement("div", { style: { display: "flex", gap: "0.5rem" } }, onCopy && /* @__PURE__ */ import_react4.default.createElement(
-            "button",
-            {
-              type: "button",
-              className: "btn btn-outline",
-              style: { height: "36px", fontSize: "0.8125rem", fontWeight: "800" },
-              onClick: () => {
-                onCopy(doc);
-                onClose();
-              }
-            },
-            "\u{1F4D1} \uC0C8 \uBA85\uC138\uC11C\uB85C \uBCF5\uC0AC"
-          ), onEdit && /* @__PURE__ */ import_react4.default.createElement(
-            "button",
-            {
-              type: "button",
-              className: "btn btn-primary",
-              style: { height: "36px", fontSize: "0.8125rem", fontWeight: "900" },
-              onClick: () => {
-                onEdit(doc);
-                onClose();
-              }
-            },
-            "\u270F\uFE0F \uC774 \uBB38\uC11C \uD3B8\uC9D1\uD558\uAE30 (\uC791\uC131 \uD0ED)"
-          ), /* @__PURE__ */ import_react4.default.createElement(
-            "button",
-            {
-              type: "button",
-              className: "btn btn-outline",
-              style: { height: "36px", fontSize: "0.8125rem" },
-              onClick: onClose
-            },
-            "\uB2EB\uAE30"
-          ))
-        )
+          "\u{1F4D1} \uBCF5\uC0AC"
+        ), onEdit && /* @__PURE__ */ import_react4.default.createElement(
+          "button",
+          {
+            type: "button",
+            className: "btn btn-primary",
+            style: { flex: 1.2, minHeight: "38px", fontSize: "0.8125rem", fontWeight: "900", whiteSpace: "nowrap", backgroundColor: "#1d4ed8" },
+            onClick: () => {
+              onEdit(doc);
+              onClose();
+            }
+          },
+          "\u270F\uFE0F \uD3B8\uC9D1 (\uC791\uC131 \uD0ED)"
+        ), /* @__PURE__ */ import_react4.default.createElement(
+          "button",
+          {
+            type: "button",
+            className: "btn btn-outline",
+            style: { minHeight: "38px", fontSize: "0.8125rem", padding: "0 14px" },
+            onClick: onClose
+          },
+          "\uB2EB\uAE30"
+        ))
       )
     );
   }
@@ -34060,85 +34014,131 @@ IconFile=${currentUrl}favicon.ico\r
       const custName = doc.customer_name || doc.customer_data?.name || doc.customer?.name || "-";
       const custMachine = doc.customer_data?.selectedMachine ? ` (${doc.customer_data.selectedMachine})` : "";
       const currentDocType = doc.doc_type || doc.docType || "\uAC70\uB798\uBA85\uC138\uC11C";
-      return /* @__PURE__ */ import_react19.default.createElement("tr", { key: doc.id || doc.doc_no, style: { backgroundColor: doc.is_deleted ? "#fff1f2" : void 0 } }, /* @__PURE__ */ import_react19.default.createElement("td", null, /* @__PURE__ */ import_react19.default.createElement("div", { style: { fontWeight: "700" } }, doc.doc_date || doc.docDate || "-"), /* @__PURE__ */ import_react19.default.createElement("div", { style: { fontSize: "11px", color: "#64748b", fontFamily: "monospace" } }, doc.doc_no || doc.docNo), doc.revision > 0 && /* @__PURE__ */ import_react19.default.createElement("span", { style: { fontSize: "10px", color: "#2563eb", backgroundColor: "#eff6ff", padding: "1px 4px", borderRadius: "4px" } }, `Rev.${doc.revision}`)), /* @__PURE__ */ import_react19.default.createElement("td", null, /* @__PURE__ */ import_react19.default.createElement(
-        "span",
+      return /* @__PURE__ */ import_react19.default.createElement(
+        "tr",
         {
+          key: doc.id || doc.doc_no,
           style: {
-            padding: "2px 8px",
-            borderRadius: "4px",
-            backgroundColor: currentDocType === "\uACAC\uC801\uC11C" ? "#f3e8ff" : currentDocType === "\uCCAD\uAD6C\uC11C" ? "#eff6ff" : "#f1f5f9",
-            color: currentDocType === "\uACAC\uC801\uC11C" ? "#6b21a8" : currentDocType === "\uCCAD\uAD6C\uC11C" ? "#1d4ed8" : "#334155",
-            fontWeight: "700",
-            fontSize: "11px"
+            backgroundColor: doc.is_deleted ? "#fff1f2" : void 0,
+            cursor: doc.is_deleted ? "default" : "pointer"
+          },
+          title: doc.is_deleted ? "" : "\uD074\uB9AD\uD558\uC5EC \uBB38\uC11C \uBBF8\uB9AC\uBCF4\uAE30",
+          onClick: () => {
+            if (doc.is_deleted) return;
+            if (onPreviewDocument) onPreviewDocument(doc);
+            else onLoadDocument(doc);
           }
         },
-        currentDocType
-      )), /* @__PURE__ */ import_react19.default.createElement("td", { style: { fontWeight: "700", color: "#0f172a" } }, custName, custMachine && /* @__PURE__ */ import_react19.default.createElement("span", { style: { color: "#1d6bf3", fontSize: "11px" } }, custMachine)), /* @__PURE__ */ import_react19.default.createElement("td", { style: { fontSize: "12px", color: "#475569" } }, itemSummary), /* @__PURE__ */ import_react19.default.createElement("td", { style: { fontWeight: "900", fontFamily: "monospace", color: "#1d6bf3" } }, `${total.toLocaleString()}\uC6D0`, !doc.is_deleted && /* @__PURE__ */ import_react19.default.createElement("br", null), !doc.is_deleted && getPayBadge(doc)), /* @__PURE__ */ import_react19.default.createElement("td", null, doc.is_deleted ? /* @__PURE__ */ import_react19.default.createElement("div", { style: { display: "flex", gap: "4px" } }, /* @__PURE__ */ import_react19.default.createElement(
-        "button",
-        {
-          className: "btn btn-primary",
-          style: { padding: "4px 10px", fontSize: "11px", backgroundColor: "#10b981", borderColor: "#10b981" },
-          onClick: () => handleRestore(doc)
-        },
-        "\u{1F504} \uBCF5\uC6D0\uD558\uAE30"
-      ), /* @__PURE__ */ import_react19.default.createElement(
-        "button",
-        {
-          className: "btn btn-red-outline",
-          style: { padding: "4px 8px", fontSize: "11px" },
-          onClick: () => handlePermanentDelete(doc)
-        },
-        "\u274C \uC601\uAD6C\uC0AD\uC81C"
-      )) : /* @__PURE__ */ import_react19.default.createElement("div", { style: { display: "flex", gap: "4px", flexWrap: "wrap" } }, /* @__PURE__ */ import_react19.default.createElement(
-        "button",
-        {
-          type: "button",
-          className: "btn btn-outline",
-          style: { padding: "3px 7px", fontSize: "11px", fontWeight: "800" },
-          onClick: () => onPreviewDocument ? onPreviewDocument(doc) : onLoadDocument(doc)
-        },
-        "\u{1F4C4} \uBCF4\uAE30"
-      ), /* @__PURE__ */ import_react19.default.createElement(
-        "button",
-        {
-          className: "btn btn-primary",
-          style: { padding: "3px 7px", fontSize: "11px" },
-          onClick: () => onLoadDocument(doc)
-        },
-        "\u{1F4E5} \uBD88\uB7EC\uC624\uAE30"
-      ), currentDocType === "\uACAC\uC801\uC11C" ? /* @__PURE__ */ import_react19.default.createElement(
-        "button",
-        {
-          className: "btn btn-primary",
-          style: { padding: "3px 7px", fontSize: "11px", backgroundColor: "#059669", borderColor: "#059669" },
-          onClick: () => onConvertToDoc && onConvertToDoc(doc, "\uAC70\uB798\uBA85\uC138\uC11C")
-        },
-        "\u{1F4E6} \uBA85\uC138\uC11C\uB85C"
-      ) : /* @__PURE__ */ import_react19.default.createElement(
-        "button",
-        {
-          className: "btn btn-primary",
-          style: { padding: "3px 7px", fontSize: "11px", backgroundColor: "#4f46e5", borderColor: "#4f46e5" },
-          onClick: () => onConvertToDoc && onConvertToDoc(doc, "\uACAC\uC801\uC11C")
-        },
-        "\u{1F4CB} \uACAC\uC801\uC11C\uB85C"
-      ), /* @__PURE__ */ import_react19.default.createElement(
-        "button",
-        {
-          className: "btn btn-primary",
-          style: { padding: "3px 7px", fontSize: "11px", backgroundColor: "#10b981", borderColor: "#10b981" },
-          onClick: () => onCopyDocument(doc)
-        },
-        "\u{1F4CB} \uBCF5\uC0AC"
-      ), /* @__PURE__ */ import_react19.default.createElement(
-        "button",
-        {
-          className: "btn btn-red-outline",
-          style: { padding: "3px 7px", fontSize: "11px" },
-          onClick: () => handleSoftDelete(doc)
-        },
-        "\u{1F5D1}\uFE0F"
-      ))));
+        /* @__PURE__ */ import_react19.default.createElement("td", null, /* @__PURE__ */ import_react19.default.createElement("div", { style: { fontWeight: "700" } }, doc.doc_date || doc.docDate || "-"), /* @__PURE__ */ import_react19.default.createElement("div", { style: { fontSize: "11px", color: "#64748b", fontFamily: "monospace" } }, doc.doc_no || doc.docNo), doc.revision > 0 && /* @__PURE__ */ import_react19.default.createElement("span", { style: { fontSize: "10px", color: "#2563eb", backgroundColor: "#eff6ff", padding: "1px 4px", borderRadius: "4px" } }, `Rev.${doc.revision}`)),
+        /* @__PURE__ */ import_react19.default.createElement("td", null, /* @__PURE__ */ import_react19.default.createElement(
+          "span",
+          {
+            style: {
+              padding: "2px 8px",
+              borderRadius: "4px",
+              backgroundColor: currentDocType === "\uACAC\uC801\uC11C" ? "#f3e8ff" : currentDocType === "\uCCAD\uAD6C\uC11C" ? "#eff6ff" : "#f1f5f9",
+              color: currentDocType === "\uACAC\uC801\uC11C" ? "#6b21a8" : currentDocType === "\uCCAD\uAD6C\uC11C" ? "#1d4ed8" : "#334155",
+              fontWeight: "700",
+              fontSize: "11px"
+            }
+          },
+          currentDocType
+        )),
+        /* @__PURE__ */ import_react19.default.createElement("td", { style: { fontWeight: "700", color: "#0f172a" } }, custName, custMachine && /* @__PURE__ */ import_react19.default.createElement("span", { style: { color: "#1d6bf3", fontSize: "11px" } }, custMachine)),
+        /* @__PURE__ */ import_react19.default.createElement("td", { style: { fontSize: "12px", color: "#475569" } }, itemSummary),
+        /* @__PURE__ */ import_react19.default.createElement("td", { style: { fontWeight: "900", fontFamily: "monospace", color: "#1d6bf3" } }, `${total.toLocaleString()}\uC6D0`, !doc.is_deleted && /* @__PURE__ */ import_react19.default.createElement("br", null), !doc.is_deleted && getPayBadge(doc)),
+        /* @__PURE__ */ import_react19.default.createElement("td", { onClick: (e) => e.stopPropagation() }, doc.is_deleted ? /* @__PURE__ */ import_react19.default.createElement("div", { style: { display: "flex", gap: "4px" } }, /* @__PURE__ */ import_react19.default.createElement(
+          "button",
+          {
+            className: "btn btn-primary",
+            style: { padding: "4px 10px", fontSize: "11px", backgroundColor: "#10b981", borderColor: "#10b981" },
+            onClick: (e) => {
+              e.stopPropagation();
+              handleRestore(doc);
+            }
+          },
+          "\u{1F504} \uBCF5\uC6D0\uD558\uAE30"
+        ), /* @__PURE__ */ import_react19.default.createElement(
+          "button",
+          {
+            className: "btn btn-red-outline",
+            style: { padding: "4px 8px", fontSize: "11px" },
+            onClick: (e) => {
+              e.stopPropagation();
+              handlePermanentDelete(doc);
+            }
+          },
+          "\u274C \uC601\uAD6C\uC0AD\uC81C"
+        )) : /* @__PURE__ */ import_react19.default.createElement("div", { style: { display: "flex", gap: "4px", flexWrap: "wrap" } }, /* @__PURE__ */ import_react19.default.createElement(
+          "button",
+          {
+            type: "button",
+            className: "btn btn-outline",
+            style: { padding: "3px 7px", fontSize: "11px", fontWeight: "800", backgroundColor: "#eff6ff", borderColor: "#bfdbfe", color: "#1d4ed8" },
+            onClick: (e) => {
+              e.stopPropagation();
+              if (onPreviewDocument) onPreviewDocument(doc);
+              else onLoadDocument(doc);
+            }
+          },
+          "\u{1F441}\uFE0F \uBCF4\uAE30"
+        ), /* @__PURE__ */ import_react19.default.createElement(
+          "button",
+          {
+            className: "btn btn-primary",
+            style: { padding: "3px 7px", fontSize: "11px" },
+            onClick: (e) => {
+              e.stopPropagation();
+              onLoadDocument(doc);
+            }
+          },
+          "\u{1F4E5} \uBD88\uB7EC\uC624\uAE30"
+        ), currentDocType === "\uACAC\uC801\uC11C" ? /* @__PURE__ */ import_react19.default.createElement(
+          "button",
+          {
+            className: "btn btn-primary",
+            style: { padding: "3px 7px", fontSize: "11px", backgroundColor: "#059669", borderColor: "#059669" },
+            onClick: (e) => {
+              e.stopPropagation();
+              onConvertToDoc && onConvertToDoc(doc, "\uAC70\uB798\uBA85\uC138\uC11C");
+            }
+          },
+          "\u{1F4E6} \uBA85\uC138\uC11C\uB85C"
+        ) : /* @__PURE__ */ import_react19.default.createElement(
+          "button",
+          {
+            className: "btn btn-primary",
+            style: { padding: "3px 7px", fontSize: "11px", backgroundColor: "#4f46e5", borderColor: "#4f46e5" },
+            onClick: (e) => {
+              e.stopPropagation();
+              onConvertToDoc && onConvertToDoc(doc, "\uACAC\uC801\uC11C");
+            }
+          },
+          "\u{1F4CB} \uACAC\uC801\uC11C\uB85C"
+        ), /* @__PURE__ */ import_react19.default.createElement(
+          "button",
+          {
+            className: "btn btn-primary",
+            style: { padding: "3px 7px", fontSize: "11px", backgroundColor: "#10b981", borderColor: "#10b981" },
+            onClick: (e) => {
+              e.stopPropagation();
+              onCopyDocument(doc);
+            }
+          },
+          "\u{1F4CB} \uBCF5\uC0AC"
+        ), /* @__PURE__ */ import_react19.default.createElement(
+          "button",
+          {
+            className: "btn btn-red-outline",
+            style: { padding: "3px 7px", fontSize: "11px" },
+            onClick: (e) => {
+              e.stopPropagation();
+              handleSoftDelete(doc);
+            }
+          },
+          "\u{1F5D1}\uFE0F"
+        )))
+      );
     })))), /* @__PURE__ */ import_react19.default.createElement("div", { className: "mobile-cards-view" }, filtered.map((doc) => {
       const items = doc.items || [];
       const firstItemName = items[0]?.name || "\uD488\uBAA9 \uC5C6\uC74C";
@@ -34152,9 +34152,19 @@ IconFile=${currentUrl}favicon.ico\r
         {
           key: doc.id || doc.doc_no,
           className: "mobile-data-card",
-          style: { borderLeft: doc.is_deleted ? "4px solid #ef4444" : void 0 }
+          style: {
+            borderLeft: doc.is_deleted ? "4px solid #ef4444" : "4px solid #2563eb",
+            cursor: doc.is_deleted ? "default" : "pointer",
+            boxShadow: "0 2px 6px rgba(0, 27, 72, 0.06)",
+            transition: "all 0.15s ease"
+          },
+          onClick: () => {
+            if (doc.is_deleted) return;
+            if (onPreviewDocument) onPreviewDocument(doc);
+            else onLoadDocument(doc);
+          }
         },
-        /* @__PURE__ */ import_react19.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" } }, /* @__PURE__ */ import_react19.default.createElement(
+        /* @__PURE__ */ import_react19.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" } }, /* @__PURE__ */ import_react19.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "6px" } }, /* @__PURE__ */ import_react19.default.createElement(
           "span",
           {
             style: {
@@ -34167,66 +34177,115 @@ IconFile=${currentUrl}favicon.ico\r
             }
           },
           currentDocType
-        ), /* @__PURE__ */ import_react19.default.createElement("span", { style: { fontSize: "11px", color: "#64748b", fontFamily: "monospace" } }, doc.doc_no || doc.docNo, doc.revision > 0 && ` (Rev.${doc.revision})`)),
-        /* @__PURE__ */ import_react19.default.createElement("div", { style: { fontWeight: "800", fontSize: "0.9375rem", marginBottom: "2px" } }, custName, custMachine && /* @__PURE__ */ import_react19.default.createElement("span", { style: { color: "#1d6bf3", fontSize: "11px" } }, custMachine)),
-        /* @__PURE__ */ import_react19.default.createElement("div", { style: { fontSize: "0.75rem", color: "#64748b", marginBottom: "6px" } }, /* @__PURE__ */ import_react19.default.createElement("div", null, `\uC77C\uC790: ${doc.doc_date || doc.docDate || "-"} | \uD488\uBAA9: ${itemSummary}`), /* @__PURE__ */ import_react19.default.createElement("div", { style: { fontSize: "0.875rem", fontWeight: "900", color: "#1d6bf3", marginTop: "2px" } }, `\uD569\uACC4: ${total.toLocaleString()}\uC6D0`)),
-        /* @__PURE__ */ import_react19.default.createElement("div", { style: { display: "flex", gap: "4px", flexWrap: "wrap" } }, doc.is_deleted ? /* @__PURE__ */ import_react19.default.createElement(import_react19.default.Fragment, null, /* @__PURE__ */ import_react19.default.createElement(
-          "button",
+        ), !doc.is_deleted && getPayBadge(doc)), /* @__PURE__ */ import_react19.default.createElement("span", { style: { fontSize: "11px", color: "#64748b", fontFamily: "monospace" } }, doc.doc_no || doc.docNo, doc.revision > 0 && ` (Rev.${doc.revision})`)),
+        /* @__PURE__ */ import_react19.default.createElement("div", { style: { fontWeight: "800", fontSize: "0.9375rem", marginBottom: "2px", color: "#0f172a" } }, custName, custMachine && /* @__PURE__ */ import_react19.default.createElement("span", { style: { color: "#1d6bf3", fontSize: "11px" } }, custMachine)),
+        /* @__PURE__ */ import_react19.default.createElement("div", { style: { fontSize: "0.75rem", color: "#64748b", marginBottom: "8px" } }, /* @__PURE__ */ import_react19.default.createElement("div", null, `\uC77C\uC790: ${doc.doc_date || doc.docDate || "-"} | \uD488\uBAA9: ${itemSummary}`), /* @__PURE__ */ import_react19.default.createElement("div", { style: { fontSize: "0.9375rem", fontWeight: "900", color: "#1d6bf3", marginTop: "2px" } }, `\uD569\uACC4: ${total.toLocaleString()}\uC6D0`)),
+        /* @__PURE__ */ import_react19.default.createElement(
+          "div",
           {
-            className: "btn btn-primary",
-            style: { flex: 1, minHeight: "32px", fontSize: "0.75rem", backgroundColor: "#10b981", borderColor: "#10b981" },
-            onClick: () => handleRestore(doc)
+            style: { display: "flex", gap: "4px", flexWrap: "wrap" },
+            onClick: (e) => e.stopPropagation()
           },
-          "\u{1F504} \uBCF5\uC6D0\uD558\uAE30"
-        ), /* @__PURE__ */ import_react19.default.createElement(
-          "button",
-          {
-            className: "btn btn-red-outline",
-            style: { minHeight: "32px", fontSize: "0.75rem", padding: "0 10px" },
-            onClick: () => handlePermanentDelete(doc)
-          },
-          "\u274C \uC601\uAD6C\uC0AD\uC81C"
-        )) : /* @__PURE__ */ import_react19.default.createElement(import_react19.default.Fragment, null, /* @__PURE__ */ import_react19.default.createElement(
-          "button",
-          {
-            className: "btn btn-primary",
-            style: { flex: 1, minHeight: "32px", fontSize: "0.75rem" },
-            onClick: () => onLoadDocument(doc)
-          },
-          "\u{1F4E5} \uBD88\uB7EC\uC624\uAE30"
-        ), currentDocType === "\uACAC\uC801\uC11C" ? /* @__PURE__ */ import_react19.default.createElement(
-          "button",
-          {
-            className: "btn btn-primary",
-            style: { flex: 1, minHeight: "32px", fontSize: "0.75rem", backgroundColor: "#059669", borderColor: "#059669" },
-            onClick: () => onConvertToDoc && onConvertToDoc(doc, "\uAC70\uB798\uBA85\uC138\uC11C")
-          },
-          "\u{1F4E6} \uBA85\uC138\uC11C\uB85C"
-        ) : /* @__PURE__ */ import_react19.default.createElement(
-          "button",
-          {
-            className: "btn btn-primary",
-            style: { flex: 1, minHeight: "32px", fontSize: "0.75rem", backgroundColor: "#4f46e5", borderColor: "#4f46e5" },
-            onClick: () => onConvertToDoc && onConvertToDoc(doc, "\uACAC\uC801\uC11C")
-          },
-          "\u{1F4CB} \uACAC\uC801\uC11C\uB85C"
-        ), /* @__PURE__ */ import_react19.default.createElement(
-          "button",
-          {
-            className: "btn btn-primary",
-            style: { padding: "3px 8px", fontSize: "11px", backgroundColor: "#10b981", borderColor: "#10b981" },
-            onClick: () => onCopyDocument(doc)
-          },
-          "\u{1F4CB} \uBCF5\uC0AC"
-        ), /* @__PURE__ */ import_react19.default.createElement(
-          "button",
-          {
-            className: "btn btn-red-outline",
-            style: { padding: "3px 8px", fontSize: "11px" },
-            onClick: () => handleSoftDelete(doc)
-          },
-          "\u{1F5D1}\uFE0F"
-        )))
+          doc.is_deleted ? /* @__PURE__ */ import_react19.default.createElement(import_react19.default.Fragment, null, /* @__PURE__ */ import_react19.default.createElement(
+            "button",
+            {
+              className: "btn btn-primary",
+              style: { flex: 1, minHeight: "34px", fontSize: "0.75rem", backgroundColor: "#10b981", borderColor: "#10b981" },
+              onClick: (e) => {
+                e.stopPropagation();
+                handleRestore(doc);
+              }
+            },
+            "\u{1F504} \uBCF5\uC6D0\uD558\uAE30"
+          ), /* @__PURE__ */ import_react19.default.createElement(
+            "button",
+            {
+              className: "btn btn-red-outline",
+              style: { minHeight: "34px", fontSize: "0.75rem", padding: "0 10px" },
+              onClick: (e) => {
+                e.stopPropagation();
+                handlePermanentDelete(doc);
+              }
+            },
+            "\u274C \uC601\uAD6C\uC0AD\uC81C"
+          )) : /* @__PURE__ */ import_react19.default.createElement(import_react19.default.Fragment, null, /* @__PURE__ */ import_react19.default.createElement(
+            "button",
+            {
+              type: "button",
+              className: "btn btn-outline",
+              style: {
+                flex: 1,
+                minHeight: "34px",
+                fontSize: "0.75rem",
+                fontWeight: "800",
+                borderColor: "#3b82f6",
+                color: "#1d4ed8",
+                backgroundColor: "#eff6ff"
+              },
+              onClick: (e) => {
+                e.stopPropagation();
+                if (onPreviewDocument) onPreviewDocument(doc);
+                else onLoadDocument(doc);
+              }
+            },
+            "\u{1F441}\uFE0F \uBBF8\uB9AC\uBCF4\uAE30"
+          ), /* @__PURE__ */ import_react19.default.createElement(
+            "button",
+            {
+              className: "btn btn-primary",
+              style: { flex: 1, minHeight: "34px", fontSize: "0.75rem" },
+              onClick: (e) => {
+                e.stopPropagation();
+                onLoadDocument(doc);
+              }
+            },
+            "\u{1F4E5} \uBD88\uB7EC\uC624\uAE30"
+          ), currentDocType === "\uACAC\uC801\uC11C" ? /* @__PURE__ */ import_react19.default.createElement(
+            "button",
+            {
+              className: "btn btn-primary",
+              style: { flex: 1, minHeight: "34px", fontSize: "0.75rem", backgroundColor: "#059669", borderColor: "#059669" },
+              onClick: (e) => {
+                e.stopPropagation();
+                onConvertToDoc && onConvertToDoc(doc, "\uAC70\uB798\uBA85\uC138\uC11C");
+              }
+            },
+            "\u{1F4E6} \uBA85\uC138\uC11C\uB85C"
+          ) : /* @__PURE__ */ import_react19.default.createElement(
+            "button",
+            {
+              className: "btn btn-primary",
+              style: { flex: 1, minHeight: "34px", fontSize: "0.75rem", backgroundColor: "#4f46e5", borderColor: "#4f46e5" },
+              onClick: (e) => {
+                e.stopPropagation();
+                onConvertToDoc && onConvertToDoc(doc, "\uACAC\uC801\uC11C");
+              }
+            },
+            "\u{1F4CB} \uACAC\uC801\uC11C\uB85C"
+          ), /* @__PURE__ */ import_react19.default.createElement(
+            "button",
+            {
+              className: "btn btn-primary",
+              style: { padding: "3px 8px", minHeight: "34px", fontSize: "11px", backgroundColor: "#10b981", borderColor: "#10b981" },
+              onClick: (e) => {
+                e.stopPropagation();
+                onCopyDocument(doc);
+              }
+            },
+            "\u{1F4CB} \uBCF5\uC0AC"
+          ), /* @__PURE__ */ import_react19.default.createElement(
+            "button",
+            {
+              className: "btn btn-red-outline",
+              style: { padding: "3px 8px", minHeight: "34px", fontSize: "11px" },
+              onClick: (e) => {
+                e.stopPropagation();
+                handleSoftDelete(doc);
+              }
+            },
+            "\u{1F5D1}\uFE0F"
+          ))
+        )
       );
     })))));
   }
