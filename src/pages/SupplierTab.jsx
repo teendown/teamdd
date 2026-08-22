@@ -149,22 +149,15 @@ export default function SupplierTab({
                   계좌: {s.bank || '-'}
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '0.375rem', marginBottom: '0.375rem' }}>
+              <div style={{ display: 'flex', gap: '0.375rem', marginTop: '0.5rem' }}>
                 <button
                   className="btn btn-outline"
-                  style={{ flex: 1, minHeight: '32px', fontSize: '0.75rem' }}
+                  style={{ flex: 1, minHeight: '36px', fontSize: '0.8125rem', fontWeight: '700' }}
                   onClick={() => handleOpenView(s)}
                 >
-                  상세조회
+                  🔍 상세조회 / 정보수정
                 </button>
               </div>
-              <button
-                className="btn btn-primary"
-                style={{ width: '100%', minHeight: '36px', fontSize: '0.75rem' }}
-                onClick={() => onSelectSupplier(s)}
-              >
-                명세서 공급자로 선택
-              </button>
             </div>
           ))}
         </div>
@@ -197,18 +190,11 @@ export default function SupplierTab({
                   <td style={{ whiteSpace: 'nowrap' }}>
                     <div style={{ display: 'flex', gap: '4px' }}>
                       <button
-                        className="btn btn-primary"
-                        style={{ fontSize: '10px', padding: '4px 6px' }}
-                        onClick={() => onSelectSupplier(s)}
-                      >
-                        명세서 선택
-                      </button>
-                      <button
                         className="btn btn-outline"
-                        style={{ fontSize: '10px', padding: '4px 6px' }}
+                        style={{ fontSize: '11px', padding: '4px 8px', fontWeight: '600' }}
                         onClick={() => handleOpenView(s)}
                       >
-                        상세조회
+                        🔍 상세조회 / 수정
                       </button>
                     </div>
                   </td>

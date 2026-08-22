@@ -1273,10 +1273,6 @@ export default function App() {
               suppliers={suppliersList}
               onSaveSupplier={handleSaveSupplier}
               onDeleteSupplier={handleDeleteSupplier}
-              onSelectSupplier={s => {
-                setSelectedSupplierKey(s.id);
-                setActiveTab('doc');
-              }}
             />
           )}
 
