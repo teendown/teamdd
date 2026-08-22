@@ -540,9 +540,9 @@ export default function App() {
   const handleSaveSupplier = async (s, isEdit) => {
     const updated = await dbSave('suppliers', s, isEdit, suppliersList);
     setSuppliersList(updated);
-    const saved = updated.find(x => x.code === s.code);
-    if (saved && s.pwd) {
-      localStorage.setItem('dd_pwd_' + saved.id, s.pwd);
+    const targetId = s.id || (updated.find(x => x.code === s.code)?.id);
+    if (targetId && s.pwd) {
+      localStorage.setItem('dd_pwd_' + targetId, s.pwd);
     }
     alert('✓ 공급자 정보가 저장되었습니다.');
   };
@@ -1267,8 +1267,8 @@ export default function App() {
             />
           )}
 
-          {/* 8. 공급자 관리 */}
-          {activeTab === 'suppliers' && (
+          {/* 8. 공급자 관리 (관리자 전용) */}
+          {activeTab === 'suppliers' && userRole === 'admin' && (
             <SupplierTab
               suppliers={suppliersList}
               onSaveSupplier={handleSaveSupplier}
@@ -1307,6 +1307,7 @@ export default function App() {
               selectedSupplierKey={selectedSupplierKey}
               suppliersList={suppliersList}
               onSaveSupplier={handleSaveSupplier}
+              onNavigateToSuppliers={() => setActiveTab('suppliers')}
               supabaseUrl={supabaseUrl}
               setSupabaseUrl={setSupabaseUrl}
               supabaseKey={supabaseKey}

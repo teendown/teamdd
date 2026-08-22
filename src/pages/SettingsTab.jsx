@@ -1,5 +1,5 @@
 // 🎨 TEAM D.D SETTINGS TAB (사업자 설정, 데이터 공개 범위 & 클라우드 연동)
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SQL_ALL, DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_KEY } from '../config/constants.js';
 
 export default function SettingsTab({
@@ -7,6 +7,7 @@ export default function SettingsTab({
   selectedSupplierKey = 'sejin',
   suppliersList = [],
   onSaveSupplier,
+  onNavigateToSuppliers,
   supabaseUrl,
   setSupabaseUrl,
   supabaseKey,
@@ -24,9 +25,12 @@ export default function SettingsTab({
   const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
   const [geminiSaved, setGeminiSaved] = useState(false);
 
+  const targetId = currentSupplier.id || selectedSupplierKey;
+  const initialPwd = currentSupplier.pwd || (targetId ? localStorage.getItem('dd_pwd_' + targetId) : '') || '0000';
+
   // 사업자 폼 정보
   const [form, setForm] = useState({
-    id: currentSupplier.id || selectedSupplierKey,
+    id: targetId,
     name: currentSupplier.name || currentSupplier.company || '',
     person: currentSupplier.person || currentSupplier.owner || '',
     bizno: currentSupplier.bizno || '',
@@ -35,8 +39,27 @@ export default function SettingsTab({
     addr: currentSupplier.addr || '',
     email: currentSupplier.email || '',
     bank: currentSupplier.bank || '',
+    pwd: initialPwd,
     defaultShared: false
   });
+
+  useEffect(() => {
+    const tId = currentSupplier.id || selectedSupplierKey;
+    const sPwd = currentSupplier.pwd || (tId ? localStorage.getItem('dd_pwd_' + tId) : '') || '0000';
+    setForm({
+      id: tId,
+      name: currentSupplier.name || currentSupplier.company || '',
+      person: currentSupplier.person || currentSupplier.owner || '',
+      bizno: currentSupplier.bizno || '',
+      phone: currentSupplier.phone || currentSupplier.tel || '',
+      fax: currentSupplier.fax || '',
+      addr: currentSupplier.addr || '',
+      email: currentSupplier.email || '',
+      bank: currentSupplier.bank || '',
+      pwd: sPwd,
+      defaultShared: false
+    });
+  }, [currentSupplier, selectedSupplierKey]);
 
   const handleCopySQL = () => {
     navigator.clipboard.writeText(SQL_ALL).then(() => {
@@ -54,17 +77,40 @@ export default function SettingsTab({
 
   const handleSaveSupplierProfile = (e) => {
     e.preventDefault();
+    if (form.pwd && form.pwd.length !== 4) {
+      alert('❌ 로그인 비밀번호는 반드시 4자리 숫자여야 합니다.');
+      return;
+    }
+    const tId = form.id || currentSupplier.id || selectedSupplierKey;
     if (onSaveSupplier) {
       onSaveSupplier({
         ...currentSupplier,
         ...form,
+        id: tId,
         company: form.name,
         owner: form.person,
-        tel: form.phone
+        tel: form.phone,
+        pwd: form.pwd
       });
+      if (tId && form.pwd) {
+        localStorage.setItem('dd_pwd_' + tId, form.pwd);
+      }
     }
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3000);
+  };
+
+  const handleOpenAdminPwdChange = () => {
+    const currentAdminPwd = localStorage.getItem('dd_pwd_admin') || '0000';
+    const newPwd = window.prompt('🔑 새로운 관리자 마스터 비밀번호를 입력해주세요 (4자리 숫자):', currentAdminPwd);
+    if (newPwd === null) return;
+    const cleaned = newPwd.replace(/[^0-9]/g, '');
+    if (cleaned.length !== 4) {
+      alert('❌ 비밀번호는 반드시 4자리 숫자여야 합니다.');
+      return;
+    }
+    localStorage.setItem('dd_pwd_admin', cleaned);
+    alert('✓ 관리자 비밀번호가 성공적으로 변경되었습니다!');
   };
 
   const handleResetToDefaults = () => {
@@ -87,7 +133,7 @@ export default function SettingsTab({
             <div>
               <h2 style={{ fontSize: '1.125rem', fontWeight: '900' }}>🏢 내 사업자(공급자) 정보 관리</h2>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                거래명세서, 견적서, 청구서 상단에 인쇄되는 사업자 공급자 정보입니다.
+                거래명세서, 견적서, 청구서 상단에 인쇄되는 사업자 공급자 정보 및 로그인 비밀번호입니다.
               </p>
             </div>
           </div>
@@ -174,20 +220,101 @@ export default function SettingsTab({
               </div>
             </div>
 
+            {/* 로그인 비밀번호 설정 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', borderTop: '1px dashed var(--border-color)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: '800', color: '#1d4ed8' }}>
+                  🔑 내 로그인 접속 비밀번호 (4자리 숫자)
+                </label>
+                <input
+                  type="text"
+                  maxLength={4}
+                  className="form-input"
+                  style={{ fontFamily: 'monospace', letterSpacing: '2px', fontWeight: 'bold', width: '160px' }}
+                  placeholder="0000"
+                  value={form.pwd || ''}
+                  onChange={(e) => setForm({ ...form, pwd: e.target.value.replace(/[^0-9]/g, '') })}
+                />
+                <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', display: 'block', marginTop: '2px' }}>
+                  스플래시 화면에서 내 사업자 선택 시 입력할 4자리 비밀번호입니다.
+                </span>
+              </div>
+              <div className="form-group" />
+            </div>
+
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
               {saveSuccess && (
                 <span style={{ color: 'var(--accent-green)', fontWeight: '700', fontSize: '0.8125rem', display: 'flex', alignItems: 'center' }}>
-                  ✓ 사업자 정보가 성공적으로 저장되었습니다!
+                  ✓ 사업자 정보 및 비밀번호가 성공적으로 저장되었습니다!
                 </span>
               )}
               <button type="submit" className="btn btn-primary">
-                사업자 정보 저장
+                사업자 정보 및 비밀번호 저장
               </button>
             </div>
           </form>
         </div>
 
-        {/* 2. 데이터 보안 및 공개 범위 설정 */}
+        {/* 2. 관리자 전용: 전체 공급자 관리 & 비밀번호 제어 카드 */}
+        {isUserAdmin && (
+          <div className="card-box" style={{ border: '1.5px solid #2563eb', boxShadow: '0 4px 15px rgba(37, 99, 235, 0.08)' }}>
+            <div className="card-box-header" style={{ backgroundColor: 'rgba(37, 99, 235, 0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '1.25rem' }}>👑</span>
+                <div>
+                  <h2 style={{ fontSize: '1.125rem', fontWeight: '900', color: '#1e40af' }}>전체 공급자 관리 & 비밀번호 제어</h2>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    등록된 모든 사업자의 접속 비밀번호를 일괄 확인하고 관리할 수 있습니다.
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  style={{ fontSize: '0.75rem', borderColor: '#cbd5e1', color: '#334155' }}
+                  onClick={handleOpenAdminPwdChange}
+                >
+                  🔑 관리자 비번 변경
+                </button>
+                {onNavigateToSuppliers && (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    style={{ fontSize: '0.75rem' }}
+                    onClick={onNavigateToSuppliers}
+                  >
+                    🏢 공급자 전체 상세관리 열기 →
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div style={{ padding: '1.25rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '0.75rem' }}>
+                {suppliersList.map(s => {
+                  const sPwd = s.pwd || localStorage.getItem('dd_pwd_' + s.id) || '0000';
+                  return (
+                    <div key={s.id} style={{ padding: '0.75rem 1rem', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <strong style={{ fontSize: '0.875rem', color: '#0f172a' }}>{s.name || s.company}</strong>
+                        <span style={{ fontSize: '0.75rem', padding: '2px 8px', backgroundColor: '#dbeafe', color: '#1e40af', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 'bold' }}>
+                          PW: {sPwd}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                        <div>대표: {s.person || s.owner || '-'}</div>
+                        <div>연락처: {s.phone || s.tel || '-'}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 3. 데이터 보안 및 공개 범위 설정 */}
         <div className="card-box">
           <div className="card-box-header">
             <h2 style={{ fontSize: '1.125rem', fontWeight: '900' }}>🔒 데이터 보안 및 공개 범위 설정</h2>
@@ -215,7 +342,7 @@ export default function SettingsTab({
           </div>
         </div>
 
-        {/* 3. 클라우드 데이터베이스 및 API 설정 (관리자 전용 제어) */}
+        {/* 4. 클라우드 데이터베이스 및 API 설정 (관리자 전용 제어) */}
         {isUserAdmin ? (
           <div className="card-box" style={{ border: '1.5px solid #ca8a04', boxShadow: '0 4px 15px rgba(202, 138, 4, 0.1)' }}>
             <div className="card-box-header" style={{ backgroundColor: 'rgba(254, 240, 138, 0.25)', borderBottom: '1px solid rgba(202, 138, 4, 0.2)' }}>

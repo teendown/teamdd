@@ -29008,7 +29008,7 @@ ${JSON.stringify(extra)}`;
       { id: "history", label: "\uBB38\uC11C\uC870\uD68C (\uBC1C\uD589\uB0B4\uC5ED)", icon: "\u{1F4C1}", isDoc: false, isActive: activeTab === "history" },
       { id: "schedule", label: "\uC77C\uC815 / \uC608\uC57D", icon: "\u{1F4C5}", isDoc: false, isActive: activeTab === "schedule", badge: badgeCounts.todayWork > 0 ? `${badgeCounts.todayWork}\uAC74` : null },
       { id: "customers", label: "\uACE0\uAC1D\uAD00\uB9AC", icon: "\u{1F465}", isDoc: false, isActive: activeTab === "customers" },
-      { id: "suppliers", label: "\uACF5\uAE09\uC790 \uAD00\uB9AC", icon: "\u{1F3E2}", isDoc: false, isActive: activeTab === "suppliers" },
+      ...isAdmin ? [{ id: "suppliers", label: "\uACF5\uAE09\uC790 \uAD00\uB9AC", icon: "\u{1F3E2}", isDoc: false, isActive: activeTab === "suppliers" }] : [],
       { id: "accounting", label: "\uBBF8\uC218\uAE08 / \uD68C\uACC4", icon: "\u{1F4A1}", isDoc: false, isActive: activeTab === "accounting", badge: badgeCounts.unpaidCount > 0 ? `${badgeCounts.unpaidCount}\uAC74` : null },
       { id: "parts", label: "\uBD80\uD488\uC7AC\uACE0", icon: "\u{1F6E0}\uFE0F", isDoc: false, isActive: activeTab === "parts" },
       { id: "settings", label: "\uC124\uC815", icon: "\u2699\uFE0F", isDoc: false, isActive: activeTab === "settings" }
@@ -36946,6 +36946,7 @@ IconFile=${currentUrl}favicon.ico\r
     selectedSupplierKey = "sejin",
     suppliersList = [],
     onSaveSupplier,
+    onNavigateToSuppliers,
     supabaseUrl,
     setSupabaseUrl,
     supabaseKey,
@@ -36962,8 +36963,10 @@ IconFile=${currentUrl}favicon.ico\r
     const [saveSuccess, setSaveSuccess] = (0, import_react25.useState)(false);
     const [geminiApiKey, setGeminiApiKey] = (0, import_react25.useState)(() => localStorage.getItem("gemini_api_key") || "");
     const [geminiSaved, setGeminiSaved] = (0, import_react25.useState)(false);
+    const targetId = currentSupplier.id || selectedSupplierKey;
+    const initialPwd = currentSupplier.pwd || (targetId ? localStorage.getItem("dd_pwd_" + targetId) : "") || "0000";
     const [form, setForm] = (0, import_react25.useState)({
-      id: currentSupplier.id || selectedSupplierKey,
+      id: targetId,
       name: currentSupplier.name || currentSupplier.company || "",
       person: currentSupplier.person || currentSupplier.owner || "",
       bizno: currentSupplier.bizno || "",
@@ -36972,8 +36975,26 @@ IconFile=${currentUrl}favicon.ico\r
       addr: currentSupplier.addr || "",
       email: currentSupplier.email || "",
       bank: currentSupplier.bank || "",
+      pwd: initialPwd,
       defaultShared: false
     });
+    (0, import_react25.useEffect)(() => {
+      const tId = currentSupplier.id || selectedSupplierKey;
+      const sPwd = currentSupplier.pwd || (tId ? localStorage.getItem("dd_pwd_" + tId) : "") || "0000";
+      setForm({
+        id: tId,
+        name: currentSupplier.name || currentSupplier.company || "",
+        person: currentSupplier.person || currentSupplier.owner || "",
+        bizno: currentSupplier.bizno || "",
+        phone: currentSupplier.phone || currentSupplier.tel || "",
+        fax: currentSupplier.fax || "",
+        addr: currentSupplier.addr || "",
+        email: currentSupplier.email || "",
+        bank: currentSupplier.bank || "",
+        pwd: sPwd,
+        defaultShared: false
+      });
+    }, [currentSupplier, selectedSupplierKey]);
     const handleCopySQL = () => {
       navigator.clipboard.writeText(SQL_ALL).then(() => {
         setCopiedSQL(true);
@@ -36988,17 +37009,39 @@ IconFile=${currentUrl}favicon.ico\r
     };
     const handleSaveSupplierProfile = (e) => {
       e.preventDefault();
+      if (form.pwd && form.pwd.length !== 4) {
+        alert("\u274C \uB85C\uADF8\uC778 \uBE44\uBC00\uBC88\uD638\uB294 \uBC18\uB4DC\uC2DC 4\uC790\uB9AC \uC22B\uC790\uC5EC\uC57C \uD569\uB2C8\uB2E4.");
+        return;
+      }
+      const tId = form.id || currentSupplier.id || selectedSupplierKey;
       if (onSaveSupplier) {
         onSaveSupplier({
           ...currentSupplier,
           ...form,
+          id: tId,
           company: form.name,
           owner: form.person,
-          tel: form.phone
+          tel: form.phone,
+          pwd: form.pwd
         });
+        if (tId && form.pwd) {
+          localStorage.setItem("dd_pwd_" + tId, form.pwd);
+        }
       }
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3e3);
+    };
+    const handleOpenAdminPwdChange = () => {
+      const currentAdminPwd = localStorage.getItem("dd_pwd_admin") || "0000";
+      const newPwd = window.prompt("\u{1F511} \uC0C8\uB85C\uC6B4 \uAD00\uB9AC\uC790 \uB9C8\uC2A4\uD130 \uBE44\uBC00\uBC88\uD638\uB97C \uC785\uB825\uD574\uC8FC\uC138\uC694 (4\uC790\uB9AC \uC22B\uC790):", currentAdminPwd);
+      if (newPwd === null) return;
+      const cleaned = newPwd.replace(/[^0-9]/g, "");
+      if (cleaned.length !== 4) {
+        alert("\u274C \uBE44\uBC00\uBC88\uD638\uB294 \uBC18\uB4DC\uC2DC 4\uC790\uB9AC \uC22B\uC790\uC5EC\uC57C \uD569\uB2C8\uB2E4.");
+        return;
+      }
+      localStorage.setItem("dd_pwd_admin", cleaned);
+      alert("\u2713 \uAD00\uB9AC\uC790 \uBE44\uBC00\uBC88\uD638\uAC00 \uC131\uACF5\uC801\uC73C\uB85C \uBCC0\uACBD\uB418\uC5C8\uC2B5\uB2C8\uB2E4!");
     };
     const handleResetToDefaults = () => {
       setSupabaseUrl(DEFAULT_SUPABASE_URL);
@@ -37009,7 +37052,7 @@ IconFile=${currentUrl}favicon.ico\r
         if (onTestConnection) onTestConnection(DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_KEY);
       }, 50);
     };
-    return /* @__PURE__ */ import_react25.default.createElement("div", { className: "management-container" }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "1.25rem", maxWidth: "900px", margin: "0 auto" } }, /* @__PURE__ */ import_react25.default.createElement("div", { className: "card-box" }, /* @__PURE__ */ import_react25.default.createElement("div", { className: "card-box-header" }, /* @__PURE__ */ import_react25.default.createElement("div", null, /* @__PURE__ */ import_react25.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900" } }, "\u{1F3E2} \uB0B4 \uC0AC\uC5C5\uC790(\uACF5\uAE09\uC790) \uC815\uBCF4 \uAD00\uB9AC"), /* @__PURE__ */ import_react25.default.createElement("p", { style: { fontSize: "0.75rem", color: "var(--text-muted)" } }, "\uAC70\uB798\uBA85\uC138\uC11C, \uACAC\uC801\uC11C, \uCCAD\uAD6C\uC11C \uC0C1\uB2E8\uC5D0 \uC778\uC1C4\uB418\uB294 \uC0AC\uC5C5\uC790 \uACF5\uAE09\uC790 \uC815\uBCF4\uC785\uB2C8\uB2E4."))), /* @__PURE__ */ import_react25.default.createElement("form", { onSubmit: handleSaveSupplierProfile, style: { padding: "1.25rem" } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" } }, /* @__PURE__ */ import_react25.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react25.default.createElement("label", { className: "form-label" }, "\uC0C1\uD638(\uC0AC\uC5C5\uC790\uBA85) *"), /* @__PURE__ */ import_react25.default.createElement(
+    return /* @__PURE__ */ import_react25.default.createElement("div", { className: "management-container" }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "1.25rem", maxWidth: "900px", margin: "0 auto" } }, /* @__PURE__ */ import_react25.default.createElement("div", { className: "card-box" }, /* @__PURE__ */ import_react25.default.createElement("div", { className: "card-box-header" }, /* @__PURE__ */ import_react25.default.createElement("div", null, /* @__PURE__ */ import_react25.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900" } }, "\u{1F3E2} \uB0B4 \uC0AC\uC5C5\uC790(\uACF5\uAE09\uC790) \uC815\uBCF4 \uAD00\uB9AC"), /* @__PURE__ */ import_react25.default.createElement("p", { style: { fontSize: "0.75rem", color: "var(--text-muted)" } }, "\uAC70\uB798\uBA85\uC138\uC11C, \uACAC\uC801\uC11C, \uCCAD\uAD6C\uC11C \uC0C1\uB2E8\uC5D0 \uC778\uC1C4\uB418\uB294 \uC0AC\uC5C5\uC790 \uACF5\uAE09\uC790 \uC815\uBCF4 \uBC0F \uB85C\uADF8\uC778 \uBE44\uBC00\uBC88\uD638\uC785\uB2C8\uB2E4."))), /* @__PURE__ */ import_react25.default.createElement("form", { onSubmit: handleSaveSupplierProfile, style: { padding: "1.25rem" } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" } }, /* @__PURE__ */ import_react25.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react25.default.createElement("label", { className: "form-label" }, "\uC0C1\uD638(\uC0AC\uC5C5\uC790\uBA85) *"), /* @__PURE__ */ import_react25.default.createElement(
       "input",
       {
         type: "text",
@@ -37070,7 +37113,39 @@ IconFile=${currentUrl}favicon.ico\r
         value: form.bank,
         onChange: (e) => setForm({ ...form, bank: e.target.value })
       }
-    ))), /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "1rem" } }, saveSuccess && /* @__PURE__ */ import_react25.default.createElement("span", { style: { color: "var(--accent-green)", fontWeight: "700", fontSize: "0.8125rem", display: "flex", alignItems: "center" } }, "\u2713 \uC0AC\uC5C5\uC790 \uC815\uBCF4\uAC00 \uC131\uACF5\uC801\uC73C\uB85C \uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4!"), /* @__PURE__ */ import_react25.default.createElement("button", { type: "submit", className: "btn btn-primary" }, "\uC0AC\uC5C5\uC790 \uC815\uBCF4 \uC800\uC7A5")))), /* @__PURE__ */ import_react25.default.createElement("div", { className: "card-box" }, /* @__PURE__ */ import_react25.default.createElement("div", { className: "card-box-header" }, /* @__PURE__ */ import_react25.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900" } }, "\u{1F512} \uB370\uC774\uD130 \uBCF4\uC548 \uBC0F \uACF5\uAC1C \uBC94\uC704 \uC124\uC815")), /* @__PURE__ */ import_react25.default.createElement("div", { style: { padding: "1.25rem", display: "flex", flexDirection: "column", gap: "1rem" } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { padding: "0.875rem 1rem", backgroundColor: "var(--bg-muted)", borderRadius: "var(--radius-md)", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", justifyContent: "space-between" } }, /* @__PURE__ */ import_react25.default.createElement("div", null, /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontWeight: "800", fontSize: "0.875rem" } }, "\uACE0\uAC1D \uAC70\uB798\uBA85\uC138\uC11C / \uD68C\uACC4 / \uBBF8\uC218\uAE08 \uB370\uC774\uD130"), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: "0.75rem", color: "var(--text-muted)" } }, "\uC0AC\uC5C5\uC790\uBCC4 \uC644\uC804 \uBE44\uACF5\uAC1C \uACA9\uB9AC \uC6D0\uCE59 (\uD0C0 \uC0AC\uC5C5\uC790 \uC5F4\uB78C \uC808\uB300 \uBD88\uAC00)")), /* @__PURE__ */ import_react25.default.createElement("span", { className: "priority-pill urgent", style: { fontSize: "0.75rem", padding: "4px 8px" } }, "\u{1F512} \uAC15\uC81C \uBE44\uACF5\uAC1C (\uC548\uC804)")), /* @__PURE__ */ import_react25.default.createElement("div", { style: { padding: "0.875rem 1rem", backgroundColor: "var(--bg-muted)", borderRadius: "var(--radius-md)", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", justifyContent: "space-between" } }, /* @__PURE__ */ import_react25.default.createElement("div", null, /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontWeight: "800", fontSize: "0.875rem" } }, "\uC815\uBE44 \uBC0F \uC608\uC57D \uC77C\uC815 \uACF5\uAC1C \uC5EC\uBD80"), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: "0.75rem", color: "var(--text-muted)" } }, "\uAC1C\uBCC4 \uC77C\uC815 \uC0DD\uC131 \uC2DC [\uACF5\uC720 \uC77C\uC815] \uCCB4\uD06C\uBC15\uC2A4\uB85C \uC120\uD0DD\uC801 \uACF5\uAC1C \uAC00\uB2A5")), /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "0.75rem", backgroundColor: "var(--accent-blue-bg)", color: "var(--accent-blue)", padding: "4px 8px", borderRadius: "4px", fontWeight: "800" } }, "\u{1F310} \uC120\uD0DD\uC801 \uACF5\uAC1C \uC9C0\uC6D0")))), isUserAdmin ? /* @__PURE__ */ import_react25.default.createElement("div", { className: "card-box", style: { border: "1.5px solid #ca8a04", boxShadow: "0 4px 15px rgba(202, 138, 4, 0.1)" } }, /* @__PURE__ */ import_react25.default.createElement("div", { className: "card-box-header", style: { backgroundColor: "rgba(254, 240, 138, 0.25)", borderBottom: "1px solid rgba(202, 138, 4, 0.2)" } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" } }, /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "1.25rem" } }, "\u{1F451}"), /* @__PURE__ */ import_react25.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900", color: "#854d0e" } }, "\uC2DC\uC2A4\uD15C \uAD00\uB9AC\uC790 \uC124\uC815 (DB & AI API)"), /* @__PURE__ */ import_react25.default.createElement("span", { className: `status-badge ${isConnected ? "connected" : "disconnected"}` }, isConnected ? "\u{1F7E2} \uD074\uB77C\uC6B0\uB4DC \uB3D9\uAE30\uD654 \uC644\uB8CC" : "\u{1F534} \uB85C\uCEEC \uBAA8\uB4DC (\uC624\uD504\uB77C\uC778)")), /* @__PURE__ */ import_react25.default.createElement(
+    ))), /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", borderTop: "1px dashed var(--border-color)", paddingTop: "0.75rem", marginTop: "0.5rem" } }, /* @__PURE__ */ import_react25.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react25.default.createElement("label", { className: "form-label", style: { fontWeight: "800", color: "#1d4ed8" } }, "\u{1F511} \uB0B4 \uB85C\uADF8\uC778 \uC811\uC18D \uBE44\uBC00\uBC88\uD638 (4\uC790\uB9AC \uC22B\uC790)"), /* @__PURE__ */ import_react25.default.createElement(
+      "input",
+      {
+        type: "text",
+        maxLength: 4,
+        className: "form-input",
+        style: { fontFamily: "monospace", letterSpacing: "2px", fontWeight: "bold", width: "160px" },
+        placeholder: "0000",
+        value: form.pwd || "",
+        onChange: (e) => setForm({ ...form, pwd: e.target.value.replace(/[^0-9]/g, "") })
+      }
+    ), /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "0.6875rem", color: "var(--text-muted)", display: "block", marginTop: "2px" } }, "\uC2A4\uD50C\uB798\uC2DC \uD654\uBA74\uC5D0\uC11C \uB0B4 \uC0AC\uC5C5\uC790 \uC120\uD0DD \uC2DC \uC785\uB825\uD560 4\uC790\uB9AC \uBE44\uBC00\uBC88\uD638\uC785\uB2C8\uB2E4.")), /* @__PURE__ */ import_react25.default.createElement("div", { className: "form-group" })), /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "1rem" } }, saveSuccess && /* @__PURE__ */ import_react25.default.createElement("span", { style: { color: "var(--accent-green)", fontWeight: "700", fontSize: "0.8125rem", display: "flex", alignItems: "center" } }, "\u2713 \uC0AC\uC5C5\uC790 \uC815\uBCF4 \uBC0F \uBE44\uBC00\uBC88\uD638\uAC00 \uC131\uACF5\uC801\uC73C\uB85C \uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4!"), /* @__PURE__ */ import_react25.default.createElement("button", { type: "submit", className: "btn btn-primary" }, "\uC0AC\uC5C5\uC790 \uC815\uBCF4 \uBC0F \uBE44\uBC00\uBC88\uD638 \uC800\uC7A5")))), isUserAdmin && /* @__PURE__ */ import_react25.default.createElement("div", { className: "card-box", style: { border: "1.5px solid #2563eb", boxShadow: "0 4px 15px rgba(37, 99, 235, 0.08)" } }, /* @__PURE__ */ import_react25.default.createElement("div", { className: "card-box-header", style: { backgroundColor: "rgba(37, 99, 235, 0.06)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "0.5rem" } }, /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "1.25rem" } }, "\u{1F451}"), /* @__PURE__ */ import_react25.default.createElement("div", null, /* @__PURE__ */ import_react25.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900", color: "#1e40af" } }, "\uC804\uCCB4 \uACF5\uAE09\uC790 \uAD00\uB9AC & \uBE44\uBC00\uBC88\uD638 \uC81C\uC5B4"), /* @__PURE__ */ import_react25.default.createElement("p", { style: { fontSize: "0.75rem", color: "var(--text-muted)" } }, "\uB4F1\uB85D\uB41C \uBAA8\uB4E0 \uC0AC\uC5C5\uC790\uC758 \uC811\uC18D \uBE44\uBC00\uBC88\uD638\uB97C \uC77C\uAD04 \uD655\uC778\uD558\uACE0 \uAD00\uB9AC\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4."))), /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", gap: "6px" } }, /* @__PURE__ */ import_react25.default.createElement(
+      "button",
+      {
+        type: "button",
+        className: "btn btn-outline",
+        style: { fontSize: "0.75rem", borderColor: "#cbd5e1", color: "#334155" },
+        onClick: handleOpenAdminPwdChange
+      },
+      "\u{1F511} \uAD00\uB9AC\uC790 \uBE44\uBC88 \uBCC0\uACBD"
+    ), onNavigateToSuppliers && /* @__PURE__ */ import_react25.default.createElement(
+      "button",
+      {
+        type: "button",
+        className: "btn btn-primary",
+        style: { fontSize: "0.75rem" },
+        onClick: onNavigateToSuppliers
+      },
+      "\u{1F3E2} \uACF5\uAE09\uC790 \uC804\uCCB4 \uC0C1\uC138\uAD00\uB9AC \uC5F4\uAE30 \u2192"
+    ))), /* @__PURE__ */ import_react25.default.createElement("div", { style: { padding: "1.25rem" } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "0.75rem" } }, suppliersList.map((s) => {
+      const sPwd = s.pwd || localStorage.getItem("dd_pwd_" + s.id) || "0000";
+      return /* @__PURE__ */ import_react25.default.createElement("div", { key: s.id, style: { padding: "0.75rem 1rem", border: "1px solid #e2e8f0", borderRadius: "8px", backgroundColor: "#f8fafc" } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" } }, /* @__PURE__ */ import_react25.default.createElement("strong", { style: { fontSize: "0.875rem", color: "#0f172a" } }, s.name || s.company), /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "0.75rem", padding: "2px 8px", backgroundColor: "#dbeafe", color: "#1e40af", borderRadius: "4px", fontFamily: "monospace", fontWeight: "bold" } }, "PW: ", sPwd)), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: "0.75rem", color: "#64748b" } }, /* @__PURE__ */ import_react25.default.createElement("div", null, "\uB300\uD45C: ", s.person || s.owner || "-"), /* @__PURE__ */ import_react25.default.createElement("div", null, "\uC5F0\uB77D\uCC98: ", s.phone || s.tel || "-")));
+    })))), /* @__PURE__ */ import_react25.default.createElement("div", { className: "card-box" }, /* @__PURE__ */ import_react25.default.createElement("div", { className: "card-box-header" }, /* @__PURE__ */ import_react25.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900" } }, "\u{1F512} \uB370\uC774\uD130 \uBCF4\uC548 \uBC0F \uACF5\uAC1C \uBC94\uC704 \uC124\uC815")), /* @__PURE__ */ import_react25.default.createElement("div", { style: { padding: "1.25rem", display: "flex", flexDirection: "column", gap: "1rem" } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { padding: "0.875rem 1rem", backgroundColor: "var(--bg-muted)", borderRadius: "var(--radius-md)", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", justifyContent: "space-between" } }, /* @__PURE__ */ import_react25.default.createElement("div", null, /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontWeight: "800", fontSize: "0.875rem" } }, "\uACE0\uAC1D \uAC70\uB798\uBA85\uC138\uC11C / \uD68C\uACC4 / \uBBF8\uC218\uAE08 \uB370\uC774\uD130"), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: "0.75rem", color: "var(--text-muted)" } }, "\uC0AC\uC5C5\uC790\uBCC4 \uC644\uC804 \uBE44\uACF5\uAC1C \uACA9\uB9AC \uC6D0\uCE59 (\uD0C0 \uC0AC\uC5C5\uC790 \uC5F4\uB78C \uC808\uB300 \uBD88\uAC00)")), /* @__PURE__ */ import_react25.default.createElement("span", { className: "priority-pill urgent", style: { fontSize: "0.75rem", padding: "4px 8px" } }, "\u{1F512} \uAC15\uC81C \uBE44\uACF5\uAC1C (\uC548\uC804)")), /* @__PURE__ */ import_react25.default.createElement("div", { style: { padding: "0.875rem 1rem", backgroundColor: "var(--bg-muted)", borderRadius: "var(--radius-md)", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", justifyContent: "space-between" } }, /* @__PURE__ */ import_react25.default.createElement("div", null, /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontWeight: "800", fontSize: "0.875rem" } }, "\uC815\uBE44 \uBC0F \uC608\uC57D \uC77C\uC815 \uACF5\uAC1C \uC5EC\uBD80"), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: "0.75rem", color: "var(--text-muted)" } }, "\uAC1C\uBCC4 \uC77C\uC815 \uC0DD\uC131 \uC2DC [\uACF5\uC720 \uC77C\uC815] \uCCB4\uD06C\uBC15\uC2A4\uB85C \uC120\uD0DD\uC801 \uACF5\uAC1C \uAC00\uB2A5")), /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "0.75rem", backgroundColor: "var(--accent-blue-bg)", color: "var(--accent-blue)", padding: "4px 8px", borderRadius: "4px", fontWeight: "800" } }, "\u{1F310} \uC120\uD0DD\uC801 \uACF5\uAC1C \uC9C0\uC6D0")))), isUserAdmin ? /* @__PURE__ */ import_react25.default.createElement("div", { className: "card-box", style: { border: "1.5px solid #ca8a04", boxShadow: "0 4px 15px rgba(202, 138, 4, 0.1)" } }, /* @__PURE__ */ import_react25.default.createElement("div", { className: "card-box-header", style: { backgroundColor: "rgba(254, 240, 138, 0.25)", borderBottom: "1px solid rgba(202, 138, 4, 0.2)" } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" } }, /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "1.25rem" } }, "\u{1F451}"), /* @__PURE__ */ import_react25.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900", color: "#854d0e" } }, "\uC2DC\uC2A4\uD15C \uAD00\uB9AC\uC790 \uC124\uC815 (DB & AI API)"), /* @__PURE__ */ import_react25.default.createElement("span", { className: `status-badge ${isConnected ? "connected" : "disconnected"}` }, isConnected ? "\u{1F7E2} \uD074\uB77C\uC6B0\uB4DC \uB3D9\uAE30\uD654 \uC644\uB8CC" : "\u{1F534} \uB85C\uCEEC \uBAA8\uB4DC (\uC624\uD504\uB77C\uC778)")), /* @__PURE__ */ import_react25.default.createElement(
       "button",
       {
         type: "button",
@@ -37643,9 +37718,9 @@ IconFile=${currentUrl}favicon.ico\r
     const handleSaveSupplier = async (s, isEdit) => {
       const updated = await dbSave("suppliers", s, isEdit, suppliersList);
       setSuppliersList(updated);
-      const saved = updated.find((x) => x.code === s.code);
-      if (saved && s.pwd) {
-        localStorage.setItem("dd_pwd_" + saved.id, s.pwd);
+      const targetId = s.id || updated.find((x) => x.code === s.code)?.id;
+      if (targetId && s.pwd) {
+        localStorage.setItem("dd_pwd_" + targetId, s.pwd);
       }
       alert("\u2713 \uACF5\uAE09\uC790 \uC815\uBCF4\uAC00 \uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4.");
     };
@@ -38338,7 +38413,7 @@ IconFile=${currentUrl}favicon.ico\r
           setActiveTab("doc");
         }
       }
-    ), activeTab === "suppliers" && /* @__PURE__ */ import_react26.default.createElement(
+    ), activeTab === "suppliers" && userRole === "admin" && /* @__PURE__ */ import_react26.default.createElement(
       SupplierTab,
       {
         suppliers: suppliersList,
@@ -38374,6 +38449,7 @@ IconFile=${currentUrl}favicon.ico\r
         selectedSupplierKey,
         suppliersList,
         onSaveSupplier: handleSaveSupplier,
+        onNavigateToSuppliers: () => setActiveTab("suppliers"),
         supabaseUrl,
         setSupabaseUrl,
         supabaseKey,
