@@ -3,7 +3,7 @@ import { getSupabaseClient } from '../api/supabaseClient.js';
 import { getLocalItem, setLocalItem } from '../api/storage.js';
 import { STORAGE_KEYS } from '../config/constants.js';
 import { DEMO_DOCUMENTS } from '../config/defaults.js';
-import { packRow, unpackRow, areSupplierKeysEquivalent } from '../utils/validation.js';
+import { packRow, unpackRow, areSupplierKeysEquivalent, normalizePartners, isPartnerInDoc } from '../utils/validation.js';
 import { generateNextDocNo, deduplicateAndResequenceDocNumbers } from '../utils/numbering.js';
 
 export async function saveDocument(docData) {
@@ -12,14 +12,20 @@ export async function saveDocument(docData) {
   const selectedSupplierKey = sessionStorage.getItem(STORAGE_KEYS.SELECTED_SUPPLIER) || localStorage.getItem(STORAGE_KEYS.SELECTED_SUPPLIER) || 'sejin';
   const local = getLocalItem(STORAGE_KEYS.DOCUMENTS, []);
 
-  if (userRole === 'supplier') {
-    if (docData.id) {
-      const found = local.find(d => d.id === docData.id);
-      if (found && found.supplier_key && !areSupplierKeysEquivalent(found.supplier_key, selectedSupplierKey)) {
+  if (docData.id) {
+    const found = local.find(d => d.id === docData.id);
+    if (found) {
+      if (userRole === 'supplier' && found.supplier_key && !areSupplierKeysEquivalent(found.supplier_key, selectedSupplierKey) && !(found.is_shared && isPartnerInDoc(found, selectedSupplierKey))) {
         alert('해당 문서를 수정할 권한이 없습니다.');
         return local;
       }
+      if (!docData.supplierKey && found.supplier_key) {
+        docData.supplierKey = found.supplier_key;
+        docData.supplier = found.supplier_data || docData.supplier;
+      }
     }
+  }
+  if (!docData.supplierKey) {
     docData.supplierKey = selectedSupplierKey;
   }
 
@@ -66,6 +72,32 @@ export async function saveDocument(docData) {
     dueDate: docData.dueDate,
     receiverName: docData.receiverName,
     receiveDate: docData.receiveDate,
+    is_shared: !!(docData.is_shared || docData.isDocShared || (docData.partners && docData.partners.length > 0)),
+    partner_key: docData.partner_key || (docData.partners && docData.partners[0]?.key) || docData.partnerKey || '',
+    partner_name: docData.partner_name || (docData.partners && docData.partners[0]?.name) || docData.partnerName || '',
+    settlement_amount: Number(docData.settlement_amount) || (docData.partners && Number(docData.partners[0]?.amount)) || Number(docData.settlementAmount) || 0,
+    settlement_status: docData.settlement_status || (docData.partners && docData.partners[0]?.status) || docData.settlementStatus || '정산대기',
+    settlement_memo: docData.settlement_memo || (docData.partners && docData.partners[0]?.memo) || docData.settlementMemo || '',
+    settled_at: docData.settled_at || (docData.partners && docData.partners[0]?.settled_at) || docData.settledAt || null,
+    partners: (docData.partners && Array.isArray(docData.partners) && docData.partners.length > 0)
+      ? docData.partners.map(p => ({
+          id: p.id || p.key,
+          key: p.key || p.id,
+          name: p.name || p.company || p.key || '협력사',
+          amount: Number(p.amount) || Number(p.settlement_amount) || 0,
+          status: p.status || p.settlement_status || '정산대기',
+          memo: p.memo || p.settlement_memo || '',
+          settled_at: p.settled_at || null
+        }))
+      : (docData.partner_key || docData.partnerKey ? [{
+          id: docData.partner_key || docData.partnerKey,
+          key: docData.partner_key || docData.partnerKey,
+          name: docData.partner_name || docData.partnerName || '협력사',
+          amount: Number(docData.settlement_amount || docData.settlementAmount) || 0,
+          status: docData.settlement_status || docData.settlementStatus || '정산대기',
+          memo: docData.settlement_memo || docData.settlementMemo || '',
+          settled_at: docData.settled_at || docData.settledAt || null
+        }] : []),
     revision: currentRevision,
     is_deleted: false,
     deleted_at: null
@@ -129,7 +161,7 @@ export async function fetchDocuments() {
   }
   
   if (userRole === 'supplier') {
-    list = list.filter(d => areSupplierKeysEquivalent(d.supplier_key, selectedSupplierKey));
+    list = list.filter(d => areSupplierKeysEquivalent(d.supplier_key, selectedSupplierKey) || (d.is_shared && isPartnerInDoc(d, selectedSupplierKey)));
   }
 
   list = await deduplicateAndResequenceDocNumbers(list);
@@ -144,9 +176,9 @@ export async function deleteDocument(docId) {
   
   const found = local.find(d => String(d.id) === String(docId) || d.doc_no === docId);
   if (userRole === 'supplier' && found && found.supplier_key) {
-    if (!areSupplierKeysEquivalent(found.supplier_key, selectedSupplierKey)) {
+    if (!areSupplierKeysEquivalent(found.supplier_key, selectedSupplierKey) && !(found.is_shared && isPartnerInDoc(found, selectedSupplierKey))) {
       alert('해당 문서를 삭제할 권한이 없습니다.');
-      return local.filter(d => areSupplierKeysEquivalent(d.supplier_key, selectedSupplierKey));
+      return local.filter(d => areSupplierKeysEquivalent(d.supplier_key, selectedSupplierKey) || (d.is_shared && isPartnerInDoc(d, selectedSupplierKey)));
     }
   }
 
@@ -172,7 +204,7 @@ export async function deleteDocument(docId) {
   setLocalItem(STORAGE_KEYS.DOCUMENTS, updated);
 
   if (userRole === 'supplier') {
-    return updated.filter(d => areSupplierKeysEquivalent(d.supplier_key, selectedSupplierKey));
+    return updated.filter(d => areSupplierKeysEquivalent(d.supplier_key, selectedSupplierKey) || (d.is_shared && isPartnerInDoc(d, selectedSupplierKey)));
   }
   return updated;
 }
@@ -205,7 +237,7 @@ export async function restoreDocument(docId) {
   setLocalItem(STORAGE_KEYS.DOCUMENTS, updated);
 
   if (userRole === 'supplier') {
-    return updated.filter(d => areSupplierKeysEquivalent(d.supplier_key, selectedSupplierKey));
+    return updated.filter(d => areSupplierKeysEquivalent(d.supplier_key, selectedSupplierKey) || (d.is_shared && isPartnerInDoc(d, selectedSupplierKey)));
   }
   return updated;
 }
@@ -232,7 +264,7 @@ export async function permanentDeleteDocument(docId) {
   setLocalItem(STORAGE_KEYS.DOCUMENTS, updated);
 
   if (userRole === 'supplier') {
-    return updated.filter(d => areSupplierKeysEquivalent(d.supplier_key, selectedSupplierKey));
+    return updated.filter(d => areSupplierKeysEquivalent(d.supplier_key, selectedSupplierKey) || (d.is_shared && isPartnerInDoc(d, selectedSupplierKey)));
   }
   return updated;
 }
@@ -246,7 +278,7 @@ export async function updateDocumentPaid(docId, paidAmount, remark) {
   
   if (userRole === 'supplier') {
     const found = local.find(d => d.id === docId || d.doc_no === docId);
-    if (found && found.supplier_key && !areSupplierKeysEquivalent(found.supplier_key, selectedSupplierKey)) {
+    if (found && found.supplier_key && !areSupplierKeysEquivalent(found.supplier_key, selectedSupplierKey) && !(found.is_shared && isPartnerInDoc(found, selectedSupplierKey))) {
       alert('해당 문서의 수금을 변경할 권한이 없습니다.');
       return local.filter(unpackRow);
     }
@@ -270,3 +302,70 @@ export async function updateDocumentPaid(docId, paidAmount, remark) {
   setLocalItem(STORAGE_KEYS.DOCUMENTS, updated);
   return updated;
 }
+
+export async function updateDocumentSettlement(docId, settlementData) {
+  const sb = getSupabaseClient();
+  const local = getLocalItem(STORAGE_KEYS.DOCUMENTS, DEMO_DOCUMENTS);
+  const found = local.find(d => d.id === docId || d.doc_no === docId);
+  if (!found) return local;
+
+  const targetPartnerKey = settlementData.partner_key || settlementData.partnerKey;
+  let partners = normalizePartners(found);
+
+  if (settlementData.partners && Array.isArray(settlementData.partners)) {
+    partners = settlementData.partners;
+  } else if (targetPartnerKey) {
+    const isCompleted = settlementData.settlement_status === '정산완료';
+    partners = partners.map(p => {
+      if (areSupplierKeysEquivalent(p.key, targetPartnerKey)) {
+        return {
+          ...p,
+          amount: settlementData.settlement_amount !== undefined ? Number(settlementData.settlement_amount) : p.amount,
+          status: settlementData.settlement_status || p.status,
+          memo: settlementData.settlement_memo !== undefined ? settlementData.settlement_memo : p.memo,
+          settled_at: isCompleted ? (p.settled_at || new Date().toISOString()) : null
+        };
+      }
+      return p;
+    });
+  } else {
+    const isCompleted = settlementData.settlement_status === '정산완료';
+    if (partners.length > 0) {
+      partners[0] = {
+        ...partners[0],
+        amount: settlementData.settlement_amount !== undefined ? Number(settlementData.settlement_amount) : partners[0].amount,
+        status: settlementData.settlement_status || partners[0].status,
+        memo: settlementData.settlement_memo !== undefined ? settlementData.settlement_memo : partners[0].memo,
+        settled_at: isCompleted ? (partners[0].settled_at || new Date().toISOString()) : null
+      };
+    }
+  }
+
+  const primary = partners[0] || {};
+  const isAllSettled = partners.length > 0 && partners.every(p => p.status === '정산완료');
+
+  const updatedDoc = {
+    ...found,
+    partners,
+    partner_key: primary.key || found.partner_key || '',
+    partner_name: primary.name || found.partner_name || '',
+    settlement_amount: primary.amount !== undefined ? primary.amount : (Number(settlementData.settlement_amount) || found.settlement_amount || 0),
+    settlement_status: isAllSettled ? '정산완료' : (partners.length > 0 ? (partners.some(p => p.status === '정산완료') ? '부분완료' : '정산대기') : (settlementData.settlement_status || found.settlement_status || '정산대기')),
+    settlement_memo: primary.memo !== undefined ? primary.memo : (settlementData.settlement_memo !== undefined ? settlementData.settlement_memo : (found.settlement_memo || '')),
+    settled_at: isAllSettled ? (found.settled_at || new Date().toISOString()) : null
+  };
+
+  const packed = packRow(updatedDoc, 'documents');
+  if (sb && found.id && !String(found.id).startsWith('doc_')) {
+    try {
+      await sb.from('documents').update({ remark: packed.remark }).eq('id', found.id);
+    } catch (e) {
+      console.error('Error updating settlement in Supabase:', e);
+    }
+  }
+
+  const updatedList = local.map(d => (d.id === docId || d.doc_no === docId ? updatedDoc : d));
+  setLocalItem(STORAGE_KEYS.DOCUMENTS, updatedList);
+  return updatedList;
+}
+

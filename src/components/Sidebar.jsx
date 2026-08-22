@@ -10,6 +10,7 @@ export default function Sidebar({
   isOpen = false,
   onClose = () => {},
   userRole = 'supplier',
+  loggedInSupplier,
   currentSupplier,
   selectedSupplierKey = 'sejin',
   setSelectedSupplierKey,
@@ -21,10 +22,11 @@ export default function Sidebar({
   }
 }) {
   const isAdmin = userRole === 'admin';
+  const displayUser = loggedInSupplier || currentSupplier;
 
   const supplierDisplayName = isAdmin
     ? '통합 관리자'
-    : (currentSupplier?.company || currentSupplier?.name || 
+    : (displayUser?.company || displayUser?.name || 
       (suppliersList.find(s => areSupplierKeysEquivalent(s.id, selectedSupplierKey))?.name) || 
       (selectedSupplierKey === 'sejin' ? '세진건설기계' : (selectedSupplierKey === 'ds' ? '디에스건설기계' : '대성건설기계')));
 
@@ -104,7 +106,7 @@ export default function Sidebar({
                 {supplierDisplayName}
               </div>
               <div className="sidebar-user-role" style={{ color: isAdmin ? '#fde047' : '#94a3b8' }}>
-                {isAdmin ? '전체 관리자 모드' : (currentSupplier?.person ? `${currentSupplier.person} 대표` : '사업자 계정')}
+                {isAdmin ? '전체 관리자 모드' : (displayUser?.person ? `${displayUser.person} 대표` : '사업자 계정')}
               </div>
             </div>
           </div>

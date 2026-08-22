@@ -15,6 +15,41 @@ export function areSupplierKeysEquivalent(key1, key2) {
   return false;
 }
 
+export function normalizePartners(doc) {
+  if (!doc) return [];
+  if (doc.partners && Array.isArray(doc.partners) && doc.partners.length > 0) {
+    return doc.partners.map(p => ({
+      id: p.id || p.key || p.supplier_key,
+      key: p.key || p.id || p.supplier_key,
+      name: p.name || p.company || p.key || '협력사',
+      amount: Number(p.amount) || Number(p.settlement_amount) || 0,
+      status: p.status || p.settlement_status || '정산대기',
+      memo: p.memo || p.settlement_memo || '',
+      settled_at: p.settled_at || null
+    }));
+  }
+  if (doc.partner_key || doc.partnerKey) {
+    const k = doc.partner_key || doc.partnerKey;
+    return [{
+      id: k,
+      key: k,
+      name: doc.partner_name || doc.partnerName || k,
+      amount: Number(doc.settlement_amount || doc.settlementAmount) || 0,
+      status: doc.settlement_status || doc.settlementStatus || '정산대기',
+      memo: doc.settlement_memo || doc.settlementMemo || '',
+      settled_at: doc.settled_at || doc.settledAt || null
+    }];
+  }
+  return [];
+}
+
+export function isPartnerInDoc(doc, targetSupplierKey) {
+  if (!doc || !targetSupplierKey) return false;
+  if (areSupplierKeysEquivalent(doc.partner_key, targetSupplierKey)) return true;
+  const partners = normalizePartners(doc);
+  return partners.some(p => areSupplierKeysEquivalent(p.key, targetSupplierKey));
+}
+
 export function packRow(r, table) {
   if (table !== 'customers' && table !== 'suppliers' && table !== 'documents' && table !== 'schedules' && table !== 'parts') return { ...r };
   let standardCols = [];

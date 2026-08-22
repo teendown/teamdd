@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import DocumentCanvas from '../components/DocumentCanvas.jsx';
 import SmartItemListManager from '../components/SmartItemListManager.jsx';
 import { exportPagesToPNG, copyPageToClipboard, shareDocumentImage, exportDocumentToExcel } from '../utils/exportUtils.js';
+import { areSupplierKeysEquivalent } from '../utils/validation.js';
 
 export default function StatementTab({
   docType,
@@ -59,6 +60,12 @@ export default function StatementTab({
   onCopyDocument,
   isDocShared = false,
   setIsDocShared,
+  partners = [],
+  setPartners,
+  partnerKey = '',
+  setPartnerKey,
+  partnerName = '',
+  setPartnerName,
   onSaveDraft,
   onOpenDraftsModal,
   draftsCount = 0,
@@ -66,6 +73,8 @@ export default function StatementTab({
   onNavigateToDoc
 }) {
   const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [selectedPartnerToAdd, setSelectedPartnerToAdd] = useState('');
+  const [isPartnersExpanded, setIsPartnersExpanded] = useState(false);
 
   // 실시간 고객 검색 자동완성
   const matchingCustomers = useMemo(() => {
@@ -237,15 +246,344 @@ export default function StatementTab({
               <label className="form-label">공급자 선택</label>
               <select
                 className="form-select"
-                value={selectedSupplierKey}
-                onChange={e => setSelectedSupplierKey(e.target.value)}
-                disabled={sessionStorage.getItem('dd_user_role') !== 'admin'}
+                value={suppliersList.find(s => areSupplierKeysEquivalent(s.id, selectedSupplierKey))?.id || selectedSupplierKey}
+                onChange={e => {
+                  const newKey = e.target.value;
+                  setSelectedSupplierKey(newKey);
+                  const found = suppliersList.find(s => areSupplierKeysEquivalent(s.id, newKey));
+                  if (found && setCurrentSupplier) {
+                    setCurrentSupplier({
+                      ...found,
+                      company: found.name || found.company,
+                      person: found.person || found.owner || '',
+                      tel: found.phone || found.tel,
+                      email: found.email || '',
+                      hasStamp: areSupplierKeysEquivalent(newKey, 'sejin')
+                    });
+                  }
+                }}
+                disabled={sessionStorage.getItem('dd_user_role') !== 'admin' && !editingDocId}
               >
                 {suppliersList.map(s => (
                   <option key={s.id} value={s.id}>{s.name || s.company}</option>
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* 🤝 shadcn style Multi-Partner Collaborative Toggle */}
+          <div
+            style={{
+              padding: '0.75rem 0.875rem',
+              backgroundColor: isDocShared ? '#f5f7ff' : '#f8fafc',
+              border: `1px solid ${isDocShared ? '#c7d2fe' : '#e2e8f0'}`,
+              borderRadius: '8px',
+              marginBottom: '0.75rem',
+              transition: 'all 0.2s ease',
+              boxShadow: isDocShared ? '0 1px 3px rgba(79, 70, 229, 0.08)' : 'none'
+            }}
+          >
+            {/* 상단 헤더 바 */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0, userSelect: 'none' }}>
+                <input
+                  type="checkbox"
+                  checked={isDocShared}
+                  onChange={e => {
+                    const checked = e.target.checked;
+                    setIsDocShared(checked);
+                    if (checked) {
+                      setIsPartnersExpanded(true); // 체크 시 펼침
+                      if (!partners || partners.length === 0) {
+                        const avail = suppliersList.filter(s => !areSupplierKeysEquivalent(s.id, selectedSupplierKey));
+                        if (avail.length > 0) {
+                          const initialPartner = {
+                            id: avail[0].id,
+                            key: avail[0].id,
+                            name: avail[0].name || avail[0].company,
+                            amount: 0,
+                            status: '정산대기',
+                            memo: ''
+                          };
+                          if (setPartners) setPartners([initialPartner]);
+                          if (setPartnerKey) setPartnerKey(avail[0].id);
+                          if (setPartnerName) setPartnerName(avail[0].name || avail[0].company);
+                        }
+                      }
+                    } else {
+                      setIsPartnersExpanded(false);
+                    }
+                  }}
+                  style={{ width: '16px', height: '16px', accentColor: '#4f46e5', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '0.8125rem', fontWeight: '800', color: isDocShared ? '#3730a3' : '#334155' }}>
+                  🤝 공동작업 (협력 파트너 1인 / 2인 이상 다수 정산)
+                </span>
+              </label>
+
+              {isDocShared && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: '800', backgroundColor: '#4f46e5', color: '#ffffff', padding: '2px 8px', borderRadius: '9999px' }}>
+                    {`공동작업 (${(partners || []).length}명 참여)`}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsPartnersExpanded(prev => !prev)}
+                    style={{
+                      border: '1px solid #c7d2fe',
+                      backgroundColor: isPartnersExpanded ? '#e0e7ff' : '#ffffff',
+                      color: '#4338ca',
+                      fontSize: '11px',
+                      fontWeight: '800',
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {isPartnersExpanded ? '▲ 접기' : '▼ 상세 확인/수정'}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* 1. 접혀있을 때의 요약 바 (Collapsed State) */}
+            {isDocShared && !isPartnersExpanded && (
+              <div
+                onClick={() => setIsPartnersExpanded(true)}
+                style={{
+                  marginTop: '0.625rem',
+                  padding: '8px 10px',
+                  backgroundColor: '#ffffff',
+                  borderRadius: '6px',
+                  border: '1px solid #c7d2fe',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '8px',
+                  flexWrap: 'wrap',
+                  transition: 'background-color 0.15s ease'
+                }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8faff'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = '#ffffff'}
+                title="클릭하여 파트너 및 정산금 상세 설정 펼치기"
+              >
+                {(partners || []).length === 0 ? (
+                  <div style={{ fontSize: '0.75rem', color: '#d97706', fontWeight: '700' }}>
+                    ⚠️ 등록된 파트너가 없습니다. (클릭하여 파트너 추가)
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '11px', fontWeight: '800', color: '#4338ca' }}>
+                        👥 참여 파트너:
+                      </span>
+                      {(partners || []).map((p, idx) => (
+                        <span
+                          key={p.key || p.id || idx}
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: '700',
+                            backgroundColor: '#eef2ff',
+                            color: '#3730a3',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            border: '1px solid #c7d2fe'
+                          }}
+                        >
+                          {`${p.name || p.company || p.key} (${Number(p.amount || 0).toLocaleString()}원)`}
+                        </span>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: '800', color: '#1e293b' }}>
+                        {`총 정산 배분: ${(partners || []).reduce((s, p) => s + (Number(p.amount) || 0), 0).toLocaleString()}원`}
+                      </span>
+                      <span style={{ fontSize: '10px', color: '#6366f1', textDecoration: 'underline', fontWeight: '700' }}>
+                        클릭하여 수정
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* 2. 펼쳐져 있을 때의 상세 설정 영역 (Expanded State) */}
+            {isDocShared && isPartnersExpanded && (
+              <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #c7d2fe', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                
+                {/* Selected Partners List */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#4338ca' }}>
+                      참여 협력 파트너 목록 (1명 ~ 다수 등록 가능):
+                    </span>
+                    <span style={{ fontSize: '11px', fontWeight: '800', color: '#4f46e5' }}>
+                      {`총 정산 배분: ${(partners || []).reduce((s, p) => s + (Number(p.amount) || 0), 0).toLocaleString()}원`}
+                    </span>
+                  </div>
+
+                  {(partners || []).length === 0 ? (
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', backgroundColor: '#ffffff', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                      ⚠️ 등록된 협력 파트너가 없습니다. 아래에서 파트너를 추가해 주세요.
+                    </div>
+                  ) : (
+                    (partners || []).map((p, pIdx) => (
+                      <div
+                        key={p.key || p.id || pIdx}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '8px',
+                          backgroundColor: '#ffffff',
+                          padding: '6px 10px',
+                          borderRadius: '6px',
+                          border: '1px solid #c7d2fe',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: '110px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: '800', backgroundColor: '#e0e7ff', color: '#3730a3', padding: '1px 6px', borderRadius: '4px' }}>
+                            {`#${pIdx + 1}`}
+                          </span>
+                          <span style={{ fontSize: '0.8125rem', fontWeight: '700', color: '#1e293b' }}>
+                            {p.name || p.company || p.key}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, justifyContent: 'flex-end' }}>
+                          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>정산금:</span>
+                          <input
+                            type="number"
+                            value={p.amount || 0}
+                            onChange={e => {
+                              const val = Number(e.target.value) || 0;
+                              const next = [...partners];
+                              next[pIdx] = { ...next[pIdx], amount: val };
+                              if (setPartners) setPartners(next);
+                              if (pIdx === 0 && setPartnerKey) setPartnerKey(next[0].key);
+                            }}
+                            placeholder="0"
+                            style={{
+                              width: '85px',
+                              textAlign: 'right',
+                              fontSize: '0.75rem',
+                              fontWeight: '800',
+                              padding: '3px 6px',
+                              borderRadius: '4px',
+                              border: '1px solid #cbd5e1'
+                            }}
+                          />
+                          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>원</span>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = partners.filter((_, idx) => idx !== pIdx);
+                              if (setPartners) setPartners(next);
+                              if (next.length > 0) {
+                                if (setPartnerKey) setPartnerKey(next[0].key);
+                                if (setPartnerName) setPartnerName(next[0].name);
+                              } else {
+                                if (setPartnerKey) setPartnerKey('');
+                                if (setPartnerName) setPartnerName('');
+                              }
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#ef4444',
+                              fontWeight: '800',
+                              cursor: 'pointer',
+                              fontSize: '14px',
+                              padding: '0 4px',
+                              lineHeight: 1
+                            }}
+                            title="파트너 삭제"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Add Partner Bar */}
+                <div style={{ display: 'flex', gap: '6px', marginTop: '2px' }}>
+                  <select
+                    className="form-select"
+                    style={{ flex: 1, minHeight: '30px', fontSize: '0.75rem', borderColor: '#c7d2fe', backgroundColor: '#ffffff' }}
+                    value={selectedPartnerToAdd}
+                    onChange={e => setSelectedPartnerToAdd(e.target.value)}
+                  >
+                    <option value="">-- 등록된 공급자에서 파트너 추가 --</option>
+                    {suppliersList
+                      .filter(s => !areSupplierKeysEquivalent(s.id, selectedSupplierKey) && !(partners || []).some(p => areSupplierKeysEquivalent(p.key, s.id)))
+                      .map(s => (
+                        <option key={s.id} value={s.id}>{s.name || s.company}</option>
+                      ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    style={{ fontSize: '0.75rem', padding: '3px 10px', minHeight: '30px', borderColor: '#818cf8', color: '#4338ca', backgroundColor: '#ffffff', fontWeight: '700', whiteSpace: 'nowrap' }}
+                    onClick={() => {
+                      if (!selectedPartnerToAdd) return;
+                      const found = suppliersList.find(s => areSupplierKeysEquivalent(s.id, selectedPartnerToAdd));
+                      if (found) {
+                        const newP = {
+                          id: found.id,
+                          key: found.id,
+                          name: found.name || found.company,
+                          amount: 0,
+                          status: '정산대기',
+                          memo: ''
+                        };
+                        const next = [...(partners || []), newP];
+                        if (setPartners) setPartners(next);
+                        if (next.length === 1) {
+                          if (setPartnerKey) setPartnerKey(found.id);
+                          if (setPartnerName) setPartnerName(found.name || found.company);
+                        }
+                        setSelectedPartnerToAdd('');
+                      }
+                    }}
+                  >
+                    + 추가
+                  </button>
+                </div>
+
+                <div style={{ fontSize: '0.6875rem', color: '#6366f1', lineHeight: '1.4' }}>
+                  ℹ️ 고객용 출력 문서에는 대표 공급자({currentSupplier.company || currentSupplier.name || '본사'}) 정보만 깔끔하게 단일 표기되며, 지정된 모든 협력사({(partners || []).length}개사)에 실시간 자동 공유 및 개별 정산 관리됩니다.
+                </div>
+
+                {/* 설정 완료 및 접기 버튼 */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsPartnersExpanded(false)}
+                    style={{
+                      border: '1px solid #c7d2fe',
+                      backgroundColor: '#ffffff',
+                      color: '#4338ca',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      padding: '3px 10px',
+                      borderRadius: '4px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ▲ 설정 완료 및 접기
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="grid-2">
@@ -698,7 +1036,10 @@ export default function StatementTab({
               borderColor: '#2563eb',
               boxShadow: '0 2px 4px rgba(37,99,235,0.2)'
             }}
-            onClick={onSaveDocument}
+            onClick={() => {
+              setIsPartnersExpanded(false);
+              if (onSaveDocument) onSaveDocument();
+            }}
           >
             💾 문서 저장
           </button>

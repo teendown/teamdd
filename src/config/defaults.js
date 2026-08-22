@@ -135,6 +135,123 @@ export const DEMO_DOCUMENTS = [
     paid: 0,
     remark: "7월 정기 청구 (월말 정산)",
     created_at: "2026-07-25T16:00:00.000Z"
+  },
+  {
+    id: "demo_doc_collab_1",
+    doc_type: "거래명세서",
+    doc_no: "20260815-003",
+    doc_date: "2026-08-15",
+    doc_time: "11:00",
+    customer_name: "전주건설",
+    customer_data: DEMO_CUSTOMERS[0],
+    supplier_key: "sejin",
+    supplier_data: DEFAULT_SUPPLIERS.sejin,
+    items: [
+      { id: "1", code: "P0003", name: "고압 유압호스 및 밸브 교체", unit: "식", qty: 1, price: 350000 },
+      { id: "2", code: "P0002", name: "유압유 20L", unit: "CAN", qty: 2, price: 85000 }
+    ],
+    vat: 52000,
+    vat_included: true,
+    paid: 572000,
+    remark: "세진 메인 수주 (디에스 부품 및 출장 지원 협업)",
+    is_shared: true,
+    partner_key: "ds_gimje",
+    partner_name: "디에스건설기계 김제점",
+    settlement_amount: 170000,
+    settlement_status: "정산대기",
+    settlement_memo: "디에스 유압유 2캔 및 밸브 부품대 정산분",
+    partners: [
+      {
+        id: "ds_gimje",
+        key: "ds_gimje",
+        name: "디에스건설기계 김제점",
+        amount: 170000,
+        status: "정산대기",
+        memo: "디에스 유압유 2캔 및 밸브 부품대 정산분"
+      }
+    ],
+    created_at: "2026-08-15T11:00:00.000Z"
+  },
+  {
+    id: "demo_doc_collab_2",
+    doc_type: "거래명세서",
+    doc_no: "20260818-005",
+    doc_date: "2026-08-18",
+    doc_time: "15:30",
+    customer_name: "김제중기",
+    customer_data: DEMO_CUSTOMERS[1],
+    supplier_key: "ds_gimje",
+    supplier_data: DEFAULT_SUPPLIERS.ds_gimje,
+    items: [
+      { id: "1", code: "P0004", name: "시동모터 정밀 점검 및 교환", unit: "식", qty: 1, price: 420000 }
+    ],
+    vat: 42000,
+    vat_included: true,
+    paid: 462000,
+    remark: "디에스 메인 수주 (세진 기술인력 정비 지원)",
+    is_shared: true,
+    partner_key: "sejin",
+    partner_name: "세진건설기계",
+    settlement_amount: 150000,
+    settlement_status: "정산완료",
+    settlement_memo: "세진 정비 기술공임 지원금 송금 완료",
+    settled_at: "2026-08-20T10:00:00.000Z",
+    partners: [
+      {
+        id: "sejin",
+        key: "sejin",
+        name: "세진건설기계",
+        amount: 150000,
+        status: "정산완료",
+        memo: "세진 정비 기술공임 지원금 송금 완료",
+        settled_at: "2026-08-20T10:00:00.000Z"
+      }
+    ],
+    created_at: "2026-08-18T15:30:00.000Z"
+  },
+  {
+    id: "demo_doc_collab_3",
+    doc_type: "거래명세서",
+    doc_no: "20260821-006",
+    doc_date: "2026-08-21",
+    doc_time: "09:30",
+    customer_name: "익산골재",
+    customer_data: DEMO_CUSTOMERS[2],
+    supplier_key: "sejin",
+    supplier_data: DEFAULT_SUPPLIERS.sejin,
+    items: [
+      { id: "1", code: "P0005", name: "굴삭기 메인 펌프 오버홀 및 하부 롤러 교체", unit: "식", qty: 1, price: 1200000 }
+    ],
+    vat: 120000,
+    vat_included: true,
+    paid: 1320000,
+    remark: "세진 메인 총괄 (2인 다중 협력: 디에스 펌프부품 + 전주엔진 특수정비)",
+    is_shared: true,
+    partner_key: "ds_gimje",
+    partner_name: "디에스건설기계 김제점",
+    settlement_amount: 350000,
+    settlement_status: "부분완료",
+    settlement_memo: "디에스 35만원(완료) / 전주엔진 25만원(대기)",
+    partners: [
+      {
+        id: "ds_gimje",
+        key: "ds_gimje",
+        name: "디에스건설기계 김제점",
+        amount: 350000,
+        status: "정산완료",
+        memo: "유압 메인 펌프 씰키트 공급",
+        settled_at: "2026-08-21T18:00:00.000Z"
+      },
+      {
+        id: "partner_engine",
+        key: "partner_engine",
+        name: "전주특수엔진정비",
+        amount: 250000,
+        status: "정산대기",
+        memo: "하부 롤러 유압라인 정밀 가공 지원"
+      }
+    ],
+    created_at: "2026-08-21T09:30:00.000Z"
   }
 ];
 

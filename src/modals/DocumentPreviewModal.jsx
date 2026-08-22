@@ -1,7 +1,5 @@
-// 🎨 TEAM D.D RESPONSIVE DOCUMENT PREVIEW MODAL
-import React from 'react';
 import { DEFAULT_SUPPLIERS } from '../config/defaults.js';
-import { areSupplierKeysEquivalent } from '../utils/validation.js';
+import { areSupplierKeysEquivalent, normalizePartners } from '../utils/validation.js';
 
 export default function DocumentPreviewModal({
   doc,
@@ -37,6 +35,10 @@ export default function DocumentPreviewModal({
   };
 
   const cleanRemark = (doc.remark || '').split('---EXT---')[0].trim();
+  
+  const partners = normalizePartners(doc);
+  const isDocShared = !!(doc.is_shared || doc.isDocShared || doc.partner_key || partners.length > 0);
+  const totalPartnerAmount = partners.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
   return (
     <div
@@ -315,6 +317,96 @@ export default function DocumentPreviewModal({
               </div>
             </div>
           </div>
+
+          {/* 🤝 공동작업 / 협력 파트너 정산 정보 카드 */}
+          {isDocShared && (
+            <div
+              style={{
+                padding: '0.875rem 1rem',
+                backgroundColor: '#f5f7ff',
+                borderRadius: '12px',
+                border: '1px solid #c7d2fe',
+                marginTop: '0.75rem',
+                boxShadow: '0 1px 3px rgba(79, 70, 229, 0.05)'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '1rem' }}>🤝</span>
+                  <span style={{ fontSize: '0.875rem', fontWeight: '900', color: '#3730a3' }}>
+                    공동작업 및 협력 파트너 정산 내역
+                  </span>
+                  <span style={{ fontSize: '10px', fontWeight: '800', backgroundColor: '#4f46e5', color: '#ffffff', padding: '1px 6px', borderRadius: '9999px' }}>
+                    {`${partners.length}개사 참여`}
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.8125rem', fontWeight: '800', color: '#4338ca' }}>
+                  {`총 정산 배분: ${totalPartnerAmount.toLocaleString()}원`}
+                </div>
+              </div>
+
+              {partners.length === 0 ? (
+                <div style={{ fontSize: '0.75rem', color: '#64748b', backgroundColor: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                  공동작업으로 지정되었으나 세부 파트너 정보가 등록되지 않았습니다.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {partners.map((p, idx) => (
+                    <div
+                      key={p.key || p.id || idx}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        backgroundColor: '#ffffff',
+                        padding: '6px 10px',
+                        borderRadius: '6px',
+                        border: '1px solid #e0e7ff',
+                        fontSize: '0.8125rem'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '10px', fontWeight: '800', backgroundColor: '#e0e7ff', color: '#3730a3', padding: '1px 5px', borderRadius: '4px' }}>
+                          {`#${idx + 1}`}
+                        </span>
+                        <span style={{ fontWeight: '800', color: '#1e293b' }}>
+                          {p.name || p.company || p.key}
+                        </span>
+                        {p.memo && (
+                          <span style={{ fontSize: '11px', color: '#64748b', marginLeft: '4px' }}>
+                            ({p.memo})
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontWeight: '800', color: '#1d4ed8' }}>
+                          {`${(Number(p.amount) || 0).toLocaleString()}원`}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '10px',
+                            fontWeight: '700',
+                            padding: '1px 6px',
+                            borderRadius: '4px',
+                            backgroundColor: p.status === '정산완료' ? '#dcfce7' : '#fef3c7',
+                            color: p.status === '정산완료' ? '#166534' : '#92400e',
+                            border: `1px solid ${p.status === '정산완료' ? '#86efac' : '#fde68a'}`
+                          }}
+                        >
+                          {p.status || '정산대기'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div style={{ fontSize: '0.6875rem', color: '#6366f1', marginTop: '6px', lineHeight: 1.4 }}>
+                ℹ️ 고객용 출력물에는 대표 공급자({supplier.company || supplier.name || '본사'}) 단일 정보로 표기되며, 각 협력사에 실시간 자동 공유 및 개별 정산 관리됩니다.
+              </div>
+            </div>
+          )}
 
           {/* 특이사항 / 비고 */}
           {cleanRemark && (

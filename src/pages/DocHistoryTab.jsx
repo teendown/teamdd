@@ -7,6 +7,7 @@ import {
   permanentDeleteDocument
 } from '../services/documentService.js';
 import { calculateTotalAmount } from '../utils/formatters.js';
+import { normalizePartners } from '../utils/validation.js';
 
 export default function DocHistoryTab({
   onLoadDocument,
@@ -116,16 +117,19 @@ export default function DocHistoryTab({
   const statementDocs = nonDeletedDocs.filter(d => (d.doc_type || d.docType || '거래명세서') === '거래명세서');
   const estimateDocs = nonDeletedDocs.filter(d => (d.doc_type || d.docType || '거래명세서') === '견적서');
   const invoiceDocs = nonDeletedDocs.filter(d => (d.doc_type || d.docType || '거래명세서') === '청구서');
+  const collabDocs = nonDeletedDocs.filter(d => !!d.is_shared || !!d.partner_key);
 
   const totalAllSum = nonDeletedDocs.filter(d => (d.doc_type || d.docType || '거래명세서') !== '견적서').reduce((sum, d) => sum + calculateTotal(d), 0);
   const totalStatementSum = statementDocs.reduce((sum, d) => sum + calculateTotal(d), 0);
   const totalEstimateSum = estimateDocs.reduce((sum, d) => sum + calculateTotal(d), 0);
   const totalInvoiceSum = invoiceDocs.reduce((sum, d) => sum + calculateTotal(d), 0);
+  const totalCollabSum = collabDocs.reduce((sum, d) => sum + calculateTotal(d), 0);
 
   let baseTabDocs = nonDeletedDocs;
   if (activeSubTab === 'statement') baseTabDocs = statementDocs;
   else if (activeSubTab === 'estimate') baseTabDocs = estimateDocs;
   else if (activeSubTab === 'invoice') baseTabDocs = invoiceDocs;
+  else if (activeSubTab === 'collab') baseTabDocs = collabDocs;
   else if (activeSubTab === 'trash') baseTabDocs = trashDocs;
 
   const filtered = baseTabDocs.filter(doc => {
@@ -220,6 +224,7 @@ export default function DocHistoryTab({
             { key: 'statement', icon: '📦', label: '거래명세서', count: statementDocs.length, sum: totalStatementSum, color: '#059669' },
             { key: 'estimate', icon: '📋', label: '견적서', count: estimateDocs.length, sum: totalEstimateSum, color: '#6b21a8' },
             { key: 'invoice', icon: '🧾', label: '청구서', count: invoiceDocs.length, sum: totalInvoiceSum, color: '#2563eb' },
+            { key: 'collab', icon: '🤝', label: '공동작업', count: collabDocs.length, sum: totalCollabSum, color: '#4f46e5' },
             { key: 'trash', icon: '🗑️', label: '휴지통', count: trashDocs.length, sum: null, color: '#dc2626' }
           ].map(tab => {
             const isActive = activeSubTab === tab.key;
@@ -432,18 +437,43 @@ export default function DocHistoryTab({
                           {doc.revision > 0 && <span style={{ fontSize: '10px', color: '#2563eb', backgroundColor: '#eff6ff', padding: '1px 4px', borderRadius: '4px' }}>{`Rev.${doc.revision}`}</span>}
                         </td>
                         <td>
-                          <span
-                            style={{
-                              padding: '2px 8px',
-                              borderRadius: '4px',
-                              backgroundColor: currentDocType === '견적서' ? '#f3e8ff' : (currentDocType === '청구서' ? '#eff6ff' : '#f1f5f9'),
-                              color: currentDocType === '견적서' ? '#6b21a8' : (currentDocType === '청구서' ? '#1d4ed8' : '#334155'),
-                              fontWeight: '700',
-                              fontSize: '11px'
-                            }}
-                          >
-                            {currentDocType}
-                          </span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'flex-start' }}>
+                            <span
+                              style={{
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                backgroundColor: currentDocType === '견적서' ? '#f3e8ff' : (currentDocType === '청구서' ? '#eff6ff' : '#f1f5f9'),
+                                color: currentDocType === '견적서' ? '#6b21a8' : (currentDocType === '청구서' ? '#1d4ed8' : '#334155'),
+                                fontWeight: '700',
+                                fontSize: '11px'
+                              }}
+                            >
+                              {currentDocType}
+                            </span>
+                            {(() => {
+                              const docPartners = normalizePartners(doc);
+                              const isShared = !!(doc.is_shared || doc.partner_key || docPartners.length > 0);
+                              if (!isShared) return null;
+                              const partnerSum = docPartners.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+                              const partnerNames = docPartners.map(p => `${p.name || p.company || p.key}(${(Number(p.amount) || 0).toLocaleString()}원)`).join(', ');
+                              return (
+                                <span
+                                  style={{
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    backgroundColor: '#eef2ff',
+                                    color: '#4f46e5',
+                                    border: '1px solid #c7d2fe',
+                                    fontWeight: '800',
+                                    fontSize: '10px'
+                                  }}
+                                  title={partnerNames ? `참여 파트너: ${partnerNames} | 총 정산: ${partnerSum.toLocaleString()}원` : '공동작업 문서'}
+                                >
+                                  {`🤝 공동작업${docPartners.length > 0 ? ` (${docPartners.length}명)` : ''}`}
+                                </span>
+                              );
+                            })()}
+                          </div>
                         </td>
                         <td style={{ fontWeight: '700', color: '#0f172a' }}>
                           {custName}
@@ -576,6 +606,26 @@ export default function DocHistoryTab({
                         >
                           {currentDocType}
                         </span>
+                        {(() => {
+                          const docPartners = normalizePartners(doc);
+                          const isShared = !!(doc.is_shared || doc.partner_key || docPartners.length > 0);
+                          if (!isShared) return null;
+                          return (
+                            <span
+                              style={{
+                                padding: '1px 5px',
+                                borderRadius: '4px',
+                                backgroundColor: '#eef2ff',
+                                color: '#4f46e5',
+                                border: '1px solid #c7d2fe',
+                                fontWeight: '800',
+                                fontSize: '9px'
+                              }}
+                            >
+                              {`🤝 공동${docPartners.length > 0 ? `(${docPartners.length})` : ''}`}
+                            </span>
+                          );
+                        })()}
                         {!doc.is_deleted && getPayBadge(doc)}
                       </div>
                       <span style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace' }}>

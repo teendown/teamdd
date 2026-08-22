@@ -14,10 +14,15 @@ export default function SettingsTab({
   isConnected,
   isTesting,
   connectionMessage,
-  onTestConnection
+  onTestConnection,
+  userRole = 'supplier',
+  isAdmin = false
 }) {
+  const isUserAdmin = isAdmin || userRole === 'admin' || sessionStorage.getItem('dd_user_role') === 'admin';
   const [copiedSQL, setCopiedSQL] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
+  const [geminiSaved, setGeminiSaved] = useState(false);
 
   // 사업자 폼 정보
   const [form, setForm] = useState({
@@ -38,6 +43,13 @@ export default function SettingsTab({
       setCopiedSQL(true);
       setTimeout(() => setCopiedSQL(false), 2500);
     });
+  };
+
+  const handleSaveGeminiKey = (e) => {
+    e.preventDefault();
+    localStorage.setItem('gemini_api_key', geminiApiKey.trim());
+    setGeminiSaved(true);
+    setTimeout(() => setGeminiSaved(false), 2500);
   };
 
   const handleSaveSupplierProfile = (e) => {
@@ -203,74 +215,133 @@ export default function SettingsTab({
           </div>
         </div>
 
-        {/* 3. 클라우드 데이터베이스 (Supabase) 연동 설정 */}
-        <div className="card-box">
-          <div className="card-box-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <h2 style={{ fontSize: '1.125rem', fontWeight: '900' }}>☁️ 클라우드 DB (Supabase) 연동</h2>
-              <span className={`status-badge ${isConnected ? 'connected' : 'disconnected'}`}>
-                {isConnected ? '🟢 클라우드 동기화 완료' : '🔴 로컬 모드 (오프라인)'}
-              </span>
-            </div>
-            <button
-              type="button"
-              className="btn btn-outline"
-              style={{ fontSize: '0.75rem' }}
-              onClick={handleResetToDefaults}
-            >
-              기본 서버 주소로 복원
-            </button>
-          </div>
-
-          <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-            <div className="form-group">
-              <label className="form-label">Supabase Project URL</label>
-              <input
-                type="text"
-                className="form-input"
-                value={supabaseUrl}
-                onChange={(e) => setSupabaseUrl(e.target.value)}
-                placeholder="https://your-project.supabase.co"
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Supabase Anon Key</label>
-              <input
-                type="password"
-                className="form-input"
-                value={supabaseKey}
-                onChange={(e) => setSupabaseKey(e.target.value)}
-                placeholder="sb_publishable_..."
-              />
-            </div>
-
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => onTestConnection && onTestConnection(supabaseUrl, supabaseKey)}
-                disabled={isTesting}
-              >
-                {isTesting ? '연결 테스트 중...' : '⚡ 연결 테스트 및 즉시 동기화'}
-              </button>
-
+        {/* 3. 클라우드 데이터베이스 및 API 설정 (관리자 전용 제어) */}
+        {isUserAdmin ? (
+          <div className="card-box" style={{ border: '1.5px solid #ca8a04', boxShadow: '0 4px 15px rgba(202, 138, 4, 0.1)' }}>
+            <div className="card-box-header" style={{ backgroundColor: 'rgba(254, 240, 138, 0.25)', borderBottom: '1px solid rgba(202, 138, 4, 0.2)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '1.25rem' }}>👑</span>
+                <h2 style={{ fontSize: '1.125rem', fontWeight: '900', color: '#854d0e' }}>시스템 관리자 설정 (DB & AI API)</h2>
+                <span className={`status-badge ${isConnected ? 'connected' : 'disconnected'}`}>
+                  {isConnected ? '🟢 클라우드 동기화 완료' : '🔴 로컬 모드 (오프라인)'}
+                </span>
+              </div>
               <button
                 type="button"
                 className="btn btn-outline"
-                onClick={handleCopySQL}
+                style={{ fontSize: '0.75rem', borderColor: '#ca8a04', color: '#854d0e' }}
+                onClick={handleResetToDefaults}
               >
-                {copiedSQL ? '✓ SQL 클립보드 복사 완료!' : '📋 Supabase 테이블 생성 SQL 복사'}
+                기본 서버 주소로 복원
               </button>
             </div>
 
-            {connectionMessage && (
-              <div style={{ fontSize: '0.8125rem', color: isConnected ? 'var(--accent-green)' : 'var(--accent-red)', fontWeight: '700', marginTop: '0.25rem' }}>
-                {connectionMessage}
+            <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Supabase DB 설정 */}
+              <div>
+                <h3 style={{ fontSize: '0.9375rem', fontWeight: '800', color: '#1e293b', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  ☁️ 클라우드 DB (Supabase) 연동
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div className="form-group">
+                    <label className="form-label">Supabase Project URL</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={supabaseUrl}
+                      onChange={(e) => setSupabaseUrl(e.target.value)}
+                      placeholder="https://your-project.supabase.co"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Supabase Anon Key</label>
+                    <input
+                      type="password"
+                      className="form-input"
+                      value={supabaseKey}
+                      onChange={(e) => setSupabaseKey(e.target.value)}
+                      placeholder="sb_publishable_..."
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => onTestConnection && onTestConnection(supabaseUrl, supabaseKey)}
+                      disabled={isTesting}
+                    >
+                      {isTesting ? '연결 테스트 중...' : '⚡ 연결 테스트 및 즉시 동기화'}
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      onClick={handleCopySQL}
+                    >
+                      {copiedSQL ? '✓ SQL 클립보드 복사 완료!' : '📋 Supabase 테이블 생성 SQL 복사'}
+                    </button>
+                  </div>
+
+                  {connectionMessage && (
+                    <div style={{ fontSize: '0.8125rem', color: isConnected ? 'var(--accent-green)' : 'var(--accent-red)', fontWeight: '700', marginTop: '0.25rem' }}>
+                      {connectionMessage}
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
+
+              {/* Gemini Vision OCR AI API 설정 */}
+              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1rem', marginTop: '0.5rem' }}>
+                <h3 style={{ fontSize: '0.9375rem', fontWeight: '800', color: '#1e293b', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  🤖 Google Gemini Vision OCR AI 키 설정
+                </h3>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+                  명함 및 사업자등록증 초고속 이미지 인식에 사용되는 Google Gemini API 키입니다.
+                </div>
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <input
+                    type="password"
+                    className="form-input"
+                    placeholder="AIzaSy... (미입력 시 기본 내장 키 작동)"
+                    value={geminiApiKey}
+                    onChange={(e) => setGeminiApiKey(e.target.value)}
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleSaveGeminiKey}
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    AI 키 저장
+                  </button>
+                </div>
+                {geminiSaved && (
+                  <div style={{ fontSize: '0.75rem', color: 'var(--accent-green)', fontWeight: '700', marginTop: '4px' }}>
+                    ✓ Gemini API 키가 성공적으로 저장되었습니다!
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="card-box">
+            <div className="card-box-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <h2 style={{ fontSize: '1.125rem', fontWeight: '900' }}>☁️ 클라우드 DB 연동 상태</h2>
+                <span className={`status-badge ${isConnected ? 'connected' : 'disconnected'}`}>
+                  {isConnected ? '🟢 클라우드 정상 연동 중' : '🔴 로컬 모드 (오프라인)'}
+                </span>
+              </div>
+            </div>
+            <div style={{ padding: '1.25rem', color: 'var(--text-muted)', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>🔒</span>
+              <span>데이터베이스 접속 주소, 보안 키 및 AI API 설정은 <strong>시스템 관리자(Admin)</strong> 전용 제어 항목입니다.</span>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

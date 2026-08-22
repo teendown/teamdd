@@ -6,11 +6,11 @@ import { DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_KEY } from './config/constants.j
 import { DEFAULT_SUPPLIERS, INITIAL_SUPPLIERS_LIST, DEMO_CUSTOMERS, DEMO_PARTS, DEMO_SCHEDULES } from './config/defaults.js';
 import { getLocalItem, setLocalItem, getDraftDocuments, saveDraftDocument, deleteDraftDocument, clearAllDrafts } from './api/storage.js';
 import { sbTestConnection, dbFetch, dbSave, dbDelete } from './api/supabaseClient.js';
-import { areSupplierKeysEquivalent } from './utils/validation.js';
+import { areSupplierKeysEquivalent, normalizePartners } from './utils/validation.js';
 import { generateNextDocNo } from './utils/numbering.js';
 
 // Services
-import { fetchDocuments, saveDocument as dbSaveDocument, deleteDocument as dbDeleteDocument, updateDocumentPaid as dbUpdateDocumentPaid } from './services/documentService.js';
+import { fetchDocuments, saveDocument as dbSaveDocument, deleteDocument as dbDeleteDocument, updateDocumentPaid as dbUpdateDocumentPaid, updateDocumentSettlement as dbUpdateDocumentSettlement } from './services/documentService.js';
 import { syncCustomersFromDocuments } from './services/customerService.js';
 
 // Components
@@ -68,8 +68,28 @@ export default function App() {
 
   // Primary Data State
   const [suppliersList, setSuppliersList] = useState(() => getLocalItem('dd_suppliers_list_v1', INITIAL_SUPPLIERS_LIST));
+  const [loggedInSupplierKey, setLoggedInSupplierKey] = useState(() => sessionStorage.getItem('selected_supplier_key') || localStorage.getItem('selected_supplier_key') || 'sejin');
   const [selectedSupplierKey, setSelectedSupplierKey] = useState(() => sessionStorage.getItem('selected_supplier_key') || localStorage.getItem('selected_supplier_key') || 'sejin');
   const [currentSupplier, setCurrentSupplier] = useState(DEFAULT_SUPPLIERS.sejin);
+
+  // 🌟 로그인된 사용자 공급자 정보 (사이드바 프로필 및 회계/일정/히스토리 뷰 기준 - 문서 로드 시에도 절대 바뀌지 않음)
+  const loggedInSupplier = useMemo(() => {
+    const key = loggedInSupplierKey || sessionStorage.getItem('selected_supplier_key') || 'sejin';
+    const found = suppliersList.find(s => areSupplierKeysEquivalent(s.id, key));
+    if (found) {
+      return {
+        ...found,
+        company: found.name || found.company,
+        name: found.name || found.company,
+        person: found.person || found.owner || '',
+        tel: found.phone || found.tel || '',
+        email: found.email || '',
+        bank: found.bank || '',
+        hasStamp: areSupplierKeysEquivalent(found.id, 'sejin')
+      };
+    }
+    return DEFAULT_SUPPLIERS[key] || DEFAULT_SUPPLIERS.sejin;
+  }, [loggedInSupplierKey, suppliersList]);
   const [customersList, setCustomersList] = useState(() => getLocalItem('dd_customers_list_v1', DEMO_CUSTOMERS));
   const [documentsList, setDocumentsList] = useState(() => getLocalItem('dd_documents_history_v1', []));
   const [schedulesList, setSchedulesList] = useState(() => getLocalItem('dd_schedules_list_v1', DEMO_SCHEDULES));
@@ -111,6 +131,11 @@ export default function App() {
   const [receiveDate, setReceiveDate] = useState('');
   const [remark, setRemark] = useState('');
   const [isDocShared, setIsDocShared] = useState(false);
+  const [collaborativePartners, setCollaborativePartners] = useState([]);
+  const [partnerKey, setPartnerKey] = useState('');
+  const [partnerName, setPartnerName] = useState('');
+  const [settlementAmount, setSettlementAmount] = useState(0);
+  const [settlementMemo, setSettlementMemo] = useState('');
 
   // Modals & Navigation Guard State
   const [docDrafts, setDocDrafts] = useState({});
@@ -146,7 +171,7 @@ export default function App() {
     setDocDrafts(prev => ({
       ...prev,
       [docType]: {
-        customer, docNo, docDate, docTime, items, vatIncluded, vat, paid, paymentStatus, paymentMethod, paymentDate, validityPeriod, deliveryDate, deliveryLocation, paymentTerms, bankAccount, dueDate, receiverName, receiveDate, remark, editingDocId
+        customer, docNo, docDate, docTime, items, vatIncluded, vat, paid, paymentStatus, paymentMethod, paymentDate, validityPeriod, deliveryDate, deliveryLocation, paymentTerms, bankAccount, dueDate, receiverName, receiveDate, remark, isDocShared, collaborativePartners, partnerKey, partnerName, settlementAmount, settlementMemo, editingDocId
       }
     }));
 
@@ -176,6 +201,12 @@ export default function App() {
       setReceiverName(draft.receiverName || '');
       setReceiveDate(draft.receiveDate || '');
       setRemark(draft.remark || '');
+      setIsDocShared(draft.isDocShared || false);
+      setCollaborativePartners(draft.collaborativePartners || []);
+      setPartnerKey(draft.partnerKey || '');
+      setPartnerName(draft.partnerName || '');
+      setSettlementAmount(draft.settlementAmount || 0);
+      setSettlementMemo(draft.settlementMemo || '');
       setEditingDocId(draft.editingDocId || null);
     } else {
       // 3. 없으면 새 양식의 초기값 생성
@@ -202,6 +233,12 @@ export default function App() {
       setReceiverName('');
       setReceiveDate('');
       setRemark('');
+      setIsDocShared(false);
+      setCollaborativePartners([]);
+      setPartnerKey('');
+      setPartnerName('');
+      setSettlementAmount(0);
+      setSettlementMemo('');
       setEditingDocId(null);
     }
   };
@@ -352,7 +389,6 @@ export default function App() {
         person: def.person || def.name
       });
     }
-    localStorage.setItem('selected_supplier_key', selectedSupplierKey);
   }, [selectedSupplierKey, suppliersList]);
 
   const handleTestConnection = async (explicitUrl, explicitKey) => {
@@ -597,7 +633,12 @@ export default function App() {
       receiverName,
       receiveDate,
       remark,
-      is_shared: !!isDocShared
+      is_shared: !!isDocShared,
+      partner_key: isDocShared ? (collaborativePartners[0]?.key || partnerKey) : '',
+      partner_name: isDocShared ? (collaborativePartners[0]?.name || partnerName) : '',
+      settlement_amount: collaborativePartners[0]?.amount || settlementAmount,
+      settlement_memo: collaborativePartners[0]?.memo || settlementMemo,
+      partners: isDocShared ? collaborativePartners : []
     });
     const finalSavedNo = saveRes && saveRes.docNo ? saveRes.docNo : docNo;
     setDocNo(finalSavedNo);
@@ -707,7 +748,48 @@ export default function App() {
     setDocTime(doc.doc_time || doc.docTime || '');
     if (doc.customer_data) setCustomer(doc.customer_data);
     else setCustomer({ name: doc.customer_name || '', person: '', phone: '', addr: '' });
-    if (doc.supplier_key) setSelectedSupplierKey(doc.supplier_key);
+
+    // 🌟 원본 문서의 공급자(supplier_key 및 supplier_data) 완벽 복원
+    const rawSupplierKey = doc.supplier_key || doc.supplierKey || doc.supplier_data?.id || (doc.supplier && doc.supplier.id) || '';
+    const rawSupplierName = doc.supplier_name || doc.supplier_data?.name || doc.supplier_data?.company || (doc.supplier && (doc.supplier.company || doc.supplier.name)) || '';
+
+    const matchedSupplier = suppliersList.find(s => 
+      (rawSupplierKey && areSupplierKeysEquivalent(s.id, rawSupplierKey)) ||
+      (rawSupplierName && (areSupplierKeysEquivalent(s.name, rawSupplierName) || areSupplierKeysEquivalent(s.company, rawSupplierName)))
+    );
+
+    const finalSupplierKey = matchedSupplier ? matchedSupplier.id : (rawSupplierKey || selectedSupplierKey);
+    setSelectedSupplierKey(finalSupplierKey);
+
+    const docSupplierData = doc.supplier_data || doc.supplier;
+    if (docSupplierData && typeof docSupplierData === 'object' && (docSupplierData.company || docSupplierData.name || docSupplierData.bizno)) {
+      setCurrentSupplier({
+        ...docSupplierData,
+        id: finalSupplierKey,
+        company: docSupplierData.company || docSupplierData.name || '',
+        name: docSupplierData.name || docSupplierData.company || '',
+        person: docSupplierData.person || docSupplierData.owner || '',
+        tel: docSupplierData.tel || docSupplierData.phone || '',
+        email: docSupplierData.email || '',
+        bank: docSupplierData.bank || '',
+        hasStamp: docSupplierData.hasStamp !== undefined ? docSupplierData.hasStamp : areSupplierKeysEquivalent(finalSupplierKey, 'sejin')
+      });
+    } else if (matchedSupplier) {
+      setCurrentSupplier({
+        ...matchedSupplier,
+        id: matchedSupplier.id,
+        company: matchedSupplier.name || matchedSupplier.company,
+        name: matchedSupplier.name || matchedSupplier.company,
+        person: matchedSupplier.person || matchedSupplier.owner || '',
+        tel: matchedSupplier.phone || matchedSupplier.tel || '',
+        email: matchedSupplier.email || '',
+        bank: matchedSupplier.bank || '',
+        hasStamp: areSupplierKeysEquivalent(matchedSupplier.id, 'sejin')
+      });
+    } else if (DEFAULT_SUPPLIERS[finalSupplierKey]) {
+      setCurrentSupplier(DEFAULT_SUPPLIERS[finalSupplierKey]);
+    }
+
     if (doc.items && Array.isArray(doc.items)) setItems(doc.items);
     setVatIncluded(doc.vat_included !== false);
     setVat(doc.vat || 0);
@@ -724,7 +806,15 @@ export default function App() {
     setReceiverName(doc.receiverName || doc.receiver_name || '');
     setReceiveDate(doc.receiveDate || doc.receive_date || '');
     setRemark((doc.remark || '').split('---EXT---')[0].trim());
-    setIsDocShared(doc.is_shared === true);
+
+    const docPartners = normalizePartners(doc);
+    setIsDocShared(doc.is_shared === true || !!doc.partner_key || docPartners.length > 0);
+    setCollaborativePartners(docPartners);
+    setPartnerKey(doc.partner_key || docPartners[0]?.key || '');
+    setPartnerName(doc.partner_name || docPartners[0]?.name || '');
+    setSettlementAmount(Number(doc.settlement_amount) || docPartners[0]?.amount || 0);
+    setSettlementMemo(doc.settlement_memo || docPartners[0]?.memo || '');
+
     setEditingDocId(doc.id || null);
     setIsSavedThisSession(true);
     setActiveTab('doc');
@@ -734,10 +824,30 @@ export default function App() {
     const now = new Date();
     const todayDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const emptyCust = { name: '', person: '', phone: '', addr: '' };
+    
+    // 신규 작성 시 현재 로그인된 사용자의 공급자로 복원
+    const sessionSupplierKey = sessionStorage.getItem('selected_supplier_key') || localStorage.getItem('selected_supplier_key') || 'sejin';
+    const foundSupplier = suppliersList.find(s => areSupplierKeysEquivalent(s.id, sessionSupplierKey));
+    if (foundSupplier) {
+      setSelectedSupplierKey(foundSupplier.id);
+      setCurrentSupplier({
+        ...foundSupplier,
+        company: foundSupplier.name || foundSupplier.company,
+        person: foundSupplier.person || foundSupplier.owner || '',
+        tel: foundSupplier.phone || foundSupplier.tel || '',
+        email: foundSupplier.email || '',
+        bank: foundSupplier.bank || '',
+        hasStamp: areSupplierKeysEquivalent(foundSupplier.id, 'sejin')
+      });
+    } else if (DEFAULT_SUPPLIERS[sessionSupplierKey]) {
+      setSelectedSupplierKey(sessionSupplierKey);
+      setCurrentSupplier(DEFAULT_SUPPLIERS[sessionSupplierKey]);
+    }
+
     setDocDate(todayDateStr);
     setDocTime(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
     setCustomer(emptyCust);
-    setDocNo(generateNextDocNo(todayDateStr, documentsList, selectedSupplierKey, emptyCust, docType, suppliersList, customersList));
+    setDocNo(generateNextDocNo(todayDateStr, documentsList, sessionSupplierKey, emptyCust, docType, suppliersList, customersList));
     setItems([{ id: Date.now().toString(), code: '', name: '', unit: 'EA', qty: 1, price: 0 }]);
     setPaid(0);
     setPaymentStatus('미수금');
@@ -753,6 +863,11 @@ export default function App() {
     setReceiveDate('');
     setRemark('');
     setIsDocShared(false);
+    setCollaborativePartners([]);
+    setPartnerKey('');
+    setPartnerName('');
+    setSettlementAmount(0);
+    setSettlementMemo('');
     setEditingDocId(null);
     setPendingReset(false);
     setPendingTab(null);
@@ -773,6 +888,7 @@ export default function App() {
       <SplashScreen
         suppliersList={suppliersList}
         onSelect={(key) => {
+          setLoggedInSupplierKey(key);
           setSelectedSupplierKey(key);
           localStorage.setItem('selected_supplier_key', key);
           sessionStorage.setItem('selected_supplier_key', key);
@@ -802,9 +918,15 @@ export default function App() {
         isOpen={mobileSidebarOpen}
         onClose={() => setMobileSidebarOpen(false)}
         userRole={userRole}
-        currentSupplier={currentSupplier}
-        selectedSupplierKey={selectedSupplierKey}
-        setSelectedSupplierKey={setSelectedSupplierKey}
+        loggedInSupplier={loggedInSupplier}
+        currentSupplier={loggedInSupplier}
+        selectedSupplierKey={loggedInSupplierKey}
+        setSelectedSupplierKey={(newKey) => {
+          setLoggedInSupplierKey(newKey);
+          setSelectedSupplierKey(newKey);
+          sessionStorage.setItem('selected_supplier_key', newKey);
+          localStorage.setItem('selected_supplier_key', newKey);
+        }}
         suppliersList={suppliersList}
         onLogout={handleLogout}
         badgeCounts={badgeCounts}
@@ -902,6 +1024,7 @@ export default function App() {
           onClose={() => setIsOcrModalOpen(false)}
           customers={customersList}
           onSaveCustomer={handleSaveCustomer}
+          isAdmin={userRole === 'admin'}
           onSelectCustomerAfterSave={(saved) => {
             setCustomer({
               name: saved.name,
@@ -968,8 +1091,8 @@ export default function App() {
               documentsList={documentsList}
               schedulesList={schedulesList}
               customersList={customersList}
-              selectedSupplierKey={selectedSupplierKey}
-              currentSupplier={currentSupplier}
+              selectedSupplierKey={loggedInSupplierKey}
+              currentSupplier={loggedInSupplier}
               onNavigateTab={handleRequestTabChange}
               onUpdateScheduleStatus={handleUpdateScheduleStatus}
               onSelectCustomer={(c) => {
@@ -1040,6 +1163,16 @@ export default function App() {
               setReceiveDate={setReceiveDate}
               isDocShared={isDocShared}
               setIsDocShared={setIsDocShared}
+              partners={collaborativePartners}
+              setPartners={setCollaborativePartners}
+              partnerKey={partnerKey}
+              setPartnerKey={setPartnerKey}
+              partnerName={partnerName}
+              setPartnerName={setPartnerName}
+              settlementAmount={settlementAmount}
+              setSettlementAmount={setSettlementAmount}
+              settlementMemo={settlementMemo}
+              setSettlementMemo={setSettlementMemo}
               remark={remark}
               setRemark={setRemark}
               onResetForm={handleRequestResetForm}
@@ -1062,7 +1195,7 @@ export default function App() {
               onCopyDocument={handleCopyDocument}
               onConvertToDoc={handleConvertToDocument}
               isConnected={isConnected}
-              selectedSupplierKey={selectedSupplierKey}
+              selectedSupplierKey={loggedInSupplierKey}
               onPreviewDocument={(doc) => setPreviewDoc(doc)}
             />
           )}
@@ -1072,7 +1205,7 @@ export default function App() {
             <ScheduleTab
               schedules={schedulesList}
               documentsList={documentsList}
-              selectedSupplierKey={selectedSupplierKey}
+              selectedSupplierKey={loggedInSupplierKey}
               suppliersList={suppliersList}
               onSaveSchedule={handleSaveSchedule}
               onDeleteSchedule={handleDeleteSchedule}
@@ -1089,9 +1222,15 @@ export default function App() {
               documents={documentsList}
               customersList={customersList}
               suppliersList={suppliersList}
+              selectedSupplierKey={loggedInSupplierKey}
+              currentSupplier={loggedInSupplier}
               onUpdateDocumentPaid={handleUpdateDocumentPaid}
               onDeleteDocument={dbDeleteDocument}
               onPreviewDocument={(doc) => setPreviewDoc(doc)}
+              onUpdateDocumentSettlement={async (docId, settlementData) => {
+                const updated = await dbUpdateDocumentSettlement(docId, settlementData);
+                setDocumentsList(updated);
+              }}
             />
           )}
 
@@ -1176,6 +1315,8 @@ export default function App() {
               isTesting={isTesting}
               connectionMessage={connectionMessage}
               onTestConnection={handleTestConnection}
+              userRole={userRole}
+              isAdmin={userRole === 'admin'}
             />
           )}
         </main>

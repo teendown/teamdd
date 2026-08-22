@@ -39,7 +39,7 @@ export default function WorkOrderTab({
   // 내 사업자의 작업 목록 필터
   const myWorkOrders = useMemo(() => {
     return schedules.filter(s => {
-      const isMine = areSupplierKeysEquivalent(s.supplier_key, selectedSupplierKey);
+      const isMine = areSupplierKeysEquivalent(s.supplier_key, selectedSupplierKey) || (s.is_shared && areSupplierKeysEquivalent(s.partner_key, selectedSupplierKey));
       if (!isMine) return false;
 
       // 정비 관련 카테고리

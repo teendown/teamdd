@@ -1,66 +1,8 @@
-// 🎨 TEAM D.D OCR CUSTOMER REGISTRATION MODAL (GEMINI VISION AI ENGINE) - HIGH SPEED OPTIMIZED
+// 🎨 TEAM D.D OCR CUSTOMER REGISTRATION MODAL (GEMINI VISION AI ENGINE) - BACKUP
 import React, { useState, useRef } from 'react';
 
 const _DK_B64 = 'QVEuQWI4Uk42SVNSLVNwYlJfOGtvT3FkY1FKdEM2V0lhSy1xal9qU3UtYWxCSU50djJlZUE=';
 const DEFAULT_GEMINI_API_KEY = typeof atob === 'function' ? atob(_DK_B64) : '';
-
-/**
- * ⚡ 고속 전송 및 고인식률 유지를 위한 클라이언트 이미지 최적화 함수
- * - 긴 변 최대 1500px로 스마트 리사이징 (텍스트 선명도 100% 보존)
- * - JPEG 85% 압축으로 대용량 사진(5~15MB)을 200~400KB 수준으로 95% 이상 경량화
- * - API 전송 속도를 3~4배 이상 극대화
- */
-export function compressAndPrepareImage(file, maxDimension = 1500, quality = 0.85) {
-  return new Promise((resolve, reject) => {
-    if (!file) return reject(new Error('유효한 이미지 파일이 아닙니다.'));
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        let width = img.naturalWidth || img.width;
-        let height = img.naturalHeight || img.height;
-
-        // 원본이 maxDimension보다 클 때만 비율 유지하며 축소 (작은 이미지는 확대하지 않음)
-        if (width > maxDimension || height > maxDimension) {
-          if (width > height) {
-            height = Math.round((height * maxDimension) / width);
-            width = maxDimension;
-          } else {
-            width = Math.round((width * maxDimension) / height);
-            height = maxDimension;
-          }
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          return resolve({ base64: e.target.result, mimeType: file.type || 'image/jpeg' });
-        }
-
-        // 투명 배경이 있는 PNG 대응 (흰색 배경 채움)
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, width, height);
-        ctx.drawImage(img, 0, 0, width, height);
-
-        // JPEG 0.85 퀄리티로 압축
-        const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
-        resolve({
-          base64: compressedBase64,
-          mimeType: 'image/jpeg',
-          width,
-          height
-        });
-      };
-      img.onerror = () => reject(new Error('이미지 로딩에 실패했습니다.'));
-      img.src = e.target.result;
-    };
-    reader.onerror = () => reject(new Error('파일 읽기에 실패했습니다.'));
-    reader.readAsDataURL(file);
-  });
-}
 
 export async function parseBusinessCardOrRegImage(base64Data, mimeType, apiKey) {
   const effectiveKey = (apiKey && apiKey.trim()) || localStorage.getItem('gemini_api_key') || DEFAULT_GEMINI_API_KEY;
@@ -224,12 +166,10 @@ export default function OcrCustomerModal({
   onClose,
   customers = [],
   onSaveCustomer,
-  onSelectCustomerAfterSave = null,
-  isAdmin = (sessionStorage.getItem('dd_user_role') === 'admin')
+  onSelectCustomerAfterSave = null
 }) {
   if (!isOpen) return null;
 
-  const isUserAdmin = isAdmin || sessionStorage.getItem('dd_user_role') === 'admin';
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || DEFAULT_GEMINI_API_KEY);
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const [imageFile, setImageFile] = useState(null);
@@ -268,39 +208,29 @@ export default function OcrCustomerModal({
     setShowApiKeyInput(false);
   };
 
-  const handleFileSelect = async (file) => {
+  const handleFileSelect = (file) => {
     if (!file) return;
     setImageFile(file);
+    setImageMimeType(file.type || 'image/jpeg');
     setAnalysisError('');
     setRotation(0);
     setZoom(1);
 
-    try {
-      // ⚡ 클라이언트 고속 이미지 압축 및 리사이징 적용 (긴 변 최대 1500px, JPEG 85%)
-      const { base64, mimeType } = await compressAndPrepareImage(file, 1500, 0.85);
-      setImagePreviewUrl(base64);
-      setImageBase64(base64);
-      setImageMimeType(mimeType);
-      startOcrAnalysis(base64, mimeType);
-    } catch (err) {
-      console.warn('고속 이미지 최적화 실패, 원본으로 폴백:', err);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const b64 = e.target.result;
-        setImagePreviewUrl(b64);
-        setImageBase64(b64);
-        setImageMimeType(file.type || 'image/jpeg');
-        startOcrAnalysis(b64, file.type || 'image/jpeg');
-      };
-      reader.readAsDataURL(file);
-    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const b64 = e.target.result;
+      setImagePreviewUrl(b64);
+      setImageBase64(b64);
+      startOcrAnalysis(b64, file.type || 'image/jpeg');
+    };
+    reader.readAsDataURL(file);
   };
 
   const startOcrAnalysis = async (b64, mime) => {
     const currentKey = apiKey.trim() || localStorage.getItem('gemini_api_key') || DEFAULT_GEMINI_API_KEY;
     if (!currentKey) {
-      if (isUserAdmin) setShowApiKeyInput(true);
-      setAnalysisError(isUserAdmin ? 'Google Gemini API 키를 먼저 입력해 주세요.' : 'AI 서비스 연결에 실패했습니다. 관리자에게 문의해 주세요.');
+      setShowApiKeyInput(true);
+      setAnalysisError('Google Gemini API 키를 먼저 입력해 주세요.');
       return;
     }
 
@@ -371,39 +301,42 @@ export default function OcrCustomerModal({
   return (
     <div className="modal-overlay" style={{ zIndex: 1050 }}>
       <div
-        className="ocr-modal-content"
+        className="modal-content"
         style={{
-          maxWidth: step === 'verify' ? '980px' : '560px'
+          maxWidth: step === 'verify' ? '980px' : '620px',
+          width: '95%',
+          maxHeight: '92vh',
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '1.25rem',
+          transition: 'max-width 0.2s ease'
         }}
       >
-        {/* 모달 상단 헤더 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', borderBottom: '2px solid #2563eb', paddingBottom: '0.625rem', gap: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
-            <span style={{ fontSize: '1.2rem', flexShrink: 0 }}>⚡</span>
-            <h3 style={{ margin: 0, fontSize: 'clamp(0.92rem, 3.4vw, 1.1rem)', fontWeight: '900', color: '#1e293b', lineHeight: 1.3, wordBreak: 'keep-all' }}>
-              {step === 'verify' ? `🔍 AI 데이터 검수 (${detectedType || '명함/사업자'})` : '⚡ 명함 / 사업자등록증 AI 초고속 등록'}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '2px solid #2563eb', paddingBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '1.25rem' }}>📷</span>
+            <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: '900', color: '#1e293b' }}>
+              {step === 'verify' ? `🔍 AI 추출 데이터 사전 확인 및 검수 (${detectedType || '명함/사업자등록증'})` : '📷 명함 / 사업자등록증 AI 자동 등록'}
             </h3>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-            {isUserAdmin && (
-              <button
-                type="button"
-                className="btn btn-outline"
-                style={{ fontSize: '11px', padding: '3px 6px', whiteSpace: 'nowrap' }}
-                onClick={() => setShowApiKeyInput(!showApiKeyInput)}
-              >
-                🔑 API 키
-              </button>
-            )}
-            <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#94a3b8', padding: '0 4px', lineHeight: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              className="btn btn-outline"
+              style={{ fontSize: '11px', padding: '3px 8px' }}
+              onClick={() => setShowApiKeyInput(!showApiKeyInput)}
+            >
+              🔑 API 키 설정
+            </button>
+            <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#94a3b8' }}>
               ✕
             </button>
           </div>
         </div>
 
-        {isUserAdmin && showApiKeyInput && (
-          <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #86efac', padding: '0.75rem 1rem', borderRadius: '8px', marginBottom: '0.75rem', fontSize: '0.8125rem' }}>
-            <div style={{ fontWeight: '700', color: '#166534', marginBottom: '4px' }}>🔑 Google Gemini API 키 등록 (관리자)</div>
+        {showApiKeyInput && (
+          <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #86efac', padding: '0.75rem 1rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.8125rem' }}>
+            <div style={{ fontWeight: '700', color: '#166534', marginBottom: '4px' }}>🔑 Google Gemini API 키 등록</div>
             <div style={{ color: '#4b5563', marginBottom: '8px', fontSize: '0.75rem' }}>
               무료 Google AI Studio에서 발급받은 Gemini API 키를 입력하시면 브라우저에 안전하게 저장됩니다.
             </div>
@@ -429,12 +362,12 @@ export default function OcrCustomerModal({
         )}
 
         {analysisError && (
-          <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '0.625rem 0.75rem', borderRadius: '8px', marginBottom: '0.75rem', fontSize: '0.8125rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+          <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.8125rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>⚠️ {analysisError}</span>
             <button
               type="button"
               className="btn btn-outline"
-              style={{ fontSize: '11px', padding: '2px 6px', borderColor: '#fca5a5', color: '#b91c1c', flexShrink: 0 }}
+              style={{ fontSize: '11px', padding: '2px 6px', borderColor: '#fca5a5', color: '#b91c1c' }}
               onClick={() => {
                 if (imageBase64) startOcrAnalysis(imageBase64, imageMimeType);
               }}
@@ -446,15 +379,15 @@ export default function OcrCustomerModal({
 
         {/* Step 1: 업로드 */}
         {step === 'upload' && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1.5rem 0.5rem' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem' }}>
             {isAnalyzing ? (
-              <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
-                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚡</div>
-                <div style={{ fontWeight: '800', fontSize: '1.1rem', color: '#1e3a8a', marginBottom: '6px' }}>
-                  초고속 Vision AI가 이미지를 고속 분석하고 있습니다...
+              <div style={{ textAlign: 'center', padding: '2rem' }}>
+                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🧠</div>
+                <div style={{ fontWeight: '800', fontSize: '1.125rem', color: '#1e3a8a', marginBottom: '6px' }}>
+                  Vision AI가 이미지를 분석하고 있습니다...
                 </div>
                 <div style={{ fontSize: '0.8125rem', color: '#64748b' }}>
-                  이미지 경량 최적화 완료 • 상호명, 사업자번호, 대표자, 연락처, 주소를 정밀 추출 중입니다.
+                  상호명, 사업자번호, 대표자, 연락처, 주소를 정밀 추출 중입니다.
                 </div>
               </div>
             ) : (
@@ -464,7 +397,7 @@ export default function OcrCustomerModal({
                   type="file"
                   accept="image/*"
                   style={{ display: 'none' }}
-                  onChange={e => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+                  onChange={e => handleFileSelect(e.target.files[0])}
                 />
                 <input
                   ref={cameraInputRef}
@@ -472,7 +405,7 @@ export default function OcrCustomerModal({
                   accept="image/*"
                   capture="environment"
                   style={{ display: 'none' }}
-                  onChange={e => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+                  onChange={e => handleFileSelect(e.target.files[0])}
                 />
 
                 <div
@@ -482,40 +415,25 @@ export default function OcrCustomerModal({
                     border: '2px dashed #93c5fd',
                     borderRadius: '12px',
                     backgroundColor: '#eff6ff',
-                    padding: '2rem 1.25rem',
+                    padding: '2.5rem 1.5rem',
                     textAlign: 'center',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease'
                   }}
                   onClick={() => fileInputRef.current && fileInputRef.current.click()}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    e.currentTarget.style.backgroundColor = '#dbeafe';
-                  }}
-                  onDragLeave={(e) => {
-                    e.preventDefault();
-                    e.currentTarget.style.backgroundColor = '#eff6ff';
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    e.currentTarget.style.backgroundColor = '#eff6ff';
-                    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                      handleFileSelect(e.dataTransfer.files[0]);
-                    }
-                  }}
                 >
-                  <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>💳</div>
+                  <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>💳</div>
                   <div style={{ fontWeight: '800', fontSize: '1rem', color: '#1e40af', marginBottom: '4px' }}>
                     명함 또는 사업자등록증 사진을 올려주세요
                   </div>
                   <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '1.25rem' }}>
-                    클릭하여 파일 선택 / 카메라 촬영 / 드래그 & 드롭
+                    클릭하여 이미지 파일 선택 또는 드래그 & 드롭
                   </div>
                   <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
                     <button
                       type="button"
                       className="btn btn-primary"
-                      style={{ padding: '8px 14px', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                      style={{ padding: '8px 16px', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '6px' }}
                       onClick={(e) => { e.stopPropagation(); fileInputRef.current && fileInputRef.current.click(); }}
                     >
                       📁 갤러리 / 파일 선택
@@ -523,7 +441,7 @@ export default function OcrCustomerModal({
                     <button
                       type="button"
                       className="btn btn-primary"
-                      style={{ padding: '8px 14px', fontSize: '0.8125rem', backgroundColor: '#059669', borderColor: '#059669', display: 'flex', alignItems: 'center', gap: '6px' }}
+                      style={{ padding: '8px 16px', fontSize: '0.8125rem', backgroundColor: '#059669', borderColor: '#059669', display: 'flex', alignItems: 'center', gap: '6px' }}
                       onClick={(e) => { e.stopPropagation(); cameraInputRef.current && cameraInputRef.current.click(); }}
                     >
                       📸 카메라로 즉시 촬영
@@ -531,39 +449,39 @@ export default function OcrCustomerModal({
                   </div>
                 </div>
 
-                <div style={{ marginTop: '1.25rem', display: 'flex', gap: '0.75rem', color: '#64748b', fontSize: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <span>⚡ 95% 초고속 이미지 최적화</span>
-                  <span>✓ 자동 서식 분류</span>
-                  <span>✓ 사전 검수 & 직접 수정</span>
+                <div style={{ marginTop: '1.5rem', display: 'flex', gap: '1rem', color: '#64748b', fontSize: '0.75rem' }}>
+                  <span>✓ 명함 및 사업자등록증 자동 분류</span>
+                  <span>✓ 사전 확인 후 직접 수정 가능</span>
+                  <span>✓ 기존 고객 DB와 100% 연동</span>
                 </div>
               </>
             )}
           </div>
         )}
 
-        {/* Step 2: 검수 및 수정 (반응형: 모바일은 상하배치, PC는 좌우배치) */}
+        {/* Step 2: 검수 및 수정 */}
         {step === 'verify' && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
-            <div style={{ padding: '6px 10px', backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '6px', fontSize: '0.8rem', color: '#065f46', fontWeight: '700', marginBottom: '0.625rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-              <span>💡 원본 사진과 대조하여 정보를 확인 및 수정하세요.</span>
-              <button type="button" className="btn btn-outline" style={{ fontSize: '11px', padding: '2px 6px', flexShrink: 0, backgroundColor: '#ffffff' }} onClick={handleResetImage}>
-                🔄 다시 찍기
+            <div style={{ padding: '8px 12px', backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '6px', fontSize: '0.8125rem', color: '#065f46', fontWeight: '700', marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>💡 AI가 추출한 정보를 원본 사진과 대조하여 확인하세요.</span>
+              <button type="button" className="btn btn-outline" style={{ fontSize: '11px', padding: '2px 8px' }} onClick={handleResetImage}>
+                🔄 다른 사진 올리기
               </button>
             </div>
 
-            <div className="ocr-verify-container">
-              {/* 원본 이미지 뷰어 (모바일: 상단 / PC: 좌측) */}
-              <div className="ocr-image-panel">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 8px', backgroundColor: '#1e293b', color: '#e2e8f0', fontSize: '11px' }}>
-                  <span style={{ fontWeight: '700' }}>📷 원본 사진</span>
-                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '1rem', flex: 1, minHeight: 0, overflowY: 'auto' }}>
+              {/* 원본 이미지 뷰어 */}
+              <div style={{ display: 'flex', flexDirection: 'column', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#0f172a', overflow: 'hidden', minHeight: '320px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', backgroundColor: '#1e293b', color: '#e2e8f0', fontSize: '11px' }}>
+                  <span style={{ fontWeight: '700' }}>📷 원본 이미지</span>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                     <button type="button" style={{ background: '#334155', border: 'none', color: '#fff', borderRadius: '4px', padding: '2px 6px', cursor: 'pointer', fontSize: '11px' }} onClick={() => setZoom(prev => Math.max(0.6, prev - 0.2))}>🔍 -</button>
-                    <span style={{ minWidth: '32px', textAlign: 'center', fontSize: '10px' }}>{Math.round(zoom * 100)}%</span>
+                    <span style={{ minWidth: '35px', textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
                     <button type="button" style={{ background: '#334155', border: 'none', color: '#fff', borderRadius: '4px', padding: '2px 6px', cursor: 'pointer', fontSize: '11px' }} onClick={() => setZoom(prev => Math.min(3.0, prev + 0.2))}>🔍 +</button>
-                    <button type="button" style={{ background: '#2563eb', border: 'none', color: '#fff', borderRadius: '4px', padding: '2px 6px', cursor: 'pointer', fontSize: '11px', fontWeight: '700' }} onClick={handleRotate}>{`🔄 ${rotation}°`}</button>
+                    <button type="button" style={{ background: '#3b82f6', border: 'none', color: '#fff', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer', fontSize: '11px', fontWeight: '700' }} onClick={handleRotate}>{`🔄 ${rotation}°`}</button>
                   </div>
                 </div>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'auto', padding: '8px' }}>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'auto', padding: '10px' }}>
                   {imagePreviewUrl && (
                     <img
                       src={imagePreviewUrl}
@@ -580,29 +498,28 @@ export default function OcrCustomerModal({
                 </div>
               </div>
 
-              {/* 추출 데이터 폼 (모바일: 하단 / PC: 우측) */}
-              <div className="ocr-form-panel">
+              {/* 추출 데이터 폼 */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', overflowY: 'auto', paddingRight: '4px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1e293b', marginBottom: '3px' }}>
-                    🏢 상호명 / 회사명 (법인명) * <span style={{ fontSize: '10px', color: '#2563eb', marginLeft: '6px' }}>AI 추출</span>
+                    🏢 상호명 / 회사명 (법인명) * <span style={{ fontSize: '10px', color: '#2563eb', marginLeft: '6px' }}>AI 추출됨</span>
                   </label>
                   <input
                     type="text"
                     className="form-input"
-                    style={{ fontWeight: '700', fontSize: '0.9375rem', borderColor: '#93c5fd', width: '100%' }}
+                    style={{ fontWeight: '700', fontSize: '0.9375rem', borderColor: '#93c5fd' }}
                     value={form.name}
                     onChange={e => setForm({ ...form, name: e.target.value })}
                     placeholder="예: 세진건설기계"
                   />
                 </div>
 
-                <div className="ocr-form-grid-2col">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>👤 대표자명</label>
                     <input
                       type="text"
                       className="form-input"
-                      style={{ width: '100%' }}
                       value={form.repName}
                       onChange={e => setForm({ ...form, repName: e.target.value })}
                       placeholder="대표자 성명"
@@ -613,7 +530,6 @@ export default function OcrCustomerModal({
                     <input
                       type="text"
                       className="form-input"
-                      style={{ width: '100%' }}
                       value={form.person}
                       onChange={e => setForm({ ...form, person: e.target.value })}
                       placeholder="담당자 이름"
@@ -621,13 +537,12 @@ export default function OcrCustomerModal({
                   </div>
                 </div>
 
-                <div className="ocr-form-grid-2col">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>📄 사업자등록번호</label>
                     <input
                       type="text"
                       className="form-input"
-                      style={{ width: '100%' }}
                       value={form.bizno}
                       onChange={e => setForm({ ...form, bizno: e.target.value })}
                       placeholder="000-00-00000"
@@ -638,7 +553,6 @@ export default function OcrCustomerModal({
                     <input
                       type="text"
                       className="form-input"
-                      style={{ width: '100%' }}
                       value={form.phone}
                       onChange={e => setForm({ ...form, phone: e.target.value })}
                       placeholder="010-0000-0000"
@@ -646,13 +560,12 @@ export default function OcrCustomerModal({
                   </div>
                 </div>
 
-                <div className="ocr-form-grid-2col">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>✉️ 이메일</label>
                     <input
                       type="email"
                       className="form-input"
-                      style={{ width: '100%' }}
                       value={form.email}
                       onChange={e => setForm({ ...form, email: e.target.value })}
                       placeholder="example@domain.com"
@@ -663,7 +576,6 @@ export default function OcrCustomerModal({
                     <input
                       type="text"
                       className="form-input"
-                      style={{ width: '100%' }}
                       value={form.fax}
                       onChange={e => setForm({ ...form, fax: e.target.value })}
                       placeholder="063-000-0000"
@@ -676,20 +588,18 @@ export default function OcrCustomerModal({
                   <input
                     type="text"
                     className="form-input"
-                    style={{ width: '100%' }}
                     value={form.addr}
                     onChange={e => setForm({ ...form, addr: e.target.value })}
                     placeholder="도로명 또는 지번 주소"
                   />
                 </div>
 
-                <div className="ocr-form-grid-2col">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>📋 업태</label>
                     <input
                       type="text"
                       className="form-input"
-                      style={{ width: '100%' }}
                       value={form.bizType}
                       onChange={e => setForm({ ...form, bizType: e.target.value })}
                       placeholder="예: 건설기계, 도소매"
@@ -700,7 +610,6 @@ export default function OcrCustomerModal({
                     <input
                       type="text"
                       className="form-input"
-                      style={{ width: '100%' }}
                       value={form.bizItem}
                       onChange={e => setForm({ ...form, bizItem: e.target.value })}
                       placeholder="예: 굴삭기부품, 정비"
@@ -713,7 +622,6 @@ export default function OcrCustomerModal({
                   <input
                     type="text"
                     className="form-input"
-                    style={{ width: '100%' }}
                     value={form.memo}
                     onChange={e => setForm({ ...form, memo: e.target.value })}
                     placeholder="직함, 개업연월일, 특이사항 등"
@@ -722,9 +630,8 @@ export default function OcrCustomerModal({
               </div>
             </div>
 
-            {/* 하단 확인 버튼 영역 */}
-            <div className="ocr-footer-bar">
-              <button type="button" className="btn btn-outline" onClick={onClose} style={{ padding: '8px 16px' }}>취소</button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0', flexWrap: 'wrap', gap: '8px' }}>
+              <button type="button" className="btn btn-outline" onClick={onClose}>취소</button>
               <button
                 type="button"
                 className="btn btn-primary"
