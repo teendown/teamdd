@@ -1,3 +1,4 @@
+import React, { useState, useMemo } from 'react';
 import { areSupplierKeysEquivalent, normalizePartners, isPartnerInDoc } from '../utils/validation.js';
 import { DOC_TYPES } from '../config/constants.js';
 import PartnerSettlementModal from '../modals/PartnerSettlementModal.jsx';

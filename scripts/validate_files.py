@@ -76,6 +76,15 @@ for fpath in sorted(all_src_files):
                     stack.pop()
         i += 1
         
+    # Check React & hook imports for JSX
+    react_hooks = ['useState', 'useEffect', 'useMemo', 'useCallback', 'useRef', 'useContext', 'useReducer']
+    for h in react_hooks:
+        if re.search(r'\b' + h + r'\b', content):
+            if not re.search(r'import\s+.*?\{[^}]*\b' + h + r'\b[^}]*\}\s+from\s+[\'\"]react[\'\"]', content) and not re.search(r'React\.' + h, content):
+                print(f"  [WARN] {rel_path}: Missing hook import '{h}'")
+    if fpath.endswith('.jsx') and 'import React' not in content:
+        print(f"  [WARN] {rel_path}: Missing 'import React'")
+
     print(f"  [OK] {rel_path} ({len(content):,} chars)")
 
 print("\n=== 3. Checking Index & Manifest ===")
