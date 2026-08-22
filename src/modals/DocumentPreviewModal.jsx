@@ -1,3 +1,4 @@
+import React from 'react';
 import { DEFAULT_SUPPLIERS } from '../config/defaults.js';
 import { areSupplierKeysEquivalent, normalizePartners } from '../utils/validation.js';
 
