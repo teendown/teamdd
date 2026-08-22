@@ -1267,8 +1267,8 @@ export default function App() {
             />
           )}
 
-          {/* 8. 공급자 관리 (관리자 전용) */}
-          {activeTab === 'suppliers' && userRole === 'admin' && (
+          {/* 8. 공급자 관리 */}
+          {activeTab === 'suppliers' && (
             <SupplierTab
               suppliers={suppliersList}
               onSaveSupplier={handleSaveSupplier}

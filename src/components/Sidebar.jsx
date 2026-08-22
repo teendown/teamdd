@@ -51,6 +51,7 @@ export default function Sidebar({
     { id: 'history', label: '문서조회 (발행내역)', icon: '📁', isDoc: false, isActive: activeTab === 'history' },
     { id: 'schedule', label: '일정 / 예약', icon: '📅', isDoc: false, isActive: activeTab === 'schedule', badge: badgeCounts.todayWork > 0 ? `${badgeCounts.todayWork}건` : null },
     { id: 'customers', label: '고객관리', icon: '👥', isDoc: false, isActive: activeTab === 'customers' },
+    { id: 'suppliers', label: '공급자 관리', icon: '🏢', isDoc: false, isActive: activeTab === 'suppliers' },
     { id: 'accounting', label: '미수금 / 회계', icon: '💡', isDoc: false, isActive: activeTab === 'accounting', badge: badgeCounts.unpaidCount > 0 ? `${badgeCounts.unpaidCount}건` : null },
     { id: 'parts', label: '부품재고', icon: '🛠️', isDoc: false, isActive: activeTab === 'parts' },
     { id: 'settings', label: '설정', icon: '⚙️', isDoc: false, isActive: activeTab === 'settings' }

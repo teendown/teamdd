@@ -29008,6 +29008,7 @@ ${JSON.stringify(extra)}`;
       { id: "history", label: "\uBB38\uC11C\uC870\uD68C (\uBC1C\uD589\uB0B4\uC5ED)", icon: "\u{1F4C1}", isDoc: false, isActive: activeTab === "history" },
       { id: "schedule", label: "\uC77C\uC815 / \uC608\uC57D", icon: "\u{1F4C5}", isDoc: false, isActive: activeTab === "schedule", badge: badgeCounts.todayWork > 0 ? `${badgeCounts.todayWork}\uAC74` : null },
       { id: "customers", label: "\uACE0\uAC1D\uAD00\uB9AC", icon: "\u{1F465}", isDoc: false, isActive: activeTab === "customers" },
+      { id: "suppliers", label: "\uACF5\uAE09\uC790 \uAD00\uB9AC", icon: "\u{1F3E2}", isDoc: false, isActive: activeTab === "suppliers" },
       { id: "accounting", label: "\uBBF8\uC218\uAE08 / \uD68C\uACC4", icon: "\u{1F4A1}", isDoc: false, isActive: activeTab === "accounting", badge: badgeCounts.unpaidCount > 0 ? `${badgeCounts.unpaidCount}\uAC74` : null },
       { id: "parts", label: "\uBD80\uD488\uC7AC\uACE0", icon: "\u{1F6E0}\uFE0F", isDoc: false, isActive: activeTab === "parts" },
       { id: "settings", label: "\uC124\uC815", icon: "\u2699\uFE0F", isDoc: false, isActive: activeTab === "settings" }
@@ -38337,7 +38338,7 @@ IconFile=${currentUrl}favicon.ico\r
           setActiveTab("doc");
         }
       }
-    ), activeTab === "suppliers" && userRole === "admin" && /* @__PURE__ */ import_react26.default.createElement(
+    ), activeTab === "suppliers" && /* @__PURE__ */ import_react26.default.createElement(
       SupplierTab,
       {
         suppliers: suppliersList,
