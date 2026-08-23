@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && python scripts/build.py",
+    "bundle": "python scripts/build.py",
     "preview": "vite preview"
   },
   "dependencies": {
