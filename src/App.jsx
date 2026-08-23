@@ -1094,6 +1094,7 @@ export default function App() {
               selectedSupplierKey={loggedInSupplierKey}
               currentSupplier={loggedInSupplier}
               onNavigateTab={handleRequestTabChange}
+              onSelectDocType={handleDocTypeChange}
               onUpdateScheduleStatus={handleUpdateScheduleStatus}
               onSelectCustomer={(c) => {
                 setCustomer(c);

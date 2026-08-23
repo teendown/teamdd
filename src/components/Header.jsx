@@ -17,7 +17,7 @@ export default function Header({
 }) {
   const getPageTitle = () => {
     switch (activeTab) {
-      case 'dashboard': return { title: '홈 (대시보드 종합 현황)', icon: '🏠' };
+      case 'dashboard': return { title: '통합 대시보드', icon: '📊' };
       case 'schedule': return { title: '일정 및 예약 관리', icon: '📅' };
       case 'customers': return { title: '고객(거래처) 관리', icon: '👥' };
       case 'accounting': return { title: '미수금 및 회계 장부', icon: '💡' };

@@ -44,7 +44,7 @@ export default function Sidebar({
   };
 
   const navItems = [
-    { id: 'dashboard', label: '홈', icon: '🏠', isDoc: false, isActive: activeTab === 'dashboard' },
+    { id: 'dashboard', label: '대시보드', icon: '📊', isDoc: false, isActive: activeTab === 'dashboard' },
     { id: 'doc_statement', label: '거래명세서 작성', icon: '📄', isDoc: true, docType: '거래명세서', isActive: activeTab === 'doc' && docType === '거래명세서' },
     { id: 'doc_estimate', label: '견적서 작성', icon: '📑', isDoc: true, docType: '견적서', isActive: activeTab === 'doc' && docType === '견적서' },
     { id: 'doc_invoice', label: '청구서 작성', icon: '🧾', isDoc: true, docType: '청구서', isActive: activeTab === 'doc' && docType === '청구서' },

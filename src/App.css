@@ -416,6 +416,9 @@ html, body, #root {
 /* ==========================================================================
    Dashboard Page Components
    ========================================================================== */
+/* ==========================================================================
+   Dashboard Page Components & Mobile Quick Launcher
+   ========================================================================== */
 .dashboard-container {
   flex: 1;
   padding: 1.25rem;
@@ -425,6 +428,239 @@ html, body, #root {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+}
+
+/* 📱 [Mobile Quick Launcher] Only shown on mobile (<1024px) */
+.mobile-quick-launcher {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 1024px) {
+  .mobile-quick-launcher {
+    display: none; /* Hide on PC desktop */
+  }
+}
+
+.mobile-launcher-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  background: linear-gradient(135deg, var(--bg-card), var(--bg-muted));
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.mobile-launcher-greeting {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.mobile-greeting-badge {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mobile-greeting-title {
+  font-size: 1.125rem;
+  font-weight: 900;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.mobile-today-date {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  background-color: var(--bg-card);
+  padding: 0.375rem 0.625rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-color);
+}
+
+/* Mobile Quick Menu 2-Column Grid */
+.mobile-menu-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+@media (min-width: 600px) and (max-width: 1023px) {
+  .mobile-menu-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.mobile-menu-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  min-height: 105px;
+  padding: 1rem;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.mobile-menu-card:active {
+  transform: scale(0.97);
+}
+
+.mobile-menu-card.primary-action {
+  grid-column: span 2;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.06), rgba(59, 130, 246, 0.02));
+  border: 2px solid var(--primary);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+  flex-direction: row;
+  align-items: center;
+  min-height: 76px;
+}
+
+.mobile-menu-card.primary-action .menu-card-name {
+  font-size: 1.0625rem;
+  color: var(--primary);
+}
+
+.menu-card-icon-wrap {
+  font-size: 1.625rem;
+  margin-bottom: 0.5rem;
+}
+
+.mobile-menu-card.primary-action .menu-card-icon-wrap {
+  font-size: 2rem;
+  margin-bottom: 0;
+  margin-right: 0.75rem;
+}
+
+.menu-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  flex: 1;
+}
+
+.menu-card-name {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.01em;
+}
+
+.menu-card-desc {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.menu-card-tag {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  font-size: 0.625rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+}
+
+.menu-card-tag.highlight {
+  background-color: var(--primary);
+  color: #ffffff;
+}
+
+.menu-card-badge {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+}
+
+.menu-card-badge.blue {
+  background-color: var(--accent-blue-bg);
+  color: var(--accent-blue);
+  border: 1px solid var(--accent-blue-border);
+}
+
+.menu-card-badge.red {
+  background-color: var(--accent-red-bg);
+  color: var(--accent-red);
+  border: 1px solid var(--accent-red-border);
+}
+
+/* Mobile Dashboard Toggle Button */
+.mobile-toggle-wrapper {
+  margin-top: 0.25rem;
+}
+
+.mobile-toggle-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.25rem;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
+  color: var(--text-main);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mobile-toggle-btn.active {
+  background-color: var(--bg-muted);
+  border-color: var(--primary-border);
+  color: var(--primary);
+}
+
+.mobile-toggle-arrow {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* Dashboard Main Content Visibility */
+.dashboard-main-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+@media (max-width: 1023px) {
+  .dashboard-main-content {
+    display: none;
+  }
+  .dashboard-main-content.mobile-visible {
+    display: flex;
+    animation: fadeInSlide 0.25s ease forwards;
+  }
+}
+
+@keyframes fadeInSlide {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Top 4 Summary Cards Grid */
@@ -508,6 +744,32 @@ html, body, #root {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+/* 💻 [PC Desktop 2-Column Grid Layout] */
+.dash-desktop-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+@media (min-width: 1024px) {
+  .dash-desktop-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 1.25rem;
+    align-items: start;
+  }
+}
+
+.dash-col-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.dash-col-side {
+  display: flex;
+  flex-direction: column;
 }
 
 /* Dashboard Section Card */
@@ -750,67 +1012,72 @@ html, body, #root {
   gap: 0.75rem;
 }
 
-/* Unpaid Ledger Details Section */
-.unpaid-highlight-banner {
-  background: linear-gradient(135deg, rgba(30, 64, 175, 0.08), rgba(37, 99, 235, 0.03));
-  border: 1px solid var(--primary-border);
-  border-radius: var(--radius-md);
-  padding: 1rem 1.25rem;
-  margin: 1rem;
+/* Side Unpaid List */
+.unpaid-side-list {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.unpaid-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(1, 1fr);
-  gap: 0.75rem;
+  flex-direction: column;
+  gap: 0.5rem;
   padding: 1rem;
 }
 
-@media (min-width: 768px) {
-  .unpaid-cards-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 1200px) {
-  .unpaid-cards-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-.unpaid-card {
+.unpaid-side-item {
   background-color: var(--bg-muted);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 0.75rem;
+  padding: 0.75rem 1rem;
   cursor: pointer;
   transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
 }
 
-.unpaid-card:hover {
+.unpaid-side-item:hover {
   background-color: var(--bg-card);
   border-color: var(--accent-red-border);
   box-shadow: var(--shadow-sm);
   transform: translateY(-1px);
 }
 
-.unpaid-card-header {
+.unpaid-side-item-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.unpaid-customer-name {
-  font-size: 0.9375rem;
+.unpaid-side-name {
+  font-size: 0.875rem;
   font-weight: 800;
   color: var(--text-main);
+}
+
+.unpaid-side-item-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.unpaid-side-sub {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+.unpaid-side-amount {
+  font-size: 0.9375rem;
+  font-weight: 900;
+  color: var(--accent-red);
+}
+
+/* Unpaid Ledger Details Section */
+.unpaid-highlight-banner {
+  background: linear-gradient(135deg, rgba(30, 64, 175, 0.08), rgba(37, 99, 235, 0.03));
+  border: 1px solid var(--primary-border);
+  border-radius: var(--radius-md);
+  padding: 0.875rem 1rem;
+  margin: 0.75rem 1rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .unpaid-overdue-tag {
@@ -821,12 +1088,6 @@ html, body, #root {
   background-color: var(--accent-red-bg);
   color: var(--accent-red-text);
   border: 1px solid var(--accent-red-border);
-}
-
-.unpaid-amount {
-  font-size: 1.125rem;
-  font-weight: 900;
-  color: var(--accent-red);
 }
 
 .unpaid-memo-box {
