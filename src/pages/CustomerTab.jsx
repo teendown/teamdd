@@ -1,6 +1,7 @@
 // 🎨 TEAM D.D CUSTOMER MANAGEMENT TAB
 import React, { useState, useMemo, useEffect } from 'react';
 import CustomerEditModal from '../modals/CustomerEditModal.jsx';
+import { registerBackHandler } from '../utils/navigationManager.js';
 
 export default function CustomerTab({
   customers = [],
@@ -18,6 +19,17 @@ export default function CustomerTab({
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [selectMachineCustomer, setSelectMachineCustomer] = useState(null);
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // Auto close modals on mobile back button
+  useEffect(() => {
+    if (!showModal) return;
+    return registerBackHandler(() => { setShowModal(false); return true; }, 'CustomerTabModal');
+  }, [showModal]);
+
+  useEffect(() => {
+    if (!selectMachineCustomer) return;
+    return registerBackHandler(() => { setSelectMachineCustomer(null); return true; }, 'SelectMachineModal');
+  }, [selectMachineCustomer]);
   
   const uniqueCustomers = useMemo(() => {
     const seen = new Set();

@@ -13,7 +13,10 @@ export default function Header({
   onOpenSidebar,
   currentSupplier,
   selectedSupplierKey,
-  suppliersList = []
+  suppliersList = [],
+  canGoBack = false,
+  onBack,
+  onOpenExitModal
 }) {
   const getPageTitle = () => {
     switch (activeTab) {
@@ -37,8 +40,33 @@ export default function Header({
 
   return (
     <header className="top-header no-print">
-      {/* Left: Mobile Drawer Trigger + Active Page Title */}
-      <div className="header-left">
+      {/* Left: Back Button (if history exists) + Mobile Drawer Trigger + Active Page Title */}
+      <div className="header-left" style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+        {canGoBack && onBack && (
+          <button
+            type="button"
+            className="btn btn-outline"
+            style={{
+              padding: '0.35rem 0.5rem',
+              fontSize: '0.8125rem',
+              fontWeight: '800',
+              color: '#0284c7',
+              borderColor: '#bae6fd',
+              backgroundColor: '#f0f9ff',
+              borderRadius: '8px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '2px'
+            }}
+            onClick={onBack}
+            title="이전 화면으로 이동"
+            aria-label="이전 화면으로 이동"
+          >
+            <span>⬅️</span>
+            <span className="hide-on-mobile-sm" style={{ fontSize: '0.75rem' }}>뒤로</span>
+          </button>
+        )}
+
         <button
           type="button"
           className="mobile-menu-trigger"
@@ -48,14 +76,16 @@ export default function Header({
           ☰
         </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ fontSize: '1.25rem' }}>{page.icon}</span>
-          <h1 className="header-page-title">{page.title}</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+          <span style={{ fontSize: '1.25rem', flexShrink: 0 }}>{page.icon}</span>
+          <h1 className="header-page-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {page.title}
+          </h1>
         </div>
       </div>
 
-      {/* Right: Quick Status */}
-      <div className="header-right">
+      {/* Right: Quick Status & Exit Button */}
+      <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         {/* Quick Database Status Badge */}
         <span
           className={`status-badge ${isConnected ? 'connected' : 'disconnected'}`}
@@ -63,8 +93,35 @@ export default function Header({
           onClick={() => setActiveTab('settings')}
         >
           <span>{isConnected ? '🟢' : '🔴'}</span>
-          <span>{isConnected ? '클라우드 동기화' : '로컬 오프라인'}</span>
+          <span className="hide-on-mobile-xs">{isConnected ? '동기화됨' : '오프라인'}</span>
         </span>
+
+        {/* Explicit Exit / Leave Button */}
+        {onOpenExitModal && (
+          <button
+            type="button"
+            className="btn btn-outline"
+            style={{
+              padding: '0.35rem 0.625rem',
+              fontSize: '0.75rem',
+              fontWeight: '800',
+              color: '#dc2626',
+              borderColor: '#fca5a5',
+              backgroundColor: '#fff5f5',
+              borderRadius: '8px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              cursor: 'pointer'
+            }}
+            onClick={onOpenExitModal}
+            title="프로그램 나가기 / 종료"
+            aria-label="프로그램 나가기 / 종료"
+          >
+            <span>🚪</span>
+            <span>나가기</span>
+          </button>
+        )}
       </div>
     </header>
   );

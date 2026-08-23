@@ -1,6 +1,7 @@
 // 🎨 TEAM D.D LEFT SIDEBAR NAVIGATION
-import React from 'react';
+import React, { useEffect } from 'react';
 import { areSupplierKeysEquivalent } from '../utils/validation.js';
+import { registerBackHandler } from '../utils/navigationManager.js';
 
 export default function Sidebar({
   activeTab,
@@ -16,11 +17,22 @@ export default function Sidebar({
   setSelectedSupplierKey,
   suppliersList = [],
   onLogout,
+  onOpenExitModal,
   badgeCounts = {
     todayWork: 0,
     unpaidCount: 0
   }
 }) {
+  // Automatically close sidebar on mobile back button
+  useEffect(() => {
+    if (!isOpen) return;
+    const unregister = registerBackHandler(() => {
+      onClose();
+      return true;
+    }, 'MobileSidebarDrawer');
+    return unregister;
+  }, [isOpen, onClose]);
+
   const isAdmin = userRole === 'admin';
   const displayUser = loggedInSupplier || currentSupplier;
 
@@ -129,18 +141,61 @@ export default function Sidebar({
             </div>
           )}
 
-          {/* Logout Action */}
-          {onLogout && (
-            <button
-              type="button"
-              className="btn btn-outline"
-              style={{ width: '100%', fontSize: '0.75rem', padding: '0.375rem 0.5rem', color: '#dc2626', borderColor: '#fca5a5', backgroundColor: '#fef2f2' }}
-              onClick={onLogout}
-              title="로그아웃"
-            >
-              로그아웃
-            </button>
-          )}
+          {/* Actions: Exit App & Logout */}
+          <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+            {onOpenExitModal && (
+              <button
+                type="button"
+                className="btn btn-outline"
+                style={{
+                  flex: 1,
+                  fontSize: '0.75rem',
+                  padding: '0.4rem 0.5rem',
+                  color: '#f87171',
+                  borderColor: '#475569',
+                  backgroundColor: '#1e293b',
+                  fontWeight: '700',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px'
+                }}
+                onClick={() => {
+                  if (onClose) onClose();
+                  onOpenExitModal();
+                }}
+                title="프로그램 나가기 / 종료"
+              >
+                <span>🚪</span>
+                <span>종료</span>
+              </button>
+            )}
+
+            {onLogout && (
+              <button
+                type="button"
+                className="btn btn-outline"
+                style={{
+                  flex: 1,
+                  fontSize: '0.75rem',
+                  padding: '0.4rem 0.5rem',
+                  color: '#94a3b8',
+                  borderColor: '#475569',
+                  backgroundColor: '#1e293b',
+                  fontWeight: '700',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px'
+                }}
+                onClick={onLogout}
+                title="로그아웃"
+              >
+                <span>🔒</span>
+                <span>로그아웃</span>
+              </button>
+            )}
+          </div>
         </div>
       </aside>
     </>

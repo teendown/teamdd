@@ -1,5 +1,6 @@
 // 🎨 TEAM D.D SUPPLIER MANAGEMENT TAB
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { registerBackHandler } from '../utils/navigationManager.js';
 
 export default function SupplierTab({
   suppliers = [],
@@ -10,6 +11,12 @@ export default function SupplierTab({
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState('add');
+
+  // Auto close modal on mobile back button
+  useEffect(() => {
+    if (!showModal) return;
+    return registerBackHandler(() => { setShowModal(false); return true; }, 'SupplierTabModal');
+  }, [showModal]);
   const [form, setForm] = useState({
     id: null,
     code: '',

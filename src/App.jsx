@@ -28,6 +28,18 @@ import CustomerEditModal from './modals/CustomerEditModal.jsx';
 import DesktopShortcutModal from './modals/DesktopShortcutModal.jsx';
 import OcrCustomerModal from './modals/OcrCustomerModal.jsx';
 import DocConvertModal from './modals/DocConvertModal.jsx';
+import ExitConfirmModal from './modals/ExitConfirmModal.jsx';
+
+// Navigation Manager
+import {
+  initNavigationManager,
+  pushTabHistory,
+  popTabHistory,
+  canGoBackTab,
+  triggerBackAction,
+  registerBackHandler,
+  performExitApp
+} from './utils/navigationManager.js';
 
 // Pages
 import DashboardTab from './pages/DashboardTab.jsx';
@@ -149,6 +161,8 @@ export default function App() {
   const [isOcrModalOpen, setIsOcrModalOpen] = useState(false);
   const [isDesktopShortcutModalOpen, setIsDesktopShortcutModalOpen] = useState(false);
   const [isDocConvertModalOpen, setIsDocConvertModalOpen] = useState(false);
+  const [isExitConfirmModalOpen, setIsExitConfirmModalOpen] = useState(false);
+  const [canGoBack, setCanGoBack] = useState(() => canGoBackTab());
   const [pendingTab, setPendingTab] = useState(null);
   const [pendingReset, setPendingReset] = useState(false);
 
@@ -176,7 +190,7 @@ export default function App() {
     }));
 
     setDocType(targetType);
-    setActiveTab('doc');
+    handleRequestTabChange('doc');
 
     // 2. 변경할 targetType의 draft가 있으면 완벽 복원
     const draft = docDrafts[targetType];
@@ -243,7 +257,7 @@ export default function App() {
     }
   };
 
-  const handleRequestTabChange = (newTab, targetSubView = null) => {
+  const handleRequestTabChange = (newTab, targetSubView = null, recordHistory = true) => {
     // 만약 현재 명세서 작성 중이라면, 현재 내용을 draft에 자동 백업
     if (activeTab === 'doc') {
       setDocDrafts(prev => ({
@@ -257,8 +271,82 @@ export default function App() {
     if (targetSubView) {
       setScheduleSubView(targetSubView);
     }
+    if (recordHistory !== false && newTab !== activeTab) {
+      pushTabHistory(newTab);
+    }
     setActiveTab(newTab);
+    setCanGoBack(canGoBackTab());
   };
+
+  // 🌟 전역 모바일 내비게이션 & 뒤로가기 제어 초기화
+  useEffect(() => {
+    pushTabHistory('dashboard');
+    initNavigationManager({
+      onNavigateTab: (targetTab) => {
+        handleRequestTabChange(targetTab, null, false);
+      },
+      onExitConfirm: () => {
+        setIsExitConfirmModalOpen(true);
+      }
+    });
+    setCanGoBack(canGoBackTab());
+  }, []);
+
+  // 🌟 모든 팝업/모달 열림 시 백버튼(뒤로가기) 등록 (LIFO 자동 닫힘)
+  useEffect(() => {
+    if (!previewDoc) return;
+    return registerBackHandler(() => { setPreviewDoc(null); return true; }, 'DocumentPreviewModal');
+  }, [previewDoc]);
+
+  useEffect(() => {
+    if (!isDraftsModalOpen) return;
+    return registerBackHandler(() => { setIsDraftsModalOpen(false); return true; }, 'DraftsModal');
+  }, [isDraftsModalOpen]);
+
+  useEffect(() => {
+    if (!isAggregationModalOpen) return;
+    return registerBackHandler(() => { setIsAggregationModalOpen(false); return true; }, 'StatementAggregationModal');
+  }, [isAggregationModalOpen]);
+
+  useEffect(() => {
+    if (!isEstimateModalOpen) return;
+    return registerBackHandler(() => { setIsEstimateModalOpen(false); return true; }, 'EstimateImportModal');
+  }, [isEstimateModalOpen]);
+
+  useEffect(() => {
+    if (!isPastStatementModalOpen) return;
+    return registerBackHandler(() => { setIsPastStatementModalOpen(false); return true; }, 'PastStatementImportModal');
+  }, [isPastStatementModalOpen]);
+
+  useEffect(() => {
+    if (!quickCustomerModalOpen) return;
+    return registerBackHandler(() => { setQuickCustomerModalOpen(false); return true; }, 'QuickCustomerModal');
+  }, [quickCustomerModalOpen]);
+
+  useEffect(() => {
+    if (!isOcrModalOpen) return;
+    return registerBackHandler(() => { setIsOcrModalOpen(false); return true; }, 'OcrCustomerModal');
+  }, [isOcrModalOpen]);
+
+  useEffect(() => {
+    if (!isDesktopShortcutModalOpen) return;
+    return registerBackHandler(() => { setIsDesktopShortcutModalOpen(false); return true; }, 'DesktopShortcutModal');
+  }, [isDesktopShortcutModalOpen]);
+
+  useEffect(() => {
+    if (!isDocConvertModalOpen) return;
+    return registerBackHandler(() => { setIsDocConvertModalOpen(false); return true; }, 'DocConvertModal');
+  }, [isDocConvertModalOpen]);
+
+  useEffect(() => {
+    if (!openAddCustomerModal) return;
+    return registerBackHandler(() => { setOpenAddCustomerModal(false); return true; }, 'OpenAddCustomerModal');
+  }, [openAddCustomerModal]);
+
+  useEffect(() => {
+    if (!pendingTab && !pendingReset) return;
+    return registerBackHandler(() => { setPendingTab(null); setPendingReset(false); return true; }, 'PendingUnsavedModal');
+  }, [pendingTab, pendingReset]);
 
   const handleApplyPastStatement = (doc, actionType) => {
     if (actionType === 'copy_to_new') {
@@ -929,6 +1017,7 @@ export default function App() {
         }}
         suppliersList={suppliersList}
         onLogout={handleLogout}
+        onOpenExitModal={() => setIsExitConfirmModalOpen(true)}
         badgeCounts={badgeCounts}
       />
 
@@ -947,6 +1036,9 @@ export default function App() {
           currentSupplier={currentSupplier}
           selectedSupplierKey={selectedSupplierKey}
           suppliersList={suppliersList}
+          canGoBack={canGoBack}
+          onBack={() => triggerBackAction({ onNavigateTab: (tab) => handleRequestTabChange(tab, null, false) })}
+          onOpenExitModal={() => setIsExitConfirmModalOpen(true)}
         />
 
         <DesktopShortcutModal
@@ -1380,6 +1472,14 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Global Mobile/Desktop Exit Confirmation Modal */}
+      <ExitConfirmModal
+        isOpen={isExitConfirmModalOpen}
+        onClose={() => setIsExitConfirmModalOpen(false)}
+        onLogout={handleLogout}
+        onExit={performExitApp}
+      />
     </div>
   );
 }

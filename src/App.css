@@ -1383,3 +1383,17 @@ html, body, #root {
     page-break-after: always;
   }
 }
+
+/* Mobile Responsive Utility Classes */
+@media (max-width: 480px) {
+  .hide-on-mobile-sm {
+    display: none !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .hide-on-mobile-xs {
+    display: none !important;
+  }
+}
+

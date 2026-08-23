@@ -1,6 +1,7 @@
 // 🎨 TEAM D.D SCHEDULE & CALENDAR TAB (MULTI-DAY & PRIVACY SUPPORT)
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { areSupplierKeysEquivalent } from '../utils/validation.js';
+import { registerBackHandler } from '../utils/navigationManager.js';
 
 function getDatesInRange(startDateStr, endDateStr) {
   if (!startDateStr) return [];
@@ -44,6 +45,12 @@ export default function ScheduleTab({
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [showEventModal, setShowEventModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
+
+  // Auto close schedule modal on mobile back button
+  useEffect(() => {
+    if (!showEventModal) return;
+    return registerBackHandler(() => { setShowEventModal(false); return true; }, 'ScheduleEventModal');
+  }, [showEventModal]);
 
   const [privacyFilter, setPrivacyFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState({
