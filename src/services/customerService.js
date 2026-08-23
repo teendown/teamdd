@@ -78,6 +78,7 @@ export async function syncCustomersFromDocuments(currentCusts, currentDocs) {
   const newCustsToSave = [];
 
   currentDocs.forEach(doc => {
+    if (!doc || doc.is_deleted) return;
     const rawName = (doc.customer_name || doc.customer_data?.name || '').trim();
     if (!rawName || rawName === '미지정') return;
     

@@ -25,6 +25,7 @@ export default function AccountingTab({
   const [docTypeFilter, setDocTypeFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [subTab, setSubTab] = useState('summary'); // 'summary' | 'detailed' | 'collab'
+  const [summaryFilterMode, setSummaryFilterMode] = useState('unpaid'); // 'unpaid' (미수 거래처만) | 'monthly' (당월 거래처) | 'all' (전체)
 
   // Collaborative Filter States (shadcn style)
   const [collabDirectionFilter, setCollabDirectionFilter] = useState('all'); // 'all' | 'outgoing' | 'incoming' | 'completed'
@@ -51,9 +52,25 @@ export default function AccountingTab({
     return { totalSupply, vatAmount, grandTotal, paid, balance };
   };
 
+  const uniqueCustomerOptions = useMemo(() => {
+    const seen = new Set();
+    const list = [];
+    customersList.forEach(c => {
+      if (!c || !c.name || !c.name.trim() || c.name.trim() === '미지정') return;
+      const trimmed = c.name.trim();
+      const key = trimmed.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        list.push(trimmed);
+      }
+    });
+    list.sort((a, b) => a.localeCompare(b, 'ko'));
+    return list;
+  }, [customersList]);
+
   const filteredDocuments = useMemo(() => {
     return documents.filter(doc => {
-      if (doc.is_deleted) return false;
+      if (!doc || doc.is_deleted) return false;
       const dDate = doc.doc_date || doc.docDate;
       if (dDate) {
         const [y, m] = dDate.split('-');
@@ -61,8 +78,8 @@ export default function AccountingTab({
         if (selectedMonth !== 'all' && m !== selectedMonth) return false;
       }
       if (selectedCustomer !== 'all') {
-        const custName = doc.customer_name || doc.customer_data?.name || doc.customer?.name || '';
-        if (custName !== selectedCustomer) return false;
+        const custName = (doc.customer_name || doc.customer_data?.name || doc.customer?.name || '').trim();
+        if (custName.toLowerCase() !== selectedCustomer.trim().toLowerCase()) return false;
       }
       if (selectedSupplier !== 'all') {
         const suppKey = doc.supplier_key || doc.supplierKey || '';
@@ -72,7 +89,7 @@ export default function AccountingTab({
       if (docTypeFilter !== 'all' && dType !== docTypeFilter) return false;
 
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
+        const q = searchQuery.trim().toLowerCase();
         const docNo = (doc.doc_no || doc.docNo || '').toLowerCase();
         const custName = (doc.customer_name || doc.customer_data?.name || doc.customer?.name || '').toLowerCase();
         const remark = (doc.remark || '').toLowerCase();
@@ -102,12 +119,16 @@ export default function AccountingTab({
     return { totalSales, totalPaid, totalUnpaid, totalDocsCount, totalEstimate, estimateDocsCount };
   }, [filteredDocuments]);
 
-  const customerSummaries = useMemo(() => {
+  const { allCustomerSummaries, summaryCounts } = useMemo(() => {
     const map = new Map();
     customersList.forEach(c => {
-      if (c.name) {
-        map.set(c.name, {
-          name: c.name,
+      if (!c || !c.name) return;
+      const rawName = c.name.trim();
+      if (!rawName || rawName === '미지정') return;
+      const key = rawName.toLowerCase();
+      if (!map.has(key)) {
+        map.set(key, {
+          name: rawName,
           person: c.person || c.repName || '-',
           phone: c.phone || '-',
           bizno: c.bizno || '-',
@@ -117,20 +138,26 @@ export default function AccountingTab({
           allTimeUnpaid: 0,
           docCount: 0
         });
+      } else {
+        const existing = map.get(key);
+        if (existing.person === '-' && (c.person || c.repName)) existing.person = c.person || c.repName;
+        if (existing.phone === '-' && c.phone) existing.phone = c.phone;
+        if (existing.bizno === '-' && c.bizno) existing.bizno = c.bizno;
       }
     });
 
     documents.forEach(doc => {
+      if (!doc || doc.is_deleted) return;
       if ((doc.doc_type || doc.docType) === '견적서') return;
 
       const rawName = (doc.customer_name || doc.customer_data?.name || doc.customer?.name || '').trim();
       if (!rawName || rawName === '미지정') return;
 
-      const custName = rawName;
-      if (!map.has(custName)) {
-        map.set(custName, {
-          name: custName,
-          person: doc.customer_data?.person || doc.customer?.person || '-',
+      const key = rawName.toLowerCase();
+      if (!map.has(key)) {
+        map.set(key, {
+          name: rawName,
+          person: doc.customer_data?.person || doc.customer_data?.repName || doc.customer?.person || doc.customer?.repName || '-',
           phone: doc.customer_data?.phone || doc.customer?.phone || '-',
           bizno: doc.customer_data?.bizno || doc.customer?.bizno || '-',
           monthlySales: 0,
@@ -140,7 +167,12 @@ export default function AccountingTab({
           docCount: 0
         });
       }
-      const entry = map.get(custName);
+      const entry = map.get(key);
+      const sKey = doc.supplier_key || doc.supplierKey;
+      if (selectedSupplier !== 'all' && !areSupplierKeysEquivalent(sKey, selectedSupplier)) {
+        return;
+      }
+
       const { grandTotal, paid, balance } = getDocTotals(doc);
       entry.allTimeUnpaid += balance;
 
@@ -151,8 +183,6 @@ export default function AccountingTab({
         if (selectedYear !== 'all' && y !== selectedYear) matchesPeriod = false;
         if (selectedMonth !== 'all' && m !== selectedMonth) matchesPeriod = false;
       }
-      const sKey = doc.supplier_key || doc.supplierKey;
-      if (selectedSupplier !== 'all' && !areSupplierKeysEquivalent(sKey, selectedSupplier)) matchesPeriod = false;
 
       if (matchesPeriod) {
         entry.monthlySales += grandTotal;
@@ -163,13 +193,46 @@ export default function AccountingTab({
     });
 
     let list = Array.from(map.values()).filter(c => c.name && c.name !== '미지정');
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      list = list.filter(c => c.name.toLowerCase().includes(q) || c.phone.includes(q) || c.person.toLowerCase().includes(q));
+
+    if (selectedCustomer !== 'all') {
+      const sel = selectedCustomer.trim().toLowerCase();
+      list = list.filter(c => c.name.trim().toLowerCase() === sel);
     }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      list = list.filter(c => 
+        c.name.toLowerCase().includes(q) || 
+        c.phone.includes(q) || 
+        c.person.toLowerCase().includes(q) ||
+        (c.bizno && c.bizno.includes(q))
+      );
+    }
+
     list.sort((a, b) => b.monthlySales - a.monthlySales || b.allTimeUnpaid - a.allTimeUnpaid);
-    return list;
-  }, [customersList, documents, selectedYear, selectedMonth, selectedSupplier, searchQuery]);
+
+    const unpaidCount = list.filter(c => c.allTimeUnpaid > 0 || c.monthlyUnpaid > 0).length;
+    const monthlyCount = list.filter(c => c.monthlySales > 0 || c.monthlyPaid > 0 || c.docCount > 0).length;
+    const allCount = list.length;
+
+    return {
+      allCustomerSummaries: list,
+      summaryCounts: { unpaidCount, monthlyCount, allCount }
+    };
+  }, [customersList, documents, selectedYear, selectedMonth, selectedCustomer, selectedSupplier, searchQuery]);
+
+  const customerSummaries = useMemo(() => {
+    if (selectedCustomer !== 'all' || searchQuery.trim()) {
+      return allCustomerSummaries;
+    }
+    if (summaryFilterMode === 'unpaid') {
+      return allCustomerSummaries.filter(c => c.allTimeUnpaid > 0 || c.monthlyUnpaid > 0);
+    }
+    if (summaryFilterMode === 'monthly') {
+      return allCustomerSummaries.filter(c => c.monthlySales > 0 || c.monthlyPaid > 0 || c.docCount > 0);
+    }
+    return allCustomerSummaries;
+  }, [allCustomerSummaries, summaryFilterMode, selectedCustomer, searchQuery]);
 
   // 🤝 Collaborative Settlements Data (shadcn/ui style metrics with multi-partner support)
   const collaborativeData = useMemo(() => {
@@ -405,6 +468,35 @@ export default function AccountingTab({
       return;
     }
 
+    if (subTab === 'summary') {
+      if (customerSummaries.length === 0) {
+        alert('다운로드할 거래처별 회계 현황이 없습니다.');
+        return;
+      }
+      const headers = ['거래처명', '담당자', '연락처', '사업자번호', '해당기간 매출액', '해당기간 수금액', '해당기간 미수액', '누적 총 미수금액', '발행건수', '상태'];
+      const rows = customerSummaries.map(c => [
+        `"${(c.name || '').replace(/"/g, '""')}"`,
+        `"${(c.person || '').replace(/"/g, '""')}"`,
+        `"${(c.phone || '').replace(/"/g, '""')}"`,
+        `"${(c.bizno || '').replace(/"/g, '""')}"`,
+        c.monthlySales || 0,
+        c.monthlyPaid || 0,
+        c.monthlyUnpaid || 0,
+        c.allTimeUnpaid || 0,
+        c.docCount || 0,
+        `"${c.allTimeUnpaid > 0 ? '미수' : '완납'}"`
+      ]);
+      const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `거래처별_회계현황요약_${selectedYear}년_${selectedMonth === 'all' ? '전체' : selectedMonth + '월'}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+      return;
+    }
+
     if (filteredDocuments.length === 0) {
       alert('다운로드할 회계 내역이 없습니다.');
       return;
@@ -518,7 +610,7 @@ export default function AccountingTab({
               <>
                 <select className="form-select" style={{ width: '140px', minHeight: '34px', padding: '4px 8px', fontSize: '0.8125rem' }} value={selectedCustomer} onChange={e => setSelectedCustomer(e.target.value)}>
                   <option value="all">🏢 전체 거래처</option>
-                  {customersList.map(c => <option key={c.id || c.name} value={c.name}>{c.name}</option>)}
+                  {uniqueCustomerOptions.map(name => <option key={name} value={name}>{name}</option>)}
                 </select>
                 {sessionStorage.getItem('dd_user_role') === 'admin' && (
                   <select className="form-select" style={{ width: '130px', minHeight: '34px', padding: '4px 8px', fontSize: '0.8125rem' }} value={selectedSupplier} onChange={e => setSelectedSupplier(e.target.value)}>
@@ -990,50 +1082,124 @@ export default function AccountingTab({
           </div>
         ) : subTab === 'summary' ? (
           /* Summary Table */
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
-              <thead style={{ backgroundColor: '#F8FAFC', borderBottom: '2px solid #E5E8EB', color: '#4E5968', fontWeight: '800' }}>
-                <tr>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'left' }}>거래처명</th>
-                  <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>담당/연락처</th>
-                  <th style={{ padding: '0.75rem 0.75rem', textAlign: 'right' }}>해당기간 매출</th>
-                  <th style={{ padding: '0.75rem 0.75rem', textAlign: 'right' }}>해당기간 수금</th>
-                  <th style={{ padding: '0.75rem 0.75rem', textAlign: 'right' }}>해당기간 미수</th>
-                  <th style={{ padding: '0.75rem 0.75rem', textAlign: 'right' }}>누적 총 미수금</th>
-                  <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>상태 / 건수</th>
-                </tr>
-              </thead>
-              <tbody>
-                {customerSummaries.length === 0 ? (
+          <div>
+            {/* Quick Filter Pill Bar */}
+            <div className="no-print" style={{ padding: '0.625rem 1rem', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#4E5968', marginRight: '2px' }}>보기 구분:</span>
+                {[
+                  { id: 'unpaid', label: `⚠️ 미수 거래처 (${summaryCounts.unpaidCount})`, activeColor: '#D92D20', activeBg: '#FEF3F2', activeBorder: '#FECDCA' },
+                  { id: 'monthly', label: `📅 당월 거래처 (${summaryCounts.monthlyCount})`, activeColor: '#1B64DA', activeBg: '#EFF4FE', activeBorder: '#B2CCFF' },
+                  { id: 'all', label: `🏢 전체 거래처 (${summaryCounts.allCount})`, activeColor: '#191F28', activeBg: '#ffffff', activeBorder: '#D1D5DB' }
+                ].map(btn => (
+                  <button
+                    key={btn.id}
+                    type="button"
+                    onClick={() => setSummaryFilterMode(btn.id)}
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: '0.75rem',
+                      fontWeight: '800',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                      backgroundColor: summaryFilterMode === btn.id ? btn.activeBg : '#ffffff',
+                      color: summaryFilterMode === btn.id ? btn.activeColor : '#6B7684',
+                      border: `1px solid ${summaryFilterMode === btn.id ? btn.activeBorder : '#E5E8EB'}`,
+                      boxShadow: summaryFilterMode === btn.id ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
+                    }}
+                  >
+                    {btn.label}
+                  </button>
+                ))}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#8B95A1' }}>
+                {summaryFilterMode === 'unpaid' ? '※ 누적 또는 해당 기간 미수금이 남아있는 거래처만 표시 중입니다.' :
+                 summaryFilterMode === 'monthly' ? '※ 선택한 기간에 거래/발행 내역이 있는 거래처만 표시 중입니다.' :
+                 '※ 등록된 모든 거래처(미수금 0원 포함)를 표시 중입니다.'}
+              </div>
+            </div>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
+                <thead style={{ backgroundColor: '#F8FAFC', borderBottom: '2px solid #E5E8EB', color: '#4E5968', fontWeight: '800' }}>
                   <tr>
-                    <td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: '#8B95A1' }}>
-                      조회 조건에 해당하는 거래처 내역이 없습니다.
-                    </td>
+                    <th style={{ padding: '0.75rem 1rem', textAlign: 'left' }}>거래처명</th>
+                    <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>담당/연락처</th>
+                    <th style={{ padding: '0.75rem 0.75rem', textAlign: 'right' }}>해당기간 매출</th>
+                    <th style={{ padding: '0.75rem 0.75rem', textAlign: 'right' }}>해당기간 수금</th>
+                    <th style={{ padding: '0.75rem 0.75rem', textAlign: 'right' }}>해당기간 미수</th>
+                    <th style={{ padding: '0.75rem 0.75rem', textAlign: 'right' }}>누적 총 미수금</th>
+                    <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>상태 / 건수</th>
                   </tr>
-                ) : (
+                </thead>
+                <tbody>
+                  {customerSummaries.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} style={{ padding: '2.5rem 1rem', textAlign: 'center', color: '#8B95A1' }}>
+                        <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>
+                          {summaryFilterMode === 'unpaid' ? '🎉' : '📂'}
+                        </div>
+                        <div style={{ fontWeight: '800', fontSize: '0.875rem', color: '#4E5968', marginBottom: '0.25rem' }}>
+                          {summaryFilterMode === 'unpaid' ? '미수금이 남아있는 거래처가 없습니다! (전액 완납)' : '조회 조건에 해당하는 거래처 내역이 없습니다.'}
+                        </div>
+                        {summaryFilterMode === 'unpaid' && summaryCounts.allCount > 0 && (
+                          <button
+                            type="button"
+                            className="btn btn-outline btn-sm"
+                            style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}
+                            onClick={() => setSummaryFilterMode('all')}
+                          >
+                            🏢 전체 등록 거래처 목록 보기 ({summaryCounts.allCount}개사)
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ) : (
                   customerSummaries.map((c, idx) => {
                     const hasUnpaid = c.allTimeUnpaid > 0;
                     return (
                       <tr
                         key={c.name + idx}
-                        style={{ borderBottom: '1px solid #E5E8EB', backgroundColor: idx % 2 === 0 ? '#ffffff' : '#F9FAFB' }}
+                        style={{
+                          borderBottom: '1px solid #E5E8EB',
+                          backgroundColor: idx % 2 === 0 ? '#ffffff' : '#F9FAFB',
+                          cursor: 'pointer'
+                        }}
+                        title="클릭하여 이 거래처의 상세 거래장부 보기"
+                        onClick={() => {
+                          setSelectedCustomer(c.name);
+                          setSubTab('detailed');
+                        }}
                       >
-                        <td style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#191F28' }}>{c.name}</td>
+                        <td style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#191F28' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span>{c.name}</span>
+                            <span style={{ fontSize: '10px', color: '#3b82f6', backgroundColor: '#eff6ff', padding: '1px 5px', borderRadius: '4px', border: '1px solid #dbeafe' }}>상세보기 ↗</span>
+                          </div>
+                        </td>
                         <td style={{ padding: '0.75rem 0.5rem', textAlign: 'center', color: '#6B7684', fontSize: '0.75rem' }}>{`${c.person} (${c.phone})`}</td>
                         <td style={{ padding: '0.75rem 0.75rem', textAlign: 'right', fontWeight: '800', color: '#191F28' }}>{`${c.monthlySales.toLocaleString()} 원`}</td>
                         <td style={{ padding: '0.75rem 0.75rem', textAlign: 'right', fontWeight: '700', color: '#1B64DA' }}>{`${c.monthlyPaid.toLocaleString()} 원`}</td>
                         <td style={{ padding: '0.75rem 0.75rem', textAlign: 'right', fontWeight: '800', color: c.monthlyUnpaid > 0 ? '#D92D20' : '#03C75A' }}>{`${c.monthlyUnpaid.toLocaleString()} 원`}</td>
                         <td style={{ padding: '0.75rem 0.75rem', textAlign: 'right', fontWeight: '900', color: hasUnpaid ? '#D92D20' : '#03C75A' }}>{`${c.allTimeUnpaid.toLocaleString()} 원`}</td>
                         <td style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>
-                          {hasUnpaid ? (
-                            <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', backgroundColor: '#FEF3F2', color: '#D92D20', border: '1px solid #FECDCA' }}>
-                              미수
-                            </span>
-                          ) : (
-                            <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', backgroundColor: '#E8F8F0', color: '#028A3E', border: '1px solid #A3E9C4' }}>
-                              완납
-                            </span>
-                          )}
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                            {hasUnpaid ? (
+                              <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', backgroundColor: '#FEF3F2', color: '#D92D20', border: '1px solid #FECDCA' }}>
+                                미수
+                              </span>
+                            ) : (
+                              <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', backgroundColor: '#E8F8F0', color: '#028A3E', border: '1px solid #A3E9C4' }}>
+                                완납
+                              </span>
+                            )}
+                            {c.docCount > 0 && (
+                              <span style={{ fontSize: '10px', color: '#6B7684', fontWeight: '600' }}>
+                                {`해당월 ${c.docCount}건`}
+                              </span>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -1042,7 +1208,8 @@ export default function AccountingTab({
               </tbody>
             </table>
           </div>
-        ) : (
+        </div>
+      ) : (
           /* Detailed Transactions Table */
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>

@@ -28402,49 +28402,21 @@ ${JSON.stringify(extra)}`;
   }
   async function deduplicateAndResequenceDocNumbers(docList = []) {
     if (!docList || docList.length === 0) return docList;
-    const dateGroups = /* @__PURE__ */ new Map();
-    docList.forEach((doc) => {
-      const rawDate = doc.doc_date || (doc.created_at ? doc.created_at.split("T")[0] : "") || (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
-      const d = new Date(rawDate);
-      const dateKey = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
-      if (!dateGroups.has(dateKey)) dateGroups.set(dateKey, []);
-      dateGroups.get(dateKey).push(doc);
-    });
+    const seenNos = /* @__PURE__ */ new Set();
     let hasChange = false;
     const updatedList = [];
-    dateGroups.forEach((docs, dateKey) => {
-      docs.sort((a, b) => {
-        const timeA = (a.doc_date || "") + " " + (a.doc_time || a.created_at || "");
-        const timeB = (b.doc_date || "") + " " + (b.doc_time || b.created_at || "");
-        return timeA.localeCompare(timeB);
-      });
-      const usedSeqs = /* @__PURE__ */ new Set();
-      docs.forEach((doc) => {
-        let currentSeq = null;
-        if (doc.doc_no && doc.doc_no.startsWith(dateKey)) {
-          const parts = doc.doc_no.split("-");
-          if (parts.length >= 2) {
-            const num = parseInt(parts[1], 10);
-            if (!isNaN(num) && !usedSeqs.has(num)) {
-              currentSeq = num;
-            }
-          }
-        }
-        if (currentSeq === null) {
-          let nextSeq = 1;
-          while (usedSeqs.has(nextSeq)) nextSeq++;
-          currentSeq = nextSeq;
-          hasChange = true;
-        }
-        usedSeqs.add(currentSeq);
-        const uniqueDocNo = `${dateKey}-${String(currentSeq).padStart(3, "0")}`;
-        if (doc.doc_no !== uniqueDocNo) {
-          doc.doc_no = uniqueDocNo;
-          hasChange = true;
-        }
-        updatedList.push(doc);
-      });
-    });
+    for (const doc of docList) {
+      if (!doc) continue;
+      let docNo = (doc.doc_no || doc.docNo || "").trim();
+      if (!docNo || seenNos.has(docNo)) {
+        const rawDate = doc.doc_date || doc.docDate || (doc.created_at ? doc.created_at.split("T")[0] : "") || (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+        docNo = generateNextDocNo(rawDate, updatedList, doc.supplier_key || "sejin", doc.customer_data || { name: doc.customer_name }, doc.doc_type || "\uAC70\uB798\uBA85\uC138\uC11C");
+        doc.doc_no = docNo;
+        hasChange = true;
+      }
+      seenNos.add(docNo);
+      updatedList.push(doc);
+    }
     if (hasChange) {
       setLocalItem("dd_documents_history_v1", updatedList);
       const sb = getSupabaseClient();
@@ -28702,18 +28674,19 @@ ${JSON.stringify(extra)}`;
     const selectedSupplierKey = sessionStorage.getItem(STORAGE_KEYS.SELECTED_SUPPLIER) || localStorage.getItem(STORAGE_KEYS.SELECTED_SUPPLIER) || "sejin";
     const paidNum = Number(paidAmount) || 0;
     const local = getLocalItem(STORAGE_KEYS.DOCUMENTS, DEMO_DOCUMENTS);
-    if (userRole === "supplier") {
-      const found = local.find((d) => d.id === docId || d.doc_no === docId);
-      if (found && found.supplier_key && !areSupplierKeysEquivalent(found.supplier_key, selectedSupplierKey) && !(found.is_shared && isPartnerInDoc(found, selectedSupplierKey))) {
+    const found = local.find((d) => String(d.id) === String(docId) || d.doc_no === docId);
+    if (userRole === "supplier" && found && found.supplier_key) {
+      if (!areSupplierKeysEquivalent(found.supplier_key, selectedSupplierKey) && !(found.is_shared && isPartnerInDoc(found, selectedSupplierKey))) {
         alert("\uD574\uB2F9 \uBB38\uC11C\uC758 \uC218\uAE08\uC744 \uBCC0\uACBD\uD560 \uAD8C\uD55C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.");
         return local.filter(unpackRow);
       }
     }
-    if (sb && docId && !String(docId).startsWith("doc_")) {
+    if (sb && found && found.id && !String(found.id).startsWith("doc_")) {
       try {
-        const updateObj = { paid: paidNum };
-        if (remark !== void 0) updateObj.remark = remark;
-        await sb.from("documents").update(updateObj).eq("id", docId);
+        const updatedDoc = { ...found, paid: paidNum, ...remark !== void 0 ? { remark } : {} };
+        const packed = packRow(updatedDoc, "documents");
+        const updateObj = { paid: paidNum, remark: packed.remark };
+        await sb.from("documents").update(updateObj).eq("id", found.id);
       } catch (e) {
         console.error(e);
       }
@@ -28838,6 +28811,7 @@ ${JSON.stringify(extra)}`;
     let hasNew = false;
     const newCustsToSave = [];
     currentDocs.forEach((doc) => {
+      if (!doc || doc.is_deleted) return;
       const rawName = (doc.customer_name || doc.customer_data?.name || "").trim();
       if (!rawName || rawName === "\uBBF8\uC9C0\uC815") return;
       const key = rawName.toLowerCase();
@@ -34559,6 +34533,7 @@ IconFile=${currentUrl}favicon.ico\r
     const [docTypeFilter, setDocTypeFilter] = (0, import_react19.useState)("all");
     const [searchQuery, setSearchQuery] = (0, import_react19.useState)("");
     const [subTab, setSubTab] = (0, import_react19.useState)("summary");
+    const [summaryFilterMode, setSummaryFilterMode] = (0, import_react19.useState)("unpaid");
     const [collabDirectionFilter, setCollabDirectionFilter] = (0, import_react19.useState)("all");
     const [collabPartnerFilter, setCollabPartnerFilter] = (0, import_react19.useState)("all");
     const [isPartnerModalOpen, setIsPartnerModalOpen] = (0, import_react19.useState)(false);
@@ -34578,9 +34553,24 @@ IconFile=${currentUrl}favicon.ico\r
       const balance = grandTotal - paid;
       return { totalSupply, vatAmount, grandTotal, paid, balance };
     };
+    const uniqueCustomerOptions = (0, import_react19.useMemo)(() => {
+      const seen = /* @__PURE__ */ new Set();
+      const list = [];
+      customersList.forEach((c) => {
+        if (!c || !c.name || !c.name.trim() || c.name.trim() === "\uBBF8\uC9C0\uC815") return;
+        const trimmed = c.name.trim();
+        const key = trimmed.toLowerCase();
+        if (!seen.has(key)) {
+          seen.add(key);
+          list.push(trimmed);
+        }
+      });
+      list.sort((a, b) => a.localeCompare(b, "ko"));
+      return list;
+    }, [customersList]);
     const filteredDocuments = (0, import_react19.useMemo)(() => {
       return documents.filter((doc) => {
-        if (doc.is_deleted) return false;
+        if (!doc || doc.is_deleted) return false;
         const dDate = doc.doc_date || doc.docDate;
         if (dDate) {
           const [y, m] = dDate.split("-");
@@ -34588,8 +34578,8 @@ IconFile=${currentUrl}favicon.ico\r
           if (selectedMonth !== "all" && m !== selectedMonth) return false;
         }
         if (selectedCustomer !== "all") {
-          const custName = doc.customer_name || doc.customer_data?.name || doc.customer?.name || "";
-          if (custName !== selectedCustomer) return false;
+          const custName = (doc.customer_name || doc.customer_data?.name || doc.customer?.name || "").trim();
+          if (custName.toLowerCase() !== selectedCustomer.trim().toLowerCase()) return false;
         }
         if (selectedSupplier !== "all") {
           const suppKey = doc.supplier_key || doc.supplierKey || "";
@@ -34598,7 +34588,7 @@ IconFile=${currentUrl}favicon.ico\r
         const dType = doc.doc_type || doc.docType;
         if (docTypeFilter !== "all" && dType !== docTypeFilter) return false;
         if (searchQuery.trim()) {
-          const q = searchQuery.toLowerCase();
+          const q = searchQuery.trim().toLowerCase();
           const docNo = (doc.doc_no || doc.docNo || "").toLowerCase();
           const custName = (doc.customer_name || doc.customer_data?.name || doc.customer?.name || "").toLowerCase();
           const remark = (doc.remark || "").toLowerCase();
@@ -34626,12 +34616,16 @@ IconFile=${currentUrl}favicon.ico\r
       });
       return { totalSales, totalPaid, totalUnpaid, totalDocsCount, totalEstimate, estimateDocsCount };
     }, [filteredDocuments]);
-    const customerSummaries = (0, import_react19.useMemo)(() => {
+    const { allCustomerSummaries, summaryCounts } = (0, import_react19.useMemo)(() => {
       const map = /* @__PURE__ */ new Map();
       customersList.forEach((c) => {
-        if (c.name) {
-          map.set(c.name, {
-            name: c.name,
+        if (!c || !c.name) return;
+        const rawName = c.name.trim();
+        if (!rawName || rawName === "\uBBF8\uC9C0\uC815") return;
+        const key = rawName.toLowerCase();
+        if (!map.has(key)) {
+          map.set(key, {
+            name: rawName,
             person: c.person || c.repName || "-",
             phone: c.phone || "-",
             bizno: c.bizno || "-",
@@ -34641,17 +34635,23 @@ IconFile=${currentUrl}favicon.ico\r
             allTimeUnpaid: 0,
             docCount: 0
           });
+        } else {
+          const existing = map.get(key);
+          if (existing.person === "-" && (c.person || c.repName)) existing.person = c.person || c.repName;
+          if (existing.phone === "-" && c.phone) existing.phone = c.phone;
+          if (existing.bizno === "-" && c.bizno) existing.bizno = c.bizno;
         }
       });
       documents.forEach((doc) => {
+        if (!doc || doc.is_deleted) return;
         if ((doc.doc_type || doc.docType) === "\uACAC\uC801\uC11C") return;
         const rawName = (doc.customer_name || doc.customer_data?.name || doc.customer?.name || "").trim();
         if (!rawName || rawName === "\uBBF8\uC9C0\uC815") return;
-        const custName = rawName;
-        if (!map.has(custName)) {
-          map.set(custName, {
-            name: custName,
-            person: doc.customer_data?.person || doc.customer?.person || "-",
+        const key = rawName.toLowerCase();
+        if (!map.has(key)) {
+          map.set(key, {
+            name: rawName,
+            person: doc.customer_data?.person || doc.customer_data?.repName || doc.customer?.person || doc.customer?.repName || "-",
             phone: doc.customer_data?.phone || doc.customer?.phone || "-",
             bizno: doc.customer_data?.bizno || doc.customer?.bizno || "-",
             monthlySales: 0,
@@ -34661,7 +34661,11 @@ IconFile=${currentUrl}favicon.ico\r
             docCount: 0
           });
         }
-        const entry = map.get(custName);
+        const entry = map.get(key);
+        const sKey = doc.supplier_key || doc.supplierKey;
+        if (selectedSupplier !== "all" && !areSupplierKeysEquivalent(sKey, selectedSupplier)) {
+          return;
+        }
         const { grandTotal, paid, balance } = getDocTotals(doc);
         entry.allTimeUnpaid += balance;
         let matchesPeriod = true;
@@ -34671,8 +34675,6 @@ IconFile=${currentUrl}favicon.ico\r
           if (selectedYear !== "all" && y !== selectedYear) matchesPeriod = false;
           if (selectedMonth !== "all" && m !== selectedMonth) matchesPeriod = false;
         }
-        const sKey = doc.supplier_key || doc.supplierKey;
-        if (selectedSupplier !== "all" && !areSupplierKeysEquivalent(sKey, selectedSupplier)) matchesPeriod = false;
         if (matchesPeriod) {
           entry.monthlySales += grandTotal;
           entry.monthlyPaid += paid;
@@ -34681,13 +34683,37 @@ IconFile=${currentUrl}favicon.ico\r
         }
       });
       let list = Array.from(map.values()).filter((c) => c.name && c.name !== "\uBBF8\uC9C0\uC815");
+      if (selectedCustomer !== "all") {
+        const sel = selectedCustomer.trim().toLowerCase();
+        list = list.filter((c) => c.name.trim().toLowerCase() === sel);
+      }
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        list = list.filter((c) => c.name.toLowerCase().includes(q) || c.phone.includes(q) || c.person.toLowerCase().includes(q));
+        const q = searchQuery.trim().toLowerCase();
+        list = list.filter(
+          (c) => c.name.toLowerCase().includes(q) || c.phone.includes(q) || c.person.toLowerCase().includes(q) || c.bizno && c.bizno.includes(q)
+        );
       }
       list.sort((a, b) => b.monthlySales - a.monthlySales || b.allTimeUnpaid - a.allTimeUnpaid);
-      return list;
-    }, [customersList, documents, selectedYear, selectedMonth, selectedSupplier, searchQuery]);
+      const unpaidCount = list.filter((c) => c.allTimeUnpaid > 0 || c.monthlyUnpaid > 0).length;
+      const monthlyCount = list.filter((c) => c.monthlySales > 0 || c.monthlyPaid > 0 || c.docCount > 0).length;
+      const allCount = list.length;
+      return {
+        allCustomerSummaries: list,
+        summaryCounts: { unpaidCount, monthlyCount, allCount }
+      };
+    }, [customersList, documents, selectedYear, selectedMonth, selectedCustomer, selectedSupplier, searchQuery]);
+    const customerSummaries = (0, import_react19.useMemo)(() => {
+      if (selectedCustomer !== "all" || searchQuery.trim()) {
+        return allCustomerSummaries;
+      }
+      if (summaryFilterMode === "unpaid") {
+        return allCustomerSummaries.filter((c) => c.allTimeUnpaid > 0 || c.monthlyUnpaid > 0);
+      }
+      if (summaryFilterMode === "monthly") {
+        return allCustomerSummaries.filter((c) => c.monthlySales > 0 || c.monthlyPaid > 0 || c.docCount > 0);
+      }
+      return allCustomerSummaries;
+    }, [allCustomerSummaries, summaryFilterMode, selectedCustomer, searchQuery]);
     const collaborativeData = (0, import_react19.useMemo)(() => {
       const rawList = documents.filter((doc) => {
         if (doc.is_deleted) return false;
@@ -34900,6 +34926,34 @@ IconFile=${currentUrl}favicon.ico\r
         URL.revokeObjectURL(url2);
         return;
       }
+      if (subTab === "summary") {
+        if (customerSummaries.length === 0) {
+          alert("\uB2E4\uC6B4\uB85C\uB4DC\uD560 \uAC70\uB798\uCC98\uBCC4 \uD68C\uACC4 \uD604\uD669\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.");
+          return;
+        }
+        const headers2 = ["\uAC70\uB798\uCC98\uBA85", "\uB2F4\uB2F9\uC790", "\uC5F0\uB77D\uCC98", "\uC0AC\uC5C5\uC790\uBC88\uD638", "\uD574\uB2F9\uAE30\uAC04 \uB9E4\uCD9C\uC561", "\uD574\uB2F9\uAE30\uAC04 \uC218\uAE08\uC561", "\uD574\uB2F9\uAE30\uAC04 \uBBF8\uC218\uC561", "\uB204\uC801 \uCD1D \uBBF8\uC218\uAE08\uC561", "\uBC1C\uD589\uAC74\uC218", "\uC0C1\uD0DC"];
+        const rows2 = customerSummaries.map((c) => [
+          `"${(c.name || "").replace(/"/g, '""')}"`,
+          `"${(c.person || "").replace(/"/g, '""')}"`,
+          `"${(c.phone || "").replace(/"/g, '""')}"`,
+          `"${(c.bizno || "").replace(/"/g, '""')}"`,
+          c.monthlySales || 0,
+          c.monthlyPaid || 0,
+          c.monthlyUnpaid || 0,
+          c.allTimeUnpaid || 0,
+          c.docCount || 0,
+          `"${c.allTimeUnpaid > 0 ? "\uBBF8\uC218" : "\uC644\uB0A9"}"`
+        ]);
+        const csvContent2 = "\uFEFF" + [headers2.join(","), ...rows2.map((r) => r.join(","))].join("\n");
+        const blob2 = new Blob([csvContent2], { type: "text/csv;charset=utf-8;" });
+        const url2 = URL.createObjectURL(blob2);
+        const link2 = document.createElement("a");
+        link2.href = url2;
+        link2.download = `\uAC70\uB798\uCC98\uBCC4_\uD68C\uACC4\uD604\uD669\uC694\uC57D_${selectedYear}\uB144_${selectedMonth === "all" ? "\uC804\uCCB4" : selectedMonth + "\uC6D4"}.csv`;
+        link2.click();
+        URL.revokeObjectURL(url2);
+        return;
+      }
       if (filteredDocuments.length === 0) {
         alert("\uB2E4\uC6B4\uB85C\uB4DC\uD560 \uD68C\uACC4 \uB0B4\uC5ED\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.");
         return;
@@ -34967,7 +35021,7 @@ IconFile=${currentUrl}favicon.ico\r
         value: searchQuery,
         onChange: (e) => setSearchQuery(e.target.value)
       }
-    )) : /* @__PURE__ */ import_react19.default.createElement(import_react19.default.Fragment, null, /* @__PURE__ */ import_react19.default.createElement("select", { className: "form-select", style: { width: "140px", minHeight: "34px", padding: "4px 8px", fontSize: "0.8125rem" }, value: selectedCustomer, onChange: (e) => setSelectedCustomer(e.target.value) }, /* @__PURE__ */ import_react19.default.createElement("option", { value: "all" }, "\u{1F3E2} \uC804\uCCB4 \uAC70\uB798\uCC98"), customersList.map((c) => /* @__PURE__ */ import_react19.default.createElement("option", { key: c.id || c.name, value: c.name }, c.name))), sessionStorage.getItem("dd_user_role") === "admin" && /* @__PURE__ */ import_react19.default.createElement("select", { className: "form-select", style: { width: "130px", minHeight: "34px", padding: "4px 8px", fontSize: "0.8125rem" }, value: selectedSupplier, onChange: (e) => setSelectedSupplier(e.target.value) }, /* @__PURE__ */ import_react19.default.createElement("option", { value: "all" }, "\u{1F3EA} \uC804\uCCB4 \uACF5\uAE09\uC790"), suppliersList.map((s) => /* @__PURE__ */ import_react19.default.createElement("option", { key: s.id, value: s.id }, s.name || s.company))), /* @__PURE__ */ import_react19.default.createElement("select", { className: "form-select", style: { width: "115px", minHeight: "34px", padding: "4px 8px", fontSize: "0.8125rem" }, value: docTypeFilter, onChange: (e) => setDocTypeFilter(e.target.value) }, /* @__PURE__ */ import_react19.default.createElement("option", { value: "all" }, "\u{1F4C4} \uC804\uCCB4 \uBB38\uC11C"), DOC_TYPES.map((t) => /* @__PURE__ */ import_react19.default.createElement("option", { key: t, value: t }, t))), /* @__PURE__ */ import_react19.default.createElement("input", { type: "text", className: "form-input", style: { width: "170px", minHeight: "34px", padding: "4px 8px", fontSize: "0.8125rem" }, placeholder: "\u{1F50D} \uAC70\uB798\uCC98/\uD488\uBAA9 \uAC80\uC0C9...", value: searchQuery, onChange: (e) => setSearchQuery(e.target.value) }))))), subTab === "collab" ? (
+    )) : /* @__PURE__ */ import_react19.default.createElement(import_react19.default.Fragment, null, /* @__PURE__ */ import_react19.default.createElement("select", { className: "form-select", style: { width: "140px", minHeight: "34px", padding: "4px 8px", fontSize: "0.8125rem" }, value: selectedCustomer, onChange: (e) => setSelectedCustomer(e.target.value) }, /* @__PURE__ */ import_react19.default.createElement("option", { value: "all" }, "\u{1F3E2} \uC804\uCCB4 \uAC70\uB798\uCC98"), uniqueCustomerOptions.map((name) => /* @__PURE__ */ import_react19.default.createElement("option", { key: name, value: name }, name))), sessionStorage.getItem("dd_user_role") === "admin" && /* @__PURE__ */ import_react19.default.createElement("select", { className: "form-select", style: { width: "130px", minHeight: "34px", padding: "4px 8px", fontSize: "0.8125rem" }, value: selectedSupplier, onChange: (e) => setSelectedSupplier(e.target.value) }, /* @__PURE__ */ import_react19.default.createElement("option", { value: "all" }, "\u{1F3EA} \uC804\uCCB4 \uACF5\uAE09\uC790"), suppliersList.map((s) => /* @__PURE__ */ import_react19.default.createElement("option", { key: s.id, value: s.id }, s.name || s.company))), /* @__PURE__ */ import_react19.default.createElement("select", { className: "form-select", style: { width: "115px", minHeight: "34px", padding: "4px 8px", fontSize: "0.8125rem" }, value: docTypeFilter, onChange: (e) => setDocTypeFilter(e.target.value) }, /* @__PURE__ */ import_react19.default.createElement("option", { value: "all" }, "\u{1F4C4} \uC804\uCCB4 \uBB38\uC11C"), DOC_TYPES.map((t) => /* @__PURE__ */ import_react19.default.createElement("option", { key: t, value: t }, t))), /* @__PURE__ */ import_react19.default.createElement("input", { type: "text", className: "form-input", style: { width: "170px", minHeight: "34px", padding: "4px 8px", fontSize: "0.8125rem" }, placeholder: "\u{1F50D} \uAC70\uB798\uCC98/\uD488\uBAA9 \uAC80\uC0C9...", value: searchQuery, onChange: (e) => setSearchQuery(e.target.value) }))))), subTab === "collab" ? (
       /* 🤝 Collaborative 4 KPI Cards (shadcn/ui style) */
       /* @__PURE__ */ import_react19.default.createElement("div", { className: "accounting-summary-grid", style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "0.75rem", marginBottom: "0.75rem" } }, /* @__PURE__ */ import_react19.default.createElement("div", { className: "card-box", style: { padding: "1rem", borderTop: "3px solid #f59e0b", backgroundColor: "#ffffff" } }, /* @__PURE__ */ import_react19.default.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.375rem" } }, /* @__PURE__ */ import_react19.default.createElement("span", { style: { fontSize: "0.8125rem", fontWeight: "800", color: "#b45309" } }, "\u{1F4E4} \uBCF4\uB0BC \uC815\uC0B0\uAE08 (\uBBF8\uC9C0\uAE09)"), /* @__PURE__ */ import_react19.default.createElement("div", { style: { width: "28px", height: "28px", borderRadius: "50%", backgroundColor: "#fef3c7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.875rem" } }, "\u{1F4E4}")), /* @__PURE__ */ import_react19.default.createElement("div", { style: { fontSize: "1.5rem", fontWeight: "900", color: "#191F28", letterSpacing: "-0.03em" } }, collaborativeData.outgoingPending.toLocaleString(), /* @__PURE__ */ import_react19.default.createElement("span", { style: { fontSize: "0.9375rem", fontWeight: "700", color: "#4E5968" } }, " \uC6D0")), /* @__PURE__ */ import_react19.default.createElement("div", { style: { fontSize: "0.75rem", color: "#b45309", marginTop: "0.25rem", fontWeight: "700" } }, "\uB0B4\uAC00 \uC218\uC8FC\uD55C \uACF5\uB3D9\uC791\uC5C5 \uC815\uC0B0 \uB300\uAE30")), /* @__PURE__ */ import_react19.default.createElement("div", { className: "card-box", style: { padding: "1rem", borderTop: "3px solid #3b82f6", backgroundColor: "#ffffff" } }, /* @__PURE__ */ import_react19.default.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.375rem" } }, /* @__PURE__ */ import_react19.default.createElement("span", { style: { fontSize: "0.8125rem", fontWeight: "800", color: "#1d4ed8" } }, "\u{1F4E5} \uBC1B\uC744 \uC815\uC0B0\uAE08 (\uBBF8\uC218)"), /* @__PURE__ */ import_react19.default.createElement("div", { style: { width: "28px", height: "28px", borderRadius: "50%", backgroundColor: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.875rem" } }, "\u{1F4E5}")), /* @__PURE__ */ import_react19.default.createElement("div", { style: { fontSize: "1.5rem", fontWeight: "900", color: "#191F28", letterSpacing: "-0.03em" } }, collaborativeData.incomingPending.toLocaleString(), /* @__PURE__ */ import_react19.default.createElement("span", { style: { fontSize: "0.9375rem", fontWeight: "700", color: "#4E5968" } }, " \uC6D0")), /* @__PURE__ */ import_react19.default.createElement("div", { style: { fontSize: "0.75rem", color: "#1d4ed8", marginTop: "0.25rem", fontWeight: "700" } }, "\uD30C\uD2B8\uB108 \uC218\uC8FC \uAC74 \uB0B4\uAC00 \uBC1B\uC744 \uB300\uAE08")), /* @__PURE__ */ import_react19.default.createElement("div", { className: "card-box", style: { padding: "1rem", borderTop: "3px solid #10b981", backgroundColor: "#ffffff" } }, /* @__PURE__ */ import_react19.default.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.375rem" } }, /* @__PURE__ */ import_react19.default.createElement("span", { style: { fontSize: "0.8125rem", fontWeight: "800", color: "#047857" } }, "\u2705 \uC815\uC0B0 \uC644\uB8CC \uB204\uC801\uC561"), /* @__PURE__ */ import_react19.default.createElement("div", { style: { width: "28px", height: "28px", borderRadius: "50%", backgroundColor: "#ecfdf5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.875rem" } }, "\u2728")), /* @__PURE__ */ import_react19.default.createElement("div", { style: { fontSize: "1.5rem", fontWeight: "900", color: "#191F28", letterSpacing: "-0.03em" } }, collaborativeData.totalSettled.toLocaleString(), /* @__PURE__ */ import_react19.default.createElement("span", { style: { fontSize: "0.9375rem", fontWeight: "700", color: "#4E5968" } }, " \uC6D0")), /* @__PURE__ */ import_react19.default.createElement("div", { style: { fontSize: "0.75rem", color: "#047857", marginTop: "0.25rem", fontWeight: "700" } }, `${collaborativeData.completedCount}\uAC74 \uB9C8\uAC10 \uC644\uB8CC`)), /* @__PURE__ */ import_react19.default.createElement("div", { className: "card-box", style: { padding: "1rem", borderTop: "3px solid #6366f1", backgroundColor: "#ffffff" } }, /* @__PURE__ */ import_react19.default.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.375rem" } }, /* @__PURE__ */ import_react19.default.createElement("span", { style: { fontSize: "0.8125rem", fontWeight: "800", color: "#4338ca" } }, "\u{1F91D} \uACF5\uB3D9\uC791\uC5C5 \uCD1D \uAC74\uC218"), /* @__PURE__ */ import_react19.default.createElement("div", { style: { width: "28px", height: "28px", borderRadius: "50%", backgroundColor: "#eef2ff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.875rem" } }, "\u{1F91D}")), /* @__PURE__ */ import_react19.default.createElement("div", { style: { fontSize: "1.5rem", fontWeight: "900", color: "#191F28", letterSpacing: "-0.03em" } }, collaborativeData.allCollabCount, /* @__PURE__ */ import_react19.default.createElement("span", { style: { fontSize: "0.9375rem", fontWeight: "700", color: "#4E5968" } }, " \uAC74")), /* @__PURE__ */ import_react19.default.createElement("div", { style: { fontSize: "0.75rem", color: "#64748b", marginTop: "0.25rem" } }, `\uBBF8\uC815\uC0B0 ${collaborativeData.pendingCount}\uAC74 / \uC644\uB8CC ${collaborativeData.completedCount}\uAC74`)))
     ) : (
@@ -35221,23 +35275,67 @@ IconFile=${currentUrl}favicon.ico\r
       })))))
     ) : subTab === "summary" ? (
       /* Summary Table */
-      /* @__PURE__ */ import_react19.default.createElement("div", { style: { overflowX: "auto" } }, /* @__PURE__ */ import_react19.default.createElement("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: "0.8125rem" } }, /* @__PURE__ */ import_react19.default.createElement("thead", { style: { backgroundColor: "#F8FAFC", borderBottom: "2px solid #E5E8EB", color: "#4E5968", fontWeight: "800" } }, /* @__PURE__ */ import_react19.default.createElement("tr", null, /* @__PURE__ */ import_react19.default.createElement("th", { style: { padding: "0.75rem 1rem", textAlign: "left" } }, "\uAC70\uB798\uCC98\uBA85"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { padding: "0.75rem 0.5rem", textAlign: "center" } }, "\uB2F4\uB2F9/\uC5F0\uB77D\uCC98"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { padding: "0.75rem 0.75rem", textAlign: "right" } }, "\uD574\uB2F9\uAE30\uAC04 \uB9E4\uCD9C"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { padding: "0.75rem 0.75rem", textAlign: "right" } }, "\uD574\uB2F9\uAE30\uAC04 \uC218\uAE08"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { padding: "0.75rem 0.75rem", textAlign: "right" } }, "\uD574\uB2F9\uAE30\uAC04 \uBBF8\uC218"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { padding: "0.75rem 0.75rem", textAlign: "right" } }, "\uB204\uC801 \uCD1D \uBBF8\uC218\uAE08"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { padding: "0.75rem 0.5rem", textAlign: "center" } }, "\uC0C1\uD0DC / \uAC74\uC218"))), /* @__PURE__ */ import_react19.default.createElement("tbody", null, customerSummaries.length === 0 ? /* @__PURE__ */ import_react19.default.createElement("tr", null, /* @__PURE__ */ import_react19.default.createElement("td", { colSpan: 7, style: { padding: "2rem", textAlign: "center", color: "#8B95A1" } }, "\uC870\uD68C \uC870\uAC74\uC5D0 \uD574\uB2F9\uD558\uB294 \uAC70\uB798\uCC98 \uB0B4\uC5ED\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.")) : customerSummaries.map((c, idx) => {
+      /* @__PURE__ */ import_react19.default.createElement("div", null, /* @__PURE__ */ import_react19.default.createElement("div", { className: "no-print", style: { padding: "0.625rem 1rem", borderBottom: "1px solid #e2e8f0", backgroundColor: "#f8fafc", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" } }, /* @__PURE__ */ import_react19.default.createElement("div", { style: { display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ import_react19.default.createElement("span", { style: { fontSize: "0.75rem", fontWeight: "800", color: "#4E5968", marginRight: "2px" } }, "\uBCF4\uAE30 \uAD6C\uBD84:"), [
+        { id: "unpaid", label: `\u26A0\uFE0F \uBBF8\uC218 \uAC70\uB798\uCC98 (${summaryCounts.unpaidCount})`, activeColor: "#D92D20", activeBg: "#FEF3F2", activeBorder: "#FECDCA" },
+        { id: "monthly", label: `\u{1F4C5} \uB2F9\uC6D4 \uAC70\uB798\uCC98 (${summaryCounts.monthlyCount})`, activeColor: "#1B64DA", activeBg: "#EFF4FE", activeBorder: "#B2CCFF" },
+        { id: "all", label: `\u{1F3E2} \uC804\uCCB4 \uAC70\uB798\uCC98 (${summaryCounts.allCount})`, activeColor: "#191F28", activeBg: "#ffffff", activeBorder: "#D1D5DB" }
+      ].map((btn) => /* @__PURE__ */ import_react19.default.createElement(
+        "button",
+        {
+          key: btn.id,
+          type: "button",
+          onClick: () => setSummaryFilterMode(btn.id),
+          style: {
+            padding: "4px 10px",
+            fontSize: "0.75rem",
+            fontWeight: "800",
+            borderRadius: "6px",
+            cursor: "pointer",
+            transition: "all 0.15s",
+            backgroundColor: summaryFilterMode === btn.id ? btn.activeBg : "#ffffff",
+            color: summaryFilterMode === btn.id ? btn.activeColor : "#6B7684",
+            border: `1px solid ${summaryFilterMode === btn.id ? btn.activeBorder : "#E5E8EB"}`,
+            boxShadow: summaryFilterMode === btn.id ? "0 1px 2px rgba(0,0,0,0.05)" : "none"
+          }
+        },
+        btn.label
+      ))), /* @__PURE__ */ import_react19.default.createElement("div", { style: { fontSize: "0.75rem", color: "#8B95A1" } }, summaryFilterMode === "unpaid" ? "\u203B \uB204\uC801 \uB610\uB294 \uD574\uB2F9 \uAE30\uAC04 \uBBF8\uC218\uAE08\uC774 \uB0A8\uC544\uC788\uB294 \uAC70\uB798\uCC98\uB9CC \uD45C\uC2DC \uC911\uC785\uB2C8\uB2E4." : summaryFilterMode === "monthly" ? "\u203B \uC120\uD0DD\uD55C \uAE30\uAC04\uC5D0 \uAC70\uB798/\uBC1C\uD589 \uB0B4\uC5ED\uC774 \uC788\uB294 \uAC70\uB798\uCC98\uB9CC \uD45C\uC2DC \uC911\uC785\uB2C8\uB2E4." : "\u203B \uB4F1\uB85D\uB41C \uBAA8\uB4E0 \uAC70\uB798\uCC98(\uBBF8\uC218\uAE08 0\uC6D0 \uD3EC\uD568)\uB97C \uD45C\uC2DC \uC911\uC785\uB2C8\uB2E4.")), /* @__PURE__ */ import_react19.default.createElement("div", { style: { overflowX: "auto" } }, /* @__PURE__ */ import_react19.default.createElement("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: "0.8125rem" } }, /* @__PURE__ */ import_react19.default.createElement("thead", { style: { backgroundColor: "#F8FAFC", borderBottom: "2px solid #E5E8EB", color: "#4E5968", fontWeight: "800" } }, /* @__PURE__ */ import_react19.default.createElement("tr", null, /* @__PURE__ */ import_react19.default.createElement("th", { style: { padding: "0.75rem 1rem", textAlign: "left" } }, "\uAC70\uB798\uCC98\uBA85"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { padding: "0.75rem 0.5rem", textAlign: "center" } }, "\uB2F4\uB2F9/\uC5F0\uB77D\uCC98"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { padding: "0.75rem 0.75rem", textAlign: "right" } }, "\uD574\uB2F9\uAE30\uAC04 \uB9E4\uCD9C"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { padding: "0.75rem 0.75rem", textAlign: "right" } }, "\uD574\uB2F9\uAE30\uAC04 \uC218\uAE08"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { padding: "0.75rem 0.75rem", textAlign: "right" } }, "\uD574\uB2F9\uAE30\uAC04 \uBBF8\uC218"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { padding: "0.75rem 0.75rem", textAlign: "right" } }, "\uB204\uC801 \uCD1D \uBBF8\uC218\uAE08"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { padding: "0.75rem 0.5rem", textAlign: "center" } }, "\uC0C1\uD0DC / \uAC74\uC218"))), /* @__PURE__ */ import_react19.default.createElement("tbody", null, customerSummaries.length === 0 ? /* @__PURE__ */ import_react19.default.createElement("tr", null, /* @__PURE__ */ import_react19.default.createElement("td", { colSpan: 7, style: { padding: "2.5rem 1rem", textAlign: "center", color: "#8B95A1" } }, /* @__PURE__ */ import_react19.default.createElement("div", { style: { fontSize: "1.75rem", marginBottom: "0.5rem" } }, summaryFilterMode === "unpaid" ? "\u{1F389}" : "\u{1F4C2}"), /* @__PURE__ */ import_react19.default.createElement("div", { style: { fontWeight: "800", fontSize: "0.875rem", color: "#4E5968", marginBottom: "0.25rem" } }, summaryFilterMode === "unpaid" ? "\uBBF8\uC218\uAE08\uC774 \uB0A8\uC544\uC788\uB294 \uAC70\uB798\uCC98\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4! (\uC804\uC561 \uC644\uB0A9)" : "\uC870\uD68C \uC870\uAC74\uC5D0 \uD574\uB2F9\uD558\uB294 \uAC70\uB798\uCC98 \uB0B4\uC5ED\uC774 \uC5C6\uC2B5\uB2C8\uB2E4."), summaryFilterMode === "unpaid" && summaryCounts.allCount > 0 && /* @__PURE__ */ import_react19.default.createElement(
+        "button",
+        {
+          type: "button",
+          className: "btn btn-outline btn-sm",
+          style: { marginTop: "0.5rem", fontSize: "0.75rem" },
+          onClick: () => setSummaryFilterMode("all")
+        },
+        "\u{1F3E2} \uC804\uCCB4 \uB4F1\uB85D \uAC70\uB798\uCC98 \uBAA9\uB85D \uBCF4\uAE30 (",
+        summaryCounts.allCount,
+        "\uAC1C\uC0AC)"
+      ))) : customerSummaries.map((c, idx) => {
         const hasUnpaid = c.allTimeUnpaid > 0;
         return /* @__PURE__ */ import_react19.default.createElement(
           "tr",
           {
             key: c.name + idx,
-            style: { borderBottom: "1px solid #E5E8EB", backgroundColor: idx % 2 === 0 ? "#ffffff" : "#F9FAFB" }
+            style: {
+              borderBottom: "1px solid #E5E8EB",
+              backgroundColor: idx % 2 === 0 ? "#ffffff" : "#F9FAFB",
+              cursor: "pointer"
+            },
+            title: "\uD074\uB9AD\uD558\uC5EC \uC774 \uAC70\uB798\uCC98\uC758 \uC0C1\uC138 \uAC70\uB798\uC7A5\uBD80 \uBCF4\uAE30",
+            onClick: () => {
+              setSelectedCustomer(c.name);
+              setSubTab("detailed");
+            }
           },
-          /* @__PURE__ */ import_react19.default.createElement("td", { style: { padding: "0.75rem 1rem", fontWeight: "800", color: "#191F28" } }, c.name),
+          /* @__PURE__ */ import_react19.default.createElement("td", { style: { padding: "0.75rem 1rem", fontWeight: "800", color: "#191F28" } }, /* @__PURE__ */ import_react19.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "6px" } }, /* @__PURE__ */ import_react19.default.createElement("span", null, c.name), /* @__PURE__ */ import_react19.default.createElement("span", { style: { fontSize: "10px", color: "#3b82f6", backgroundColor: "#eff6ff", padding: "1px 5px", borderRadius: "4px", border: "1px solid #dbeafe" } }, "\uC0C1\uC138\uBCF4\uAE30 \u2197"))),
           /* @__PURE__ */ import_react19.default.createElement("td", { style: { padding: "0.75rem 0.5rem", textAlign: "center", color: "#6B7684", fontSize: "0.75rem" } }, `${c.person} (${c.phone})`),
           /* @__PURE__ */ import_react19.default.createElement("td", { style: { padding: "0.75rem 0.75rem", textAlign: "right", fontWeight: "800", color: "#191F28" } }, `${c.monthlySales.toLocaleString()} \uC6D0`),
           /* @__PURE__ */ import_react19.default.createElement("td", { style: { padding: "0.75rem 0.75rem", textAlign: "right", fontWeight: "700", color: "#1B64DA" } }, `${c.monthlyPaid.toLocaleString()} \uC6D0`),
           /* @__PURE__ */ import_react19.default.createElement("td", { style: { padding: "0.75rem 0.75rem", textAlign: "right", fontWeight: "800", color: c.monthlyUnpaid > 0 ? "#D92D20" : "#03C75A" } }, `${c.monthlyUnpaid.toLocaleString()} \uC6D0`),
           /* @__PURE__ */ import_react19.default.createElement("td", { style: { padding: "0.75rem 0.75rem", textAlign: "right", fontWeight: "900", color: hasUnpaid ? "#D92D20" : "#03C75A" } }, `${c.allTimeUnpaid.toLocaleString()} \uC6D0`),
-          /* @__PURE__ */ import_react19.default.createElement("td", { style: { padding: "0.75rem 0.5rem", textAlign: "center" } }, hasUnpaid ? /* @__PURE__ */ import_react19.default.createElement("span", { style: { padding: "2px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: "800", backgroundColor: "#FEF3F2", color: "#D92D20", border: "1px solid #FECDCA" } }, "\uBBF8\uC218") : /* @__PURE__ */ import_react19.default.createElement("span", { style: { padding: "2px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: "800", backgroundColor: "#E8F8F0", color: "#028A3E", border: "1px solid #A3E9C4" } }, "\uC644\uB0A9"))
+          /* @__PURE__ */ import_react19.default.createElement("td", { style: { padding: "0.75rem 0.5rem", textAlign: "center" } }, /* @__PURE__ */ import_react19.default.createElement("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" } }, hasUnpaid ? /* @__PURE__ */ import_react19.default.createElement("span", { style: { padding: "2px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: "800", backgroundColor: "#FEF3F2", color: "#D92D20", border: "1px solid #FECDCA" } }, "\uBBF8\uC218") : /* @__PURE__ */ import_react19.default.createElement("span", { style: { padding: "2px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: "800", backgroundColor: "#E8F8F0", color: "#028A3E", border: "1px solid #A3E9C4" } }, "\uC644\uB0A9"), c.docCount > 0 && /* @__PURE__ */ import_react19.default.createElement("span", { style: { fontSize: "10px", color: "#6B7684", fontWeight: "600" } }, `\uD574\uB2F9\uC6D4 ${c.docCount}\uAC74`)))
         );
-      }))))
+      })))))
     ) : (
       /* Detailed Transactions Table */
       /* @__PURE__ */ import_react19.default.createElement("div", { style: { overflowX: "auto" } }, /* @__PURE__ */ import_react19.default.createElement("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: "0.8125rem" } }, /* @__PURE__ */ import_react19.default.createElement("thead", { style: { backgroundColor: "#F8FAFC", borderBottom: "2px solid #E5E8EB", color: "#4E5968", fontWeight: "800" } }, /* @__PURE__ */ import_react19.default.createElement("tr", null, /* @__PURE__ */ import_react19.default.createElement("th", { style: { padding: "0.75rem 0.75rem", textAlign: "left" } }, "\uC77C\uC790"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { padding: "0.75rem 0.5rem", textAlign: "center" } }, "\uAD6C\uBD84"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { padding: "0.75rem 0.75rem", textAlign: "left" } }, "\uAC70\uB798\uCC98\uBA85"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { padding: "0.75rem 0.75rem", textAlign: "left" } }, "\uD488\uBAA9 \uC694\uC57D"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { padding: "0.75rem 0.75rem", textAlign: "right" } }, "\uACF5\uAE09\uAC00\uC561"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { padding: "0.75rem 0.75rem", textAlign: "right" } }, "\uBD80\uAC00\uC138"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { padding: "0.75rem 0.75rem", textAlign: "right" } }, "\uD569\uACC4\uAE08\uC561"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { padding: "0.75rem 0.75rem", textAlign: "right" } }, "\uC218\uAE08\uC561"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { padding: "0.75rem 0.75rem", textAlign: "right" } }, "\uBBF8\uC218\uC794\uC561"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { padding: "0.75rem 0.5rem", textAlign: "center" } }, "\uC0C1\uD0DC"), /* @__PURE__ */ import_react19.default.createElement("th", { className: "no-print", style: { padding: "0.75rem 0.5rem", textAlign: "center" } }, "\uAD00\uB9AC"))), /* @__PURE__ */ import_react19.default.createElement("tbody", null, filteredDocuments.length === 0 ? /* @__PURE__ */ import_react19.default.createElement("tr", null, /* @__PURE__ */ import_react19.default.createElement("td", { colSpan: 11, style: { padding: "2rem", textAlign: "center", color: "#8B95A1" } }, "\uC870\uD68C \uC870\uAC74\uC5D0 \uD574\uB2F9\uD558\uB294 \uBB38\uC11C \uB0B4\uC5ED\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.")) : filteredDocuments.map((doc, idx) => {

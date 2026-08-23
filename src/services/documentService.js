@@ -276,19 +276,20 @@ export async function updateDocumentPaid(docId, paidAmount, remark) {
   const paidNum = Number(paidAmount) || 0;
   const local = getLocalItem(STORAGE_KEYS.DOCUMENTS, DEMO_DOCUMENTS);
   
-  if (userRole === 'supplier') {
-    const found = local.find(d => d.id === docId || d.doc_no === docId);
-    if (found && found.supplier_key && !areSupplierKeysEquivalent(found.supplier_key, selectedSupplierKey) && !(found.is_shared && isPartnerInDoc(found, selectedSupplierKey))) {
+  const found = local.find(d => String(d.id) === String(docId) || d.doc_no === docId);
+  if (userRole === 'supplier' && found && found.supplier_key) {
+    if (!areSupplierKeysEquivalent(found.supplier_key, selectedSupplierKey) && !(found.is_shared && isPartnerInDoc(found, selectedSupplierKey))) {
       alert('해당 문서의 수금을 변경할 권한이 없습니다.');
       return local.filter(unpackRow);
     }
   }
 
-  if (sb && docId && !String(docId).startsWith('doc_')) {
+  if (sb && found && found.id && !String(found.id).startsWith('doc_')) {
     try {
-      const updateObj = { paid: paidNum };
-      if (remark !== undefined) updateObj.remark = remark;
-      await sb.from('documents').update(updateObj).eq('id', docId);
+      const updatedDoc = { ...found, paid: paidNum, ...(remark !== undefined ? { remark } : {}) };
+      const packed = packRow(updatedDoc, 'documents');
+      const updateObj = { paid: paidNum, remark: packed.remark };
+      await sb.from('documents').update(updateObj).eq('id', found.id);
     } catch (e) {
       console.error(e);
     }

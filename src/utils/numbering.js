@@ -102,55 +102,23 @@ export function generateNextDocNo(
 
 export async function deduplicateAndResequenceDocNumbers(docList = []) {
   if (!docList || docList.length === 0) return docList;
-  
-  const dateGroups = new Map();
-  docList.forEach(doc => {
-    const rawDate = doc.doc_date || (doc.created_at ? doc.created_at.split('T')[0] : '') || new Date().toISOString().split('T')[0];
-    const d = new Date(rawDate);
-    const dateKey = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
-    if (!dateGroups.has(dateKey)) dateGroups.set(dateKey, []);
-    dateGroups.get(dateKey).push(doc);
-  });
 
+  const seenNos = new Set();
   let hasChange = false;
   const updatedList = [];
 
-  dateGroups.forEach((docs, dateKey) => {
-    docs.sort((a, b) => {
-      const timeA = (a.doc_date || '') + ' ' + (a.doc_time || a.created_at || '');
-      const timeB = (b.doc_date || '') + ' ' + (b.doc_time || b.created_at || '');
-      return timeA.localeCompare(timeB);
-    });
-
-    const usedSeqs = new Set();
-    docs.forEach((doc) => {
-      let currentSeq = null;
-      if (doc.doc_no && doc.doc_no.startsWith(dateKey)) {
-        const parts = doc.doc_no.split('-');
-        if (parts.length >= 2) {
-          const num = parseInt(parts[1], 10);
-          if (!isNaN(num) && !usedSeqs.has(num)) {
-            currentSeq = num;
-          }
-        }
-      }
-      
-      if (currentSeq === null) {
-        let nextSeq = 1;
-        while (usedSeqs.has(nextSeq)) nextSeq++;
-        currentSeq = nextSeq;
-        hasChange = true;
-      }
-      
-      usedSeqs.add(currentSeq);
-      const uniqueDocNo = `${dateKey}-${String(currentSeq).padStart(3, '0')}`;
-      if (doc.doc_no !== uniqueDocNo) {
-        doc.doc_no = uniqueDocNo;
-        hasChange = true;
-      }
-      updatedList.push(doc);
-    });
-  });
+  for (const doc of docList) {
+    if (!doc) continue;
+    let docNo = (doc.doc_no || doc.docNo || '').trim();
+    if (!docNo || seenNos.has(docNo)) {
+      const rawDate = doc.doc_date || doc.docDate || (doc.created_at ? doc.created_at.split('T')[0] : '') || new Date().toISOString().split('T')[0];
+      docNo = generateNextDocNo(rawDate, updatedList, doc.supplier_key || 'sejin', doc.customer_data || { name: doc.customer_name }, doc.doc_type || '거래명세서');
+      doc.doc_no = docNo;
+      hasChange = true;
+    }
+    seenNos.add(docNo);
+    updatedList.push(doc);
+  }
 
   if (hasChange) {
     setLocalItem('dd_documents_history_v1', updatedList);
