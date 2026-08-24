@@ -1,6 +1,7 @@
 import React from 'react';
 import { DEFAULT_SUPPLIERS } from '../config/defaults.js';
 import { areSupplierKeysEquivalent, normalizePartners } from '../utils/validation.js';
+import { shareDocumentImage, exportPagesToPNG } from '../utils/exportUtils.js';
 
 export default function DocumentPreviewModal({
   doc,
@@ -33,6 +34,16 @@ export default function DocumentPreviewModal({
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleShareModal = async () => {
+    const previewBody = document.querySelector('.doc-preview-body');
+    await shareDocumentImage(previewBody, `${docType}_${docNo || '명세서'}_${customer.name || '고객'}`);
+  };
+
+  const handleDownloadImageModal = async () => {
+    const previewBody = document.querySelector('.doc-preview-body');
+    await exportPagesToPNG([previewBody], `${docType}_${docNo || '명세서'}_${customer.name || '고객'}`);
   };
 
   const cleanRemark = (doc.remark || '').split('---EXT---')[0].trim();
@@ -437,7 +448,25 @@ export default function DocumentPreviewModal({
             style={{ flex: 1, minHeight: '38px', fontSize: '0.8125rem', fontWeight: '800', whiteSpace: 'nowrap' }}
             onClick={handlePrint}
           >
-            🖨️ 인쇄 / PDF
+            🖨️ 인쇄
+          </button>
+          <button
+            type="button"
+            className="btn btn-outline"
+            style={{ flex: 1, minHeight: '38px', fontSize: '0.8125rem', fontWeight: '800', whiteSpace: 'nowrap', color: '#0284c7', borderColor: '#bae6fd' }}
+            onClick={handleShareModal}
+            title="스마트폰 카톡/문자 공유 또는 이미지 다운로드"
+          >
+            📱 모바일 공유
+          </button>
+          <button
+            type="button"
+            className="btn btn-outline"
+            style={{ flex: 1, minHeight: '38px', fontSize: '0.8125rem', fontWeight: '800', whiteSpace: 'nowrap', color: '#059669', borderColor: '#a7f3d0' }}
+            onClick={handleDownloadImageModal}
+            title="이미지(PNG) 사진 파일 저장"
+          >
+            📸 사진저장
           </button>
           {onCopy && (
             <button
@@ -462,13 +491,13 @@ export default function DocumentPreviewModal({
                 onClose();
               }}
             >
-              ✏️ 편집 (작성 탭)
+              ✏️ 편집
             </button>
           )}
           <button
             type="button"
             className="btn btn-outline"
-            style={{ minHeight: '38px', fontSize: '0.8125rem', padding: '0 14px' }}
+            style={{ minHeight: '38px', fontSize: '0.8125rem', padding: '0 12px' }}
             onClick={onClose}
           >
             닫기

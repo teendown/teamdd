@@ -87,7 +87,7 @@
 @media print {
   html, body {
     width: 210mm !important;
-    height: 297mm !important;
+    min-height: 297mm !important;
     margin: 0 !important;
     padding: 0 !important;
     background-color: #ffffff !important;
@@ -95,9 +95,56 @@
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-  .top-header, .tab-bar-container, .form-panel, .modal-overlay, button, .status-badge {
+  
+  /* 비인쇄 UI 요소 완전 숨김 */
+  .top-header, 
+  .tab-bar-container, 
+  .form-panel, 
+  .doc-preview-header,
+  .doc-preview-footer,
+  .no-print,
+  button, 
+  .status-badge {
     display: none !important;
   }
+
+  /* 모달 백드롭 인쇄 최적화 */
+  .doc-preview-backdrop {
+    position: static !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    display: block !important;
+    inset: auto !important;
+    z-index: auto !important;
+  }
+
+  .doc-preview-container {
+    max-width: 100% !important;
+    width: 210mm !important;
+    max-height: none !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+
+  .doc-preview-body {
+    padding: 10mm 12mm !important;
+    background-color: #ffffff !important;
+  }
+
+  .preview-items-desktop {
+    display: block !important;
+  }
+  .preview-items-mobile {
+    display: none !important;
+  }
+
+  /* 기본 문서 작성 캔버스 인쇄 최적화 */
   .preview-panel {
     padding: 0 !important;
     margin: 0 !important;
@@ -106,6 +153,7 @@
     display: block !important;
     width: 210mm !important;
   }
+
   .document-page-wrapper {
     box-shadow: none !important;
     margin: 0 !important;
@@ -116,6 +164,7 @@
     page-break-after: always;
     page-break-inside: avoid;
   }
+
   .document-page {
     width: 210mm !important;
     min-height: 297mm !important;
@@ -128,6 +177,7 @@
     page-break-after: always;
     page-break-inside: avoid;
   }
+
   .canvas-input {
     background-color: transparent !important;
     box-shadow: none !important;

@@ -115,19 +115,19 @@ export default function StatementTab({
 
   const handleExportPNG = async () => {
     if (!validateBeforeAction()) return;
-    await exportPagesToPNG(`${docType}_${docNo || '명세서'}`);
+    const pages = document.querySelectorAll('.document-page');
+    await exportPagesToPNG(pages, `${docType}_${docNo || '명세서'}`);
   };
 
   const handleExportPDF = async () => {
     if (!validateBeforeAction()) return;
     const pages = document.querySelectorAll('.document-page');
-    if (!pages || pages.length === 0) return;
+    if (!pages || pages.length === 0) {
+      alert('❌ PDF로 변환할 문서 페이지를 찾을 수 없습니다.');
+      return;
+    }
     try {
-      if (!window.html2canvas) {
-        window.print();
-        return;
-      }
-      if (!window.jspdf) {
+      if (!window.html2canvas || !window.jspdf) {
         window.print();
         return;
       }
@@ -137,7 +137,9 @@ export default function StatementTab({
         if (i > 0) pdf.addPage();
         const canvas = await window.html2canvas(pages[i], {
           scale: 2,
-          backgroundColor: '#ffffff'
+          backgroundColor: '#ffffff',
+          useCORS: true,
+          logging: false
         });
         const imgData = canvas.toDataURL('image/png');
         const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -146,7 +148,7 @@ export default function StatementTab({
       }
       pdf.save(`${docType}_${docNo || '명세서'}.pdf`);
     } catch (e) {
-      console.error(e);
+      console.error('PDF 내보내기 오류:', e);
       window.print();
     }
   };
@@ -175,7 +177,8 @@ export default function StatementTab({
 
   const handleShare = async () => {
     if (!validateBeforeAction()) return;
-    await shareDocumentImage(`${docType}_${docNo || '명세서'}`);
+    const page = document.querySelector('.document-page');
+    await shareDocumentImage(page, `${docType}_${docNo || '명세서'}`);
   };
 
   return (

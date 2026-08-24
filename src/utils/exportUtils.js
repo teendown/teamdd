@@ -1,35 +1,87 @@
 // 🎨 TEAM D.D EXPORT UTILITIES (HTML2CANVAS, JSPDF, NATIVE EXCELJS .XLSX, CLIPBOARD & SHARE)
 
-export async function exportPagesToPNG(pages, filenamePrefix = '명세서') {
-  if (!pages || pages.length === 0) return;
-  const html2canvas = window.html2canvas;
-  if (!html2canvas) {
-    throw new Error('html2canvas 라이브러리가 로드되지 않았습니다.');
+export async function exportPagesToPNG(pagesOrPrefix, maybePrefix) {
+  let pages = [];
+  let prefix = '명세서';
+
+  if (typeof pagesOrPrefix === 'string') {
+    prefix = pagesOrPrefix;
+    pages = Array.from(document.querySelectorAll('.document-page'));
+  } else if (pagesOrPrefix && (pagesOrPrefix instanceof NodeList || Array.isArray(pagesOrPrefix))) {
+    pages = Array.from(pagesOrPrefix).filter(el => el && el.nodeType === 1);
+    if (typeof maybePrefix === 'string') prefix = maybePrefix;
+  } else if (pagesOrPrefix && pagesOrPrefix.nodeType === 1) {
+    pages = [pagesOrPrefix];
+    if (typeof maybePrefix === 'string') prefix = maybePrefix;
+  } else {
+    pages = Array.from(document.querySelectorAll('.document-page'));
+    if (typeof maybePrefix === 'string') prefix = maybePrefix;
   }
 
-  for (let i = 0; i < pages.length; i++) {
-    const canvas = await html2canvas(pages[i], {
-      scale: 2,
-      backgroundColor: '#ffffff',
-      useCORS: true
-    });
+  // 모달 또는 캔버스 대체 탐색
+  if (pages.length === 0) {
+    const fallback = document.querySelector('.doc-preview-body') || document.querySelector('.doc-preview-container') || document.querySelector('.preview-panel');
+    if (fallback) pages = [fallback];
+  }
 
-    const link = document.createElement('a');
-    link.download = `${filenamePrefix}_${i + 1}페이지.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+  if (pages.length === 0) {
+    alert('❌ 이미지로 저장할 문서 영역을 찾을 수 없습니다.');
+    return false;
+  }
+
+  const html2canvas = window.html2canvas;
+  if (!html2canvas) {
+    alert('❌ 이미지 변환 라이브러리(html2canvas)가 준비되지 않았습니다. 잠시 후 다시 시도해 주세요.');
+    return false;
+  }
+
+  const cleanPrefix = (prefix || '명세서').replace(/[/\\?%*:|"<>]/g, '_');
+
+  try {
+    for (let i = 0; i < pages.length; i++) {
+      const canvas = await html2canvas(pages[i], {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        logging: false
+      });
+
+      const link = document.createElement('a');
+      link.download = `${cleanPrefix}${pages.length > 1 ? `_${i + 1}페이지` : ''}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+    return true;
+  } catch (err) {
+    console.error('exportPagesToPNG Error:', err);
+    alert('이미지 저장 중 오류가 발생했습니다: ' + (err.message || err));
+    return false;
   }
 }
 
-export async function copyPageToClipboard(pageElement) {
-  if (!pageElement) return false;
+export async function copyPageToClipboard(elementOrSelector) {
+  let targetElement = null;
+  if (typeof elementOrSelector === 'string') {
+    targetElement = document.querySelector(elementOrSelector);
+  } else if (elementOrSelector && elementOrSelector.nodeType === 1) {
+    targetElement = elementOrSelector;
+  } else {
+    targetElement = document.querySelector('.document-page') || document.querySelector('.doc-preview-body') || document.querySelector('.preview-panel');
+  }
+
+  if (!targetElement) {
+    alert('❌ 복사할 문서 영역을 찾을 수 없습니다.');
+    return false;
+  }
+
   const html2canvas = window.html2canvas;
   if (!html2canvas) throw new Error('html2canvas 라이브러리를 찾을 수 없습니다.');
 
-  const canvas = await html2canvas(pageElement, {
+  const canvas = await html2canvas(targetElement, {
     scale: 2,
     backgroundColor: '#ffffff',
-    useCORS: true
+    useCORS: true,
+    logging: false
   });
 
   return new Promise((resolve, reject) => {
@@ -43,6 +95,7 @@ export async function copyPageToClipboard(pageElement) {
           await navigator.clipboard.write([
             new ClipboardItem({ 'image/png': blob })
           ]);
+          alert('✓ 문서 이미지가 클립보드에 복사되었습니다! (원하는 곳에 Ctrl+V로 붙여넣기)');
           resolve(true);
         } else {
           reject(new Error('클립보드 이미지 복사를 지원하지 않는 브라우저입니다.'));
@@ -54,41 +107,86 @@ export async function copyPageToClipboard(pageElement) {
   });
 }
 
-export async function shareDocumentImage(pageElement, title = 'TEAM D.D 거래명세서') {
-  if (!navigator.share || !pageElement) return false;
+export async function shareDocumentImage(elementOrTitle, maybeTitle = 'TEAM D.D 거래명세서') {
+  let targetElement = null;
+  let title = 'TEAM D.D 거래명세서';
+
+  if (typeof elementOrTitle === 'string') {
+    title = elementOrTitle;
+    targetElement = document.querySelector('.document-page') || document.querySelector('.doc-preview-body') || document.querySelector('.preview-panel');
+  } else if (elementOrTitle && elementOrTitle.nodeType === 1) {
+    targetElement = elementOrTitle;
+    if (typeof maybeTitle === 'string') title = maybeTitle;
+  } else {
+    targetElement = document.querySelector('.document-page') || document.querySelector('.doc-preview-body') || document.querySelector('.preview-panel');
+    if (typeof maybeTitle === 'string') title = maybeTitle;
+  }
+
+  if (!targetElement) {
+    alert('❌ 공유할 문서 화면을 찾을 수 없습니다.');
+    return false;
+  }
+
   const html2canvas = window.html2canvas;
-  if (!html2canvas) throw new Error('html2canvas 라이브러리를 찾을 수 없습니다.');
+  if (!html2canvas) {
+    alert('❌ 이미지 변환 라이브러리(html2canvas)가 준비되지 않았습니다.');
+    return false;
+  }
 
-  const canvas = await html2canvas(pageElement, {
-    scale: 2,
-    backgroundColor: '#ffffff',
-    useCORS: true
-  });
+  const cleanFileName = (title || '명세서').replace(/[/\\?%*:|"<>]/g, '_');
 
-  return new Promise((resolve, reject) => {
-    canvas.toBlob(async (blob) => {
-      if (!blob) {
-        reject(new Error('이미지 생성 실패'));
-        return;
-      }
-      const file = new File([blob], `${title}.png`, { type: 'image/png' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({
-            files: [file],
-            title: title,
-            text: title
-          });
-          resolve(true);
-        } catch (e) {
-          if (e.name !== 'AbortError') reject(e);
-          else resolve(false);
+  try {
+    const canvas = await html2canvas(targetElement, {
+      scale: 2,
+      backgroundColor: '#ffffff',
+      useCORS: true,
+      logging: false
+    });
+
+    return new Promise((resolve) => {
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          alert('❌ 이미지 생성에 실패했습니다.');
+          resolve(false);
+          return;
         }
-      } else {
-        reject(new Error('이 기기에서는 파일 공유 기능을 지원하지 않습니다.'));
-      }
-    }, 'image/png');
-  });
+
+        const file = new File([blob], `${cleanFileName}.png`, { type: 'image/png' });
+
+        // 스마트폰 모바일 브라우저 카톡/문자/인스타그램 등 공유 기능
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: title,
+              text: `[TEAM D.D] ${title}`
+            });
+            resolve(true);
+            return;
+          } catch (e) {
+            if (e.name === 'AbortError') {
+              // 사용자가 공유창에서 취소한 경우 정상 종료
+              resolve(false);
+              return;
+            }
+            console.warn('Navigator share failed, falling back to download:', e);
+          }
+        }
+
+        // PC 브라우저이거나 Web Share 미지원 환경인 경우: 사진 다운로드로 자동 연결
+        const link = document.createElement('a');
+        link.download = `${cleanFileName}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        alert('✓ 명세서 이미지가 다운로드되었습니다. 카카오톡이나 문자메시지로 공유해 보세요!');
+        resolve(true);
+      }, 'image/png');
+    });
+  } catch (err) {
+    console.error('shareDocumentImage Error:', err);
+    alert('이미지 공유 생성 중 오류가 발생했습니다: ' + (err.message || err));
+    return false;
+  }
 }
 
 /**
