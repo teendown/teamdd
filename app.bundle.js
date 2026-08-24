@@ -7243,11 +7243,11 @@
   });
 
   // src/main.jsx
-  var import_react28 = __toESM(require_react(), 1);
+  var import_react29 = __toESM(require_react(), 1);
   var import_client = __toESM(require_client(), 1);
 
   // src/App.jsx
-  var import_react27 = __toESM(require_react(), 1);
+  var import_react28 = __toESM(require_react(), 1);
 
   // src/config/constants.js
   var DEFAULT_SUPABASE_URL = "https://wmrfwrsaacolkpjyrffy.supabase.co";
@@ -36075,7 +36075,350 @@ IconFile=${currentUrl}favicon.ico\r
   }
 
   // src/pages/ScheduleTab.jsx
+  var import_react22 = __toESM(require_react(), 1);
+
+  // src/modals/SchedulePreviewModal.jsx
   var import_react21 = __toESM(require_react(), 1);
+  function SchedulePreviewModal({
+    schedule,
+    onClose,
+    onEdit,
+    onDelete,
+    onNavigateToDoc,
+    suppliersList = []
+  }) {
+    (0, import_react21.useEffect)(() => {
+      if (!schedule) return;
+      return registerBackHandler(() => {
+        onClose();
+        return true;
+      }, "SchedulePreviewModal");
+    }, [schedule, onClose]);
+    if (!schedule) return null;
+    const isPrivate = schedule.is_shared === false;
+    const isPeriod = schedule.isPeriod || schedule.end_date && schedule.end_date > (schedule.event_date || schedule.start_date);
+    const startDate = schedule.event_date || schedule.start_date || schedule.date || "-";
+    const endDate = schedule.end_date || startDate;
+    const timeStr = schedule.event_time || schedule.schedule_time || "";
+    const customerName = schedule.customer_name || "-";
+    const customerPhone = schedule.customer_phone || schedule.phone || "";
+    const machine = schedule.machine_info || schedule.machine || "";
+    const amount = Number(schedule.amount) || 0;
+    const memo = schedule.memo || "";
+    const category = schedule.category || "repair";
+    const categoryLabels = {
+      repair: { label: "🚜 정비 / 수리 / 출장", bg: "#EFF8FF", color: "#175CD3", border: "#B2DDFF" },
+      payment: { label: "💳 수금 / 결제 예정", bg: "#FEF3F2", color: "#D92D20", border: "#FECDCA" },
+      estimate: { label: "📋 견적 제출 / 상담", bg: "#F9F5FF", color: "#6941C6", border: "#E9D7FE" },
+      field: { label: "🚗 현장 출장 정비", bg: "#ECFDF3", color: "#027A48", border: "#A6F4C5" },
+      inspection: { label: "🔍 점검 및 진단", bg: "#FFF6ED", color: "#C4320A", border: "#FECDCA" },
+      general: { label: "📌 일반 업무 / 기타", bg: "#F8F9FC", color: "#344054", border: "#D0D5DD" }
+    };
+    const catMeta = categoryLabels[category] || categoryLabels.general;
+    const supplierObj = suppliersList.find((s) => areSupplierKeysEquivalent(s.id, schedule.supplier_key));
+    const supplierName = supplierObj ? supplierObj.name || supplierObj.company : schedule.supplier_key === "sejin" ? "세진건설기계" : schedule.supplier_key === "ds_gimje" ? "디에스건설기계" : "";
+    const handleCopyPhone = () => {
+      if (!customerPhone) return;
+      navigator.clipboard.writeText(customerPhone);
+      alert(`연락처 (${customerPhone})가 클립보드에 복사되었습니다.`);
+    };
+    return /* @__PURE__ */ import_react21.default.createElement("div", { className: "modal-overlay", style: { zIndex: 10050 }, onClick: onClose }, /* @__PURE__ */ import_react21.default.createElement(
+      "div",
+      {
+        className: "modal-content",
+        style: {
+          maxWidth: "520px",
+          padding: "0",
+          borderRadius: "16px",
+          overflow: "hidden",
+          backgroundColor: "#FFFFFF",
+          boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
+        },
+        onClick: (e) => e.stopPropagation()
+      },
+      /* @__PURE__ */ import_react21.default.createElement(
+        "div",
+        {
+          style: {
+            backgroundColor: "var(--c-navy-dark, #001B48)",
+            color: "#FFFFFF",
+            padding: "1rem 1.25rem",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center"
+          }
+        },
+        /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", minWidth: 0 } }, /* @__PURE__ */ import_react21.default.createElement("span", { style: { fontSize: "1.25rem" } }, "📅"), /* @__PURE__ */ import_react21.default.createElement("div", null, /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" } }, /* @__PURE__ */ import_react21.default.createElement(
+          "span",
+          {
+            style: {
+              backgroundColor: catMeta.bg,
+              color: catMeta.color,
+              border: `1px solid ${catMeta.border}`,
+              fontSize: "11px",
+              fontWeight: "800",
+              padding: "2px 8px",
+              borderRadius: "6px"
+            }
+          },
+          catMeta.label
+        ), /* @__PURE__ */ import_react21.default.createElement(
+          "span",
+          {
+            style: {
+              backgroundColor: isPrivate ? "rgba(245, 158, 11, 0.2)" : "rgba(16, 185, 129, 0.2)",
+              color: isPrivate ? "#FEF08A" : "#A7F3D0",
+              border: `1px solid ${isPrivate ? "#F59E0B" : "#10B981"}`,
+              fontSize: "10px",
+              fontWeight: "800",
+              padding: "2px 6px",
+              borderRadius: "4px"
+            }
+          },
+          isPrivate ? "🔒 비공개" : "🔓 공개"
+        )), /* @__PURE__ */ import_react21.default.createElement(
+          "h3",
+          {
+            style: {
+              fontSize: "1.125rem",
+              fontWeight: "900",
+              color: "#FFFFFF",
+              margin: "4px 0 0 0",
+              lineHeight: "1.3"
+            }
+          },
+          schedule.title || "일정 상세 정보"
+        ))),
+        /* @__PURE__ */ import_react21.default.createElement(
+          "button",
+          {
+            type: "button",
+            onClick: onClose,
+            style: {
+              background: "rgba(255,255,255,0.15)",
+              border: "none",
+              borderRadius: "50%",
+              color: "#FFFFFF",
+              width: "32px",
+              height: "32px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "1rem",
+              cursor: "pointer",
+              fontWeight: "bold",
+              flexShrink: 0,
+              marginLeft: "8px"
+            }
+          },
+          "✕"
+        )
+      ),
+      /* @__PURE__ */ import_react21.default.createElement("div", { style: { padding: "1.25rem", display: "flex", flexDirection: "column", gap: "0.875rem" } }, /* @__PURE__ */ import_react21.default.createElement(
+        "div",
+        {
+          style: {
+            padding: "0.875rem 1rem",
+            backgroundColor: "var(--c-blue-lightest, #F0F8FF)",
+            borderRadius: "10px",
+            border: "1px solid var(--c-blue-soft, #BEE3F8)"
+          }
+        },
+        /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "0.75rem", fontWeight: "800", color: "var(--c-navy-primary, #02457A)", marginBottom: "4px" } }, "📅 일정 일시"),
+        /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "6px" } }, /* @__PURE__ */ import_react21.default.createElement("span", { style: { fontSize: "1rem", fontWeight: "900", color: "var(--c-navy-dark, #001B48)" } }, isPeriod ? `${startDate} ~ ${endDate}` : startDate), timeStr && /* @__PURE__ */ import_react21.default.createElement(
+          "span",
+          {
+            style: {
+              fontSize: "0.8125rem",
+              fontWeight: "800",
+              color: "#1E40AF",
+              backgroundColor: "#DBEAFE",
+              padding: "2px 8px",
+              borderRadius: "6px"
+            }
+          },
+          "⏰ ",
+          timeStr
+        )),
+        isPeriod && /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "0.75rem", color: "#64748B", marginTop: "4px" } }, "💡 ", startDate, "부터 ", endDate, "까지 연속 표시되는 다일간 일정입니다.")
+      ), /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "0.75rem" } }, /* @__PURE__ */ import_react21.default.createElement(
+        "div",
+        {
+          style: {
+            padding: "0.875rem 1rem",
+            backgroundColor: "#FFFFFF",
+            borderRadius: "10px",
+            border: "1px solid var(--border-color, #E2E8F0)",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+          }
+        },
+        /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "0.75rem", fontWeight: "800", color: "var(--text-muted, #64748B)", marginBottom: "4px" } }, "🏢 거래처명 (고객)"),
+        /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "0.9375rem", fontWeight: "900", color: "var(--c-navy-dark, #001B48)", marginBottom: "6px" } }, customerName),
+        customerPhone ? /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "4px", flexWrap: "wrap" } }, /* @__PURE__ */ import_react21.default.createElement(
+          "a",
+          {
+            href: `tel:${customerPhone}`,
+            style: {
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "4px",
+              fontSize: "0.75rem",
+              fontWeight: "800",
+              color: "#059669",
+              backgroundColor: "#ECFDF5",
+              border: "1px solid #A7F3D0",
+              padding: "3px 8px",
+              borderRadius: "6px",
+              textDecoration: "none"
+            }
+          },
+          "📞 ",
+          customerPhone
+        ), /* @__PURE__ */ import_react21.default.createElement(
+          "button",
+          {
+            type: "button",
+            onClick: handleCopyPhone,
+            style: {
+              fontSize: "0.6875rem",
+              fontWeight: "700",
+              padding: "3px 6px",
+              backgroundColor: "#F1F5F9",
+              border: "1px solid #CBD5E1",
+              borderRadius: "4px",
+              cursor: "pointer"
+            },
+            title: "전화번호 복사"
+          },
+          "복사"
+        )) : /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "0.75rem", color: "#94A3B8" } }, "연락처 없음")
+      ), /* @__PURE__ */ import_react21.default.createElement(
+        "div",
+        {
+          style: {
+            padding: "0.875rem 1rem",
+            backgroundColor: "#FFFFFF",
+            borderRadius: "10px",
+            border: "1px solid var(--border-color, #E2E8F0)",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+          }
+        },
+        /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "0.75rem", fontWeight: "800", color: "var(--text-muted, #64748B)", marginBottom: "4px" } }, "🚜 장비 / 기종"),
+        /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "0.9375rem", fontWeight: "900", color: machine ? "#2563EB" : "#94A3B8", marginBottom: "6px" } }, machine || "기종 미지정"),
+        amount > 0 && /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "0.8125rem", fontWeight: "800", color: "#059669" } }, "💰 ", amount.toLocaleString(), "원")
+      )), /* @__PURE__ */ import_react21.default.createElement(
+        "div",
+        {
+          style: {
+            padding: "0.875rem 1rem",
+            backgroundColor: "#FAFAFA",
+            borderRadius: "10px",
+            border: "1px solid var(--border-color, #E2E8F0)"
+          }
+        },
+        /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "0.75rem", fontWeight: "800", color: "var(--text-muted, #64748B)", marginBottom: "6px" } }, "📝 상세 메모 / 작업 내용"),
+        /* @__PURE__ */ import_react21.default.createElement(
+          "div",
+          {
+            style: {
+              fontSize: "0.8125rem",
+              lineHeight: "1.6",
+              color: memo ? "#1E293B" : "#94A3B8",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              minHeight: "40px"
+            }
+          },
+          memo || "등록된 상세 메모가 없습니다."
+        )
+      ), /* @__PURE__ */ import_react21.default.createElement(
+        "div",
+        {
+          style: {
+            fontSize: "0.6875rem",
+            color: "#64748B",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "0 4px"
+          }
+        },
+        /* @__PURE__ */ import_react21.default.createElement("span", null, supplierName ? `🏢 등록업체: ${supplierName}` : ""),
+        /* @__PURE__ */ import_react21.default.createElement("span", null, isPrivate ? "🔒 오직 내 업체에만 표시됨" : "🔓 모든 공급자에게 공유됨")
+      )),
+      /* @__PURE__ */ import_react21.default.createElement(
+        "div",
+        {
+          style: {
+            padding: "0.875rem 1.25rem",
+            backgroundColor: "#F8FAFC",
+            borderTop: "1px solid #E2E8F0",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "8px",
+            flexWrap: "wrap"
+          }
+        },
+        onDelete ? /* @__PURE__ */ import_react21.default.createElement(
+          "button",
+          {
+            type: "button",
+            className: "btn btn-outline",
+            style: { color: "#DC2626", borderColor: "#FECACA", fontSize: "0.8125rem" },
+            onClick: () => {
+              onDelete(schedule.id);
+              onClose();
+            }
+          },
+          "🗑️ 삭제"
+        ) : /* @__PURE__ */ import_react21.default.createElement("div", null),
+        /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", gap: "6px", flexWrap: "wrap" } }, onNavigateToDoc && /* @__PURE__ */ import_react21.default.createElement(
+          "button",
+          {
+            type: "button",
+            className: "btn btn-outline",
+            style: {
+              fontSize: "0.8125rem",
+              fontWeight: "800",
+              color: "#1D4ED8",
+              borderColor: "#BFDBFE",
+              backgroundColor: "#EFF6FF"
+            },
+            onClick: () => {
+              onNavigateToDoc(schedule);
+              onClose();
+            },
+            title: "이 일정을 기반으로 거래명세서/견적서 작성"
+          },
+          "📄 명세서 작성"
+        ), onEdit && /* @__PURE__ */ import_react21.default.createElement(
+          "button",
+          {
+            type: "button",
+            className: "btn btn-primary",
+            style: { fontSize: "0.8125rem", fontWeight: "800" },
+            onClick: () => {
+              onEdit(schedule);
+              onClose();
+            }
+          },
+          "✏️ 일정 수정"
+        ), /* @__PURE__ */ import_react21.default.createElement(
+          "button",
+          {
+            type: "button",
+            className: "btn btn-outline",
+            style: { fontSize: "0.8125rem" },
+            onClick: onClose
+          },
+          "닫기"
+        ))
+      )
+    ));
+  }
+
+  // src/pages/ScheduleTab.jsx
   function getDatesInRange(startDateStr, endDateStr) {
     if (!startDateStr) return [];
     if (!endDateStr || endDateStr <= startDateStr) return [startDateStr];
@@ -36111,27 +36454,28 @@ IconFile=${currentUrl}favicon.ico\r
   }) {
     const currentDate = /* @__PURE__ */ new Date();
     const todayStr = currentDate.toISOString().split("T")[0];
-    const [currentYear, setCurrentYear] = (0, import_react21.useState)(currentDate.getFullYear());
-    const [currentMonth, setCurrentMonth] = (0, import_react21.useState)(currentDate.getMonth() + 1);
-    const [selectedDate, setSelectedDate] = (0, import_react21.useState)(todayStr);
-    const [showEventModal, setShowEventModal] = (0, import_react21.useState)(false);
-    const [editingEvent, setEditingEvent] = (0, import_react21.useState)(null);
-    (0, import_react21.useEffect)(() => {
+    const [currentYear, setCurrentYear] = (0, import_react22.useState)(currentDate.getFullYear());
+    const [currentMonth, setCurrentMonth] = (0, import_react22.useState)(currentDate.getMonth() + 1);
+    const [selectedDate, setSelectedDate] = (0, import_react22.useState)(todayStr);
+    const [showEventModal, setShowEventModal] = (0, import_react22.useState)(false);
+    const [editingEvent, setEditingEvent] = (0, import_react22.useState)(null);
+    const [previewSchedule, setPreviewSchedule] = (0, import_react22.useState)(null);
+    (0, import_react22.useEffect)(() => {
       if (!showEventModal) return;
       return registerBackHandler(() => {
         setShowEventModal(false);
         return true;
       }, "ScheduleEventModal");
     }, [showEventModal]);
-    const [privacyFilter, setPrivacyFilter] = (0, import_react21.useState)("all");
-    const [categoryFilter, setCategoryFilter] = (0, import_react21.useState)({
+    const [privacyFilter, setPrivacyFilter] = (0, import_react22.useState)("all");
+    const [categoryFilter, setCategoryFilter] = (0, import_react22.useState)({
       schedule: true,
       repair_doc: true,
       payment: true,
       estimate: true
     });
-    const [searchQuery, setSearchQuery] = (0, import_react21.useState)("");
-    const [form, setForm] = (0, import_react21.useState)({
+    const [searchQuery, setSearchQuery] = (0, import_react22.useState)("");
+    const [form, setForm] = (0, import_react22.useState)({
       title: "",
       event_date: todayStr,
       end_date: todayStr,
@@ -36170,7 +36514,7 @@ IconFile=${currentUrl}favicon.ico\r
       setCurrentMonth(now.getMonth() + 1);
       setSelectedDate(todayStr);
     };
-    const filteredSchedules = (0, import_react21.useMemo)(() => {
+    const filteredSchedules = (0, import_react22.useMemo)(() => {
       const userRole = sessionStorage.getItem("dd_user_role") || "supplier";
       return (schedules || []).filter((item) => {
         const isMine = userRole === "admin" || areSupplierKeysEquivalent(item.supplier_key, selectedSupplierKey);
@@ -36191,7 +36535,7 @@ IconFile=${currentUrl}favicon.ico\r
         return true;
       });
     }, [schedules, selectedSupplierKey, privacyFilter, categoryFilter, searchQuery]);
-    const documentEvents = (0, import_react21.useMemo)(() => {
+    const documentEvents = (0, import_react22.useMemo)(() => {
       const userRole = sessionStorage.getItem("dd_user_role") || "supplier";
       const events = [];
       (documentsList || []).forEach((doc) => {
@@ -36254,7 +36598,7 @@ IconFile=${currentUrl}favicon.ico\r
       });
       return events;
     }, [documentsList, selectedSupplierKey, categoryFilter]);
-    const eventsByDate = (0, import_react21.useMemo)(() => {
+    const eventsByDate = (0, import_react22.useMemo)(() => {
       const map = {};
       filteredSchedules.forEach((sch) => {
         const start = sch.start_date || sch.event_date || sch.date;
@@ -36302,12 +36646,26 @@ IconFile=${currentUrl}favicon.ico\r
       setEditingEvent(null);
       setShowEventModal(true);
     };
+    const handleOpenEventPreview = (ev) => {
+      if (!ev) return;
+      if (ev.isDocEvent) {
+        const targetDoc = ev.rawDoc || ev;
+        if (onPreviewDocument) {
+          onPreviewDocument(targetDoc);
+        } else if (onLoadDocument) {
+          onLoadDocument(targetDoc);
+        }
+      } else {
+        setPreviewSchedule(ev);
+      }
+    };
     const handleOpenEditEvent = (ev) => {
       if (ev.isDocEvent) {
-        if (onPreviewDocument && ev.rawDoc) {
-          onPreviewDocument(ev.rawDoc);
-        } else if (onLoadDocument && ev.rawDoc) {
-          onLoadDocument(ev.rawDoc);
+        const targetDoc = ev.rawDoc || ev;
+        if (onPreviewDocument) {
+          onPreviewDocument(targetDoc);
+        } else if (onLoadDocument) {
+          onLoadDocument(targetDoc);
         }
         return;
       }
@@ -36360,7 +36718,7 @@ IconFile=${currentUrl}favicon.ico\r
       }
       setShowEventModal(false);
     };
-    const calendarCells = (0, import_react21.useMemo)(() => {
+    const calendarCells = (0, import_react22.useMemo)(() => {
       const cells = [];
       for (let i = firstDayOfMonth - 1; i >= 0; i--) {
         const d = prevMonthDays - i;
@@ -36383,7 +36741,7 @@ IconFile=${currentUrl}favicon.ico\r
       }
       return cells;
     }, [currentYear, currentMonth, firstDayOfMonth, daysInMonth, prevMonthDays, eventsByDate]);
-    return /* @__PURE__ */ import_react21.default.createElement("div", { className: "cal-container" }, /* @__PURE__ */ import_react21.default.createElement("div", { className: "card-box", style: { marginBottom: "0.5rem", padding: "0.625rem 0.75rem" } }, /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" } }, /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "0.375rem" } }, /* @__PURE__ */ import_react21.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900", color: "var(--c-navy-dark)", display: "flex", alignItems: "center", gap: "4px", margin: 0 } }, /* @__PURE__ */ import_react21.default.createElement("span", null, "📅"), " ", `${currentYear}년 ${currentMonth}월`), /* @__PURE__ */ import_react21.default.createElement("button", { type: "button", className: "btn btn-outline btn-sm", onClick: handlePrevMonth, title: "이전 달" }, "◀"), /* @__PURE__ */ import_react21.default.createElement("button", { type: "button", className: "btn btn-outline btn-sm", onClick: handleToday }, "오늘"), /* @__PURE__ */ import_react21.default.createElement("button", { type: "button", className: "btn btn-outline btn-sm", onClick: handleNextMonth, title: "다음 달" }, "▶")), /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "0.375rem", flexWrap: "wrap" } }, sessionStorage.getItem("dd_user_role") === "admin" && /* @__PURE__ */ import_react21.default.createElement(
+    return /* @__PURE__ */ import_react22.default.createElement("div", { className: "cal-container" }, /* @__PURE__ */ import_react22.default.createElement("div", { className: "card-box", style: { marginBottom: "0.5rem", padding: "0.625rem 0.75rem" } }, /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" } }, /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "0.375rem" } }, /* @__PURE__ */ import_react22.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900", color: "var(--c-navy-dark)", display: "flex", alignItems: "center", gap: "4px", margin: 0 } }, /* @__PURE__ */ import_react22.default.createElement("span", null, "📅"), " ", `${currentYear}년 ${currentMonth}월`), /* @__PURE__ */ import_react22.default.createElement("button", { type: "button", className: "btn btn-outline btn-sm", onClick: handlePrevMonth, title: "이전 달" }, "◀"), /* @__PURE__ */ import_react22.default.createElement("button", { type: "button", className: "btn btn-outline btn-sm", onClick: handleToday }, "오늘"), /* @__PURE__ */ import_react22.default.createElement("button", { type: "button", className: "btn btn-outline btn-sm", onClick: handleNextMonth, title: "다음 달" }, "▶")), /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "0.375rem", flexWrap: "wrap" } }, sessionStorage.getItem("dd_user_role") === "admin" && /* @__PURE__ */ import_react22.default.createElement(
       "select",
       {
         className: "form-select",
@@ -36394,8 +36752,8 @@ IconFile=${currentUrl}favicon.ico\r
           if (val) sessionStorage.setItem("dd_selected_supplier_key", val);
         }
       },
-      suppliersList.map((s) => /* @__PURE__ */ import_react21.default.createElement("option", { key: s.id, value: s.id }, s.name || s.company))
-    ), /* @__PURE__ */ import_react21.default.createElement(
+      suppliersList.map((s) => /* @__PURE__ */ import_react22.default.createElement("option", { key: s.id, value: s.id }, s.name || s.company))
+    ), /* @__PURE__ */ import_react22.default.createElement(
       "select",
       {
         className: "form-select",
@@ -36403,11 +36761,11 @@ IconFile=${currentUrl}favicon.ico\r
         value: privacyFilter,
         onChange: (e) => setPrivacyFilter(e.target.value)
       },
-      /* @__PURE__ */ import_react21.default.createElement("option", { value: "all" }, "🛡️ 전체 일정 보기"),
-      /* @__PURE__ */ import_react21.default.createElement("option", { value: "private" }, "🔒 내 비공개 일정"),
-      /* @__PURE__ */ import_react21.default.createElement("option", { value: "my_public" }, "🔓 내 공개 일정"),
-      /* @__PURE__ */ import_react21.default.createElement("option", { value: "others_public" }, "🌐 타공급자 공유")
-    ), /* @__PURE__ */ import_react21.default.createElement(
+      /* @__PURE__ */ import_react22.default.createElement("option", { value: "all" }, "🛡️ 전체 일정 보기"),
+      /* @__PURE__ */ import_react22.default.createElement("option", { value: "private" }, "🔒 내 비공개 일정"),
+      /* @__PURE__ */ import_react22.default.createElement("option", { value: "my_public" }, "🔓 내 공개 일정"),
+      /* @__PURE__ */ import_react22.default.createElement("option", { value: "others_public" }, "🌐 타공급자 공유")
+    ), /* @__PURE__ */ import_react22.default.createElement(
       "input",
       {
         type: "text",
@@ -36417,7 +36775,7 @@ IconFile=${currentUrl}favicon.ico\r
         value: searchQuery,
         onChange: (e) => setSearchQuery(e.target.value)
       }
-    ), /* @__PURE__ */ import_react21.default.createElement(
+    ), /* @__PURE__ */ import_react22.default.createElement(
       "button",
       {
         type: "button",
@@ -36426,11 +36784,11 @@ IconFile=${currentUrl}favicon.ico\r
         onClick: () => handleOpenAddEvent()
       },
       "+ 새 일정 등록"
-    )))), /* @__PURE__ */ import_react21.default.createElement("div", { className: "cal-grid-wrap card-box", style: { padding: "0", overflow: "hidden" } }, /* @__PURE__ */ import_react21.default.createElement("div", { className: "cal-grid-header", style: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", backgroundColor: "var(--c-blue-lightest)", borderBottom: "1px solid var(--border-color)", textAlign: "center", fontWeight: "800", fontSize: "0.8125rem" } }, /* @__PURE__ */ import_react21.default.createElement("div", { style: { padding: "0.5rem", color: "#D92D20" } }, "일"), /* @__PURE__ */ import_react21.default.createElement("div", { style: { padding: "0.5rem", color: "var(--c-navy-dark)" } }, "월"), /* @__PURE__ */ import_react21.default.createElement("div", { style: { padding: "0.5rem", color: "var(--c-navy-dark)" } }, "화"), /* @__PURE__ */ import_react21.default.createElement("div", { style: { padding: "0.5rem", color: "var(--c-navy-dark)" } }, "수"), /* @__PURE__ */ import_react21.default.createElement("div", { style: { padding: "0.5rem", color: "var(--c-navy-dark)" } }, "목"), /* @__PURE__ */ import_react21.default.createElement("div", { style: { padding: "0.5rem", color: "var(--c-navy-dark)" } }, "금"), /* @__PURE__ */ import_react21.default.createElement("div", { style: { padding: "0.5rem", color: "var(--c-blue-accent)" } }, "토")), /* @__PURE__ */ import_react21.default.createElement("div", { className: "cal-cells-container", style: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)" } }, calendarCells.map((cell, idx) => {
+    )))), /* @__PURE__ */ import_react22.default.createElement("div", { className: "cal-grid-wrap card-box", style: { padding: "0", overflow: "hidden" } }, /* @__PURE__ */ import_react22.default.createElement("div", { className: "cal-grid-header", style: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", backgroundColor: "var(--c-blue-lightest)", borderBottom: "1px solid var(--border-color)", textAlign: "center", fontWeight: "800", fontSize: "0.8125rem" } }, /* @__PURE__ */ import_react22.default.createElement("div", { style: { padding: "0.5rem", color: "#D92D20" } }, "일"), /* @__PURE__ */ import_react22.default.createElement("div", { style: { padding: "0.5rem", color: "var(--c-navy-dark)" } }, "월"), /* @__PURE__ */ import_react22.default.createElement("div", { style: { padding: "0.5rem", color: "var(--c-navy-dark)" } }, "화"), /* @__PURE__ */ import_react22.default.createElement("div", { style: { padding: "0.5rem", color: "var(--c-navy-dark)" } }, "수"), /* @__PURE__ */ import_react22.default.createElement("div", { style: { padding: "0.5rem", color: "var(--c-navy-dark)" } }, "목"), /* @__PURE__ */ import_react22.default.createElement("div", { style: { padding: "0.5rem", color: "var(--c-navy-dark)" } }, "금"), /* @__PURE__ */ import_react22.default.createElement("div", { style: { padding: "0.5rem", color: "var(--c-blue-accent)" } }, "토")), /* @__PURE__ */ import_react22.default.createElement("div", { className: "cal-cells-container", style: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)" } }, calendarCells.map((cell, idx) => {
       const isToday = cell.dateStr === todayStr;
       const isSelected = cell.dateStr === selectedDate;
       const hasEvents = cell.events && cell.events.length > 0;
-      return /* @__PURE__ */ import_react21.default.createElement(
+      return /* @__PURE__ */ import_react22.default.createElement(
         "div",
         {
           key: `${cell.dateStr}_${idx}`,
@@ -36444,9 +36802,15 @@ IconFile=${currentUrl}favicon.ico\r
             cursor: "pointer",
             position: "relative"
           },
-          onClick: () => setSelectedDate(cell.dateStr)
+          onClick: () => {
+            setSelectedDate(cell.dateStr);
+            const dayEvents = cell.events || [];
+            if (dayEvents.length === 1) {
+              handleOpenEventPreview(dayEvents[0]);
+            }
+          }
         },
-        /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2px" } }, /* @__PURE__ */ import_react21.default.createElement(
+        /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2px" } }, /* @__PURE__ */ import_react22.default.createElement(
           "span",
           {
             style: {
@@ -36463,8 +36827,8 @@ IconFile=${currentUrl}favicon.ico\r
             }
           },
           cell.dayNumber
-        ), hasEvents && /* @__PURE__ */ import_react21.default.createElement("span", { className: "cal-event-count", style: { fontSize: "10px", fontWeight: "800", color: "var(--c-blue-accent)" } }, `${cell.events.length}건`)),
-        /* @__PURE__ */ import_react21.default.createElement("div", { className: "cal-desktop-badges", style: { display: "flex", flexDirection: "column", gap: "2px" } }, (cell.events || []).slice(0, 3).map((ev, eIdx) => {
+        ), hasEvents && /* @__PURE__ */ import_react22.default.createElement("span", { className: "cal-event-count", style: { fontSize: "10px", fontWeight: "800", color: "var(--c-blue-accent)" } }, `${cell.events.length}건`)),
+        /* @__PURE__ */ import_react22.default.createElement("div", { className: "cal-desktop-badges", style: { display: "flex", flexDirection: "column", gap: "2px" } }, (cell.events || []).slice(0, 3).map((ev, eIdx) => {
           const isPrivate = ev.is_shared === false;
           const isPeriod = ev.isPeriod;
           let badgeBg = "#E8F8F0";
@@ -36482,27 +36846,27 @@ IconFile=${currentUrl}favicon.ico\r
             badgeBg = "var(--c-blue-light)";
             badgeColor = "var(--c-navy-primary)";
           }
-          return /* @__PURE__ */ import_react21.default.createElement(
+          return /* @__PURE__ */ import_react22.default.createElement(
             "div",
             {
               key: `${ev.id}_${eIdx}`,
               className: "cal-badge-item",
-              style: { backgroundColor: badgeBg, color: badgeColor },
-              title: (ev.periodInfo ? `[${ev.periodInfo}] ` : "") + ev.title,
+              style: { backgroundColor: badgeBg, color: badgeColor, cursor: "pointer" },
+              title: (ev.periodInfo ? `[${ev.periodInfo}] ` : "") + ev.title + " (클릭하여 미리보기)",
               onClick: (e) => {
                 e.stopPropagation();
-                handleOpenEditEvent(ev);
+                handleOpenEventPreview(ev);
               }
             },
             (isPeriod ? "📅 " : isPrivate ? "🔒 " : "") + ev.title
           );
-        }), (cell.events || []).length > 3 && /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "10px", color: "var(--text-muted)", textAlign: "right", fontWeight: "700" } }, `+${cell.events.length - 3}개 더보기`)),
-        /* @__PURE__ */ import_react21.default.createElement("div", { className: "cal-dot-container", style: { display: "flex", gap: "3px", flexWrap: "wrap", marginTop: "2px" } }, (cell.events || []).slice(0, 4).map((ev, eIdx) => {
+        }), (cell.events || []).length > 3 && /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: "10px", color: "var(--text-muted)", textAlign: "right", fontWeight: "700" } }, `+${cell.events.length - 3}개 더보기`)),
+        /* @__PURE__ */ import_react22.default.createElement("div", { className: "cal-dot-container", style: { display: "flex", gap: "3px", flexWrap: "wrap", marginTop: "2px" } }, (cell.events || []).slice(0, 4).map((ev, eIdx) => {
           let dotColor = "var(--c-blue-accent)";
           if (ev.type === "payment") dotColor = "#D92D20";
           else if (ev.type === "estimate") dotColor = "#1B64DA";
           else if (ev.is_shared === false) dotColor = "#F59E0B";
-          return /* @__PURE__ */ import_react21.default.createElement(
+          return /* @__PURE__ */ import_react22.default.createElement(
             "span",
             {
               key: `dot_${ev.id}_${eIdx}`,
@@ -36511,7 +36875,7 @@ IconFile=${currentUrl}favicon.ico\r
           );
         }))
       );
-    }))), selectedDate && /* @__PURE__ */ import_react21.default.createElement("div", { className: "card-box", style: { marginTop: "0.75rem", padding: "0.75rem 1rem" } }, /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", borderBottom: "1px solid var(--border-color)", paddingBottom: "0.375rem" } }, /* @__PURE__ */ import_react21.default.createElement("h3", { style: { fontSize: "0.9375rem", fontWeight: "900", color: "var(--c-navy-dark)", margin: 0 } }, `📋 ${selectedDate} 일정 내역 (${(eventsByDate[selectedDate] || []).length}건)`), /* @__PURE__ */ import_react21.default.createElement(
+    }))), selectedDate && /* @__PURE__ */ import_react22.default.createElement("div", { className: "card-box", style: { marginTop: "0.75rem", padding: "0.75rem 1rem" } }, /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", borderBottom: "1px solid var(--border-color)", paddingBottom: "0.375rem" } }, /* @__PURE__ */ import_react22.default.createElement("h3", { style: { fontSize: "0.9375rem", fontWeight: "900", color: "var(--c-navy-dark)", margin: 0 } }, `📋 ${selectedDate} 일정 내역 (${(eventsByDate[selectedDate] || []).length}건)`), /* @__PURE__ */ import_react22.default.createElement(
       "button",
       {
         type: "button",
@@ -36519,9 +36883,9 @@ IconFile=${currentUrl}favicon.ico\r
         onClick: () => handleOpenAddEvent(selectedDate)
       },
       "+ 이 날짜에 일정 추가"
-    )), (eventsByDate[selectedDate] || []).length === 0 ? /* @__PURE__ */ import_react21.default.createElement("div", { style: { padding: "1rem", textAlign: "center", color: "var(--text-muted)", fontSize: "0.8125rem" } }, "등록된 일정이 없습니다. '+ 이 날짜에 일정 추가' 버튼으로 일정을 등록해보세요.") : /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "0.5rem" } }, (eventsByDate[selectedDate] || []).map((ev, idx) => {
+    )), (eventsByDate[selectedDate] || []).length === 0 ? /* @__PURE__ */ import_react22.default.createElement("div", { style: { padding: "1rem", textAlign: "center", color: "var(--text-muted)", fontSize: "0.8125rem" } }, "등록된 일정이 없습니다. '+ 이 날짜에 일정 추가' 버튼으로 일정을 등록해보세요.") : /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "0.5rem" } }, (eventsByDate[selectedDate] || []).map((ev, idx) => {
       const isPrivate = ev.is_shared === false;
-      return /* @__PURE__ */ import_react21.default.createElement(
+      return /* @__PURE__ */ import_react22.default.createElement(
         "div",
         {
           key: `detail_${ev.id}_${idx}`,
@@ -36534,10 +36898,14 @@ IconFile=${currentUrl}favicon.ico\r
             justifyContent: "space-between",
             alignItems: "center",
             flexWrap: "wrap",
-            gap: "8px"
-          }
+            gap: "8px",
+            cursor: "pointer",
+            transition: "all 0.15s ease"
+          },
+          title: "클릭하여 상세 정보 미리보기",
+          onClick: () => handleOpenEventPreview(ev)
         },
-        /* @__PURE__ */ import_react21.default.createElement("div", { style: { flex: 1, minWidth: "180px" } }, /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "6px", marginBottom: "3px", flexWrap: "wrap" } }, /* @__PURE__ */ import_react21.default.createElement(
+        /* @__PURE__ */ import_react22.default.createElement("div", { style: { flex: 1, minWidth: "180px" } }, /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "6px", marginBottom: "3px", flexWrap: "wrap" } }, /* @__PURE__ */ import_react22.default.createElement(
           "span",
           {
             style: {
@@ -36551,7 +36919,7 @@ IconFile=${currentUrl}favicon.ico\r
             }
           },
           isPrivate ? "🔒 비공개" : "🔓 공개"
-        ), ev.periodInfo && /* @__PURE__ */ import_react21.default.createElement(
+        ), ev.periodInfo && /* @__PURE__ */ import_react22.default.createElement(
           "span",
           {
             style: {
@@ -36565,28 +36933,58 @@ IconFile=${currentUrl}favicon.ico\r
             }
           },
           `📅 기간: ${ev.periodInfo}`
-        ), /* @__PURE__ */ import_react21.default.createElement("span", { style: { fontWeight: "800", fontSize: "0.875rem", color: "var(--c-navy-dark)" } }, ev.title)), ev.event_time && /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "11px", color: "var(--text-muted)" } }, `⏰ 시간: ${ev.event_time}`), ev.customer_name && /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "11px", color: "var(--text-secondary)" } }, `🏢 거래처: ${ev.customer_name} (${ev.customer_phone || ev.phone || "-"})`), (ev.machine_info || ev.machine) && /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "11px", color: "var(--c-blue-accent)" } }, `🚜 기종: ${ev.machine_info || ev.machine}`), ev.memo && /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" } }, `📝 메모: ${ev.memo}`)),
-        /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", gap: "4px" } }, ev.isDocEvent ? /* @__PURE__ */ import_react21.default.createElement(
+        ), /* @__PURE__ */ import_react22.default.createElement("span", { style: { fontWeight: "800", fontSize: "0.875rem", color: "var(--c-navy-dark)" } }, ev.title)), ev.event_time && /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: "11px", color: "var(--text-muted)" } }, `⏰ 시간: ${ev.event_time}`), ev.customer_name && /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: "11px", color: "var(--text-secondary)" } }, `🏢 거래처: ${ev.customer_name} (${ev.customer_phone || ev.phone || "-"})`), (ev.machine_info || ev.machine) && /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: "11px", color: "var(--c-blue-accent)" } }, `🚜 기종: ${ev.machine_info || ev.machine}`), ev.memo && /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" } }, `📝 메모: ${ev.memo}`)),
+        /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "flex", gap: "4px", flexWrap: "wrap" }, onClick: (e) => e.stopPropagation() }, ev.isDocEvent ? /* @__PURE__ */ import_react22.default.createElement(import_react22.default.Fragment, null, /* @__PURE__ */ import_react22.default.createElement(
           "button",
           {
             type: "button",
             className: "btn btn-outline btn-sm",
+            style: { fontSize: "0.75rem", fontWeight: "800", color: "#1D4ED8", borderColor: "#BFDBFE", backgroundColor: "#EFF6FF" },
+            onClick: () => handleOpenEventPreview(ev)
+          },
+          "👁️ 미리보기"
+        ), /* @__PURE__ */ import_react22.default.createElement(
+          "button",
+          {
+            type: "button",
+            className: "btn btn-outline btn-sm",
+            style: { fontSize: "0.75rem" },
             onClick: () => {
               onLoadDocument && onLoadDocument(ev.rawDoc);
             }
           },
           "문서 열기"
-        ) : /* @__PURE__ */ import_react21.default.createElement(
+        )) : /* @__PURE__ */ import_react22.default.createElement(import_react22.default.Fragment, null, /* @__PURE__ */ import_react22.default.createElement(
+          "button",
+          {
+            type: "button",
+            className: "btn btn-outline btn-sm",
+            style: { fontSize: "0.75rem", fontWeight: "800", color: "#0284C7", borderColor: "#BAE6FD", backgroundColor: "#F0F9FF" },
+            onClick: () => setPreviewSchedule(ev)
+          },
+          "👁️ 미리보기"
+        ), onNavigateToDoc && /* @__PURE__ */ import_react22.default.createElement(
+          "button",
+          {
+            type: "button",
+            className: "btn btn-outline btn-sm",
+            style: { fontSize: "0.75rem", fontWeight: "800", color: "#1D4ED8", borderColor: "#BFDBFE", backgroundColor: "#EFF6FF" },
+            title: "이 일정을 기반으로 명세서 작성",
+            onClick: () => onNavigateToDoc(ev)
+          },
+          "📄 명세서"
+        ), /* @__PURE__ */ import_react22.default.createElement(
           "button",
           {
             type: "button",
             className: "btn btn-primary btn-sm",
+            style: { fontSize: "0.75rem", fontWeight: "800" },
             onClick: () => handleOpenEditEvent(ev)
           },
           "수정"
-        ))
+        )))
       );
-    }))), showEventModal && /* @__PURE__ */ import_react21.default.createElement("div", { className: "modal-overlay", style: { zIndex: 1e3 } }, /* @__PURE__ */ import_react21.default.createElement("div", { className: "modal-content", style: { maxWidth: "520px", maxHeight: "90vh", overflowY: "auto" } }, /* @__PURE__ */ import_react21.default.createElement("h3", { style: { marginBottom: "1rem", fontWeight: "900", color: "var(--c-navy-dark)" } }, editingEvent ? "✏️ 일정 수정" : "➕ 새 일정 등록"), /* @__PURE__ */ import_react21.default.createElement("div", { style: { padding: "10px 12px", backgroundColor: form.is_shared ? "#E8F8F0" : "#FFFBEB", border: `2px solid ${form.is_shared ? "#A3E9C4" : "#FDE68A"}`, borderRadius: "8px", marginBottom: "1rem" } }, /* @__PURE__ */ import_react21.default.createElement("label", { style: { display: "block", fontSize: "0.8125rem", fontWeight: "900", color: "var(--c-navy-dark)", marginBottom: "6px" } }, "🛡️ 공개 여부 설정 (타 공급자 노출 제어)"), /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", gap: "12px" } }, /* @__PURE__ */ import_react21.default.createElement("label", { style: { display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontWeight: "700", fontSize: "0.8125rem", color: "#92400E" } }, /* @__PURE__ */ import_react21.default.createElement(
+    }))), showEventModal && /* @__PURE__ */ import_react22.default.createElement("div", { className: "modal-overlay", style: { zIndex: 1e3 } }, /* @__PURE__ */ import_react22.default.createElement("div", { className: "modal-content", style: { maxWidth: "520px", maxHeight: "90vh", overflowY: "auto" } }, /* @__PURE__ */ import_react22.default.createElement("h3", { style: { marginBottom: "1rem", fontWeight: "900", color: "var(--c-navy-dark)" } }, editingEvent ? "✏️ 일정 수정" : "➕ 새 일정 등록"), /* @__PURE__ */ import_react22.default.createElement("div", { style: { padding: "10px 12px", backgroundColor: form.is_shared ? "#E8F8F0" : "#FFFBEB", border: `2px solid ${form.is_shared ? "#A3E9C4" : "#FDE68A"}`, borderRadius: "8px", marginBottom: "1rem" } }, /* @__PURE__ */ import_react22.default.createElement("label", { style: { display: "block", fontSize: "0.8125rem", fontWeight: "900", color: "var(--c-navy-dark)", marginBottom: "6px" } }, "🛡️ 공개 여부 설정 (타 공급자 노출 제어)"), /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "flex", gap: "12px" } }, /* @__PURE__ */ import_react22.default.createElement("label", { style: { display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontWeight: "700", fontSize: "0.8125rem", color: "#92400E" } }, /* @__PURE__ */ import_react22.default.createElement(
       "input",
       {
         type: "radio",
@@ -36594,7 +36992,7 @@ IconFile=${currentUrl}favicon.ico\r
         checked: form.is_shared === false,
         onChange: () => setForm({ ...form, is_shared: false })
       }
-    ), /* @__PURE__ */ import_react21.default.createElement("span", null, "🔒 비공개 (나만 보기 - 기본값)")), /* @__PURE__ */ import_react21.default.createElement("label", { style: { display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontWeight: "700", fontSize: "0.8125rem", color: "#028A3E" } }, /* @__PURE__ */ import_react21.default.createElement(
+    ), /* @__PURE__ */ import_react22.default.createElement("span", null, "🔒 비공개 (나만 보기 - 기본값)")), /* @__PURE__ */ import_react22.default.createElement("label", { style: { display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontWeight: "700", fontSize: "0.8125rem", color: "#028A3E" } }, /* @__PURE__ */ import_react22.default.createElement(
       "input",
       {
         type: "radio",
@@ -36602,7 +37000,7 @@ IconFile=${currentUrl}favicon.ico\r
         checked: form.is_shared === true,
         onChange: () => setForm({ ...form, is_shared: true })
       }
-    ), /* @__PURE__ */ import_react21.default.createElement("span", null, "🔓 공개 (다른 공급자와 공유)"))), /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "11px", color: "#64748b", marginTop: "4px" } }, form.is_shared ? "✓ 세진, 디에스 등 모든 공급자의 캘린더에 함께 노출됩니다." : "🔒 오직 내 업체에만 표시되며 다른 공급자에게는 일체 노출되지 않습니다.")), /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "0.75rem" } }, /* @__PURE__ */ import_react21.default.createElement("div", null, /* @__PURE__ */ import_react21.default.createElement("label", { className: "form-label" }, "일정 제목 *"), /* @__PURE__ */ import_react21.default.createElement(
+    ), /* @__PURE__ */ import_react22.default.createElement("span", null, "🔓 공개 (다른 공급자와 공유)"))), /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: "11px", color: "#64748b", marginTop: "4px" } }, form.is_shared ? "✓ 세진, 디에스 등 모든 공급자의 캘린더에 함께 노출됩니다." : "🔒 오직 내 업체에만 표시되며 다른 공급자에게는 일체 노출되지 않습니다.")), /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "0.75rem" } }, /* @__PURE__ */ import_react22.default.createElement("div", null, /* @__PURE__ */ import_react22.default.createElement("label", { className: "form-label" }, "일정 제목 *"), /* @__PURE__ */ import_react22.default.createElement(
       "input",
       {
         type: "text",
@@ -36612,7 +37010,7 @@ IconFile=${currentUrl}favicon.ico\r
         onChange: (e) => setForm({ ...form, title: e.target.value }),
         autoFocus: true
       }
-    )), /* @__PURE__ */ import_react21.default.createElement("div", { style: { padding: "10px 12px", backgroundColor: "var(--c-blue-lightest)", border: "1.5px solid var(--c-blue-soft)", borderRadius: "8px" } }, /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" } }, /* @__PURE__ */ import_react21.default.createElement("label", { style: { fontSize: "0.8125rem", fontWeight: "800", color: "var(--c-navy-dark)", margin: 0 } }, "📅 일정 날짜 / 기간 선택"), /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", gap: "10px" } }, /* @__PURE__ */ import_react21.default.createElement("label", { style: { display: "flex", alignItems: "center", gap: "4px", cursor: "pointer", fontSize: "0.75rem", fontWeight: "700", color: !form.is_period ? "var(--c-navy-primary)" : "var(--text-muted)" } }, /* @__PURE__ */ import_react21.default.createElement(
+    )), /* @__PURE__ */ import_react22.default.createElement("div", { style: { padding: "10px 12px", backgroundColor: "var(--c-blue-lightest)", border: "1.5px solid var(--c-blue-soft)", borderRadius: "8px" } }, /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" } }, /* @__PURE__ */ import_react22.default.createElement("label", { style: { fontSize: "0.8125rem", fontWeight: "800", color: "var(--c-navy-dark)", margin: 0 } }, "📅 일정 날짜 / 기간 선택"), /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "flex", gap: "10px" } }, /* @__PURE__ */ import_react22.default.createElement("label", { style: { display: "flex", alignItems: "center", gap: "4px", cursor: "pointer", fontSize: "0.75rem", fontWeight: "700", color: !form.is_period ? "var(--c-navy-primary)" : "var(--text-muted)" } }, /* @__PURE__ */ import_react22.default.createElement(
       "input",
       {
         type: "radio",
@@ -36620,7 +37018,7 @@ IconFile=${currentUrl}favicon.ico\r
         checked: !form.is_period,
         onChange: () => setForm({ ...form, is_period: false, end_date: form.event_date })
       }
-    ), "당일 (하루)"), /* @__PURE__ */ import_react21.default.createElement("label", { style: { display: "flex", alignItems: "center", gap: "4px", cursor: "pointer", fontSize: "0.75rem", fontWeight: "800", color: form.is_period ? "var(--c-blue-accent)" : "var(--text-muted)" } }, /* @__PURE__ */ import_react21.default.createElement(
+    ), "당일 (하루)"), /* @__PURE__ */ import_react22.default.createElement("label", { style: { display: "flex", alignItems: "center", gap: "4px", cursor: "pointer", fontSize: "0.75rem", fontWeight: "800", color: form.is_period ? "var(--c-blue-accent)" : "var(--text-muted)" } }, /* @__PURE__ */ import_react22.default.createElement(
       "input",
       {
         type: "radio",
@@ -36628,7 +37026,7 @@ IconFile=${currentUrl}favicon.ico\r
         checked: form.is_period === true,
         onChange: () => setForm({ ...form, is_period: true, end_date: form.end_date || form.event_date })
       }
-    ), "기간 설정 (여러 날짜)"))), form.is_period ? /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "6px" } }, /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: "6px", alignItems: "center" } }, /* @__PURE__ */ import_react21.default.createElement("div", null, /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "11px", fontWeight: "700", color: "var(--c-navy-primary)", marginBottom: "2px" } }, "시작일 *"), /* @__PURE__ */ import_react21.default.createElement("input", { type: "date", className: "form-input", value: form.event_date, onChange: (e) => setForm({ ...form, event_date: e.target.value }) })), /* @__PURE__ */ import_react21.default.createElement("span", { style: { fontWeight: "900", color: "var(--c-navy-dark)", marginTop: "16px" } }, "~"), /* @__PURE__ */ import_react21.default.createElement("div", null, /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "11px", fontWeight: "700", color: "var(--c-navy-primary)", marginBottom: "2px" } }, "종료일 *"), /* @__PURE__ */ import_react21.default.createElement("input", { type: "date", className: "form-input", min: form.event_date, value: form.end_date || form.event_date, onChange: (e) => setForm({ ...form, end_date: e.target.value }) }))), /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "11px", color: "var(--c-navy-primary)", backgroundColor: "var(--c-blue-light)", padding: "4px 8px", borderRadius: "4px", marginTop: "2px" } }, `💡 ${form.event_date}부터 ${form.end_date || form.event_date}까지 달력 모든 날짜에 연속 표시됩니다.`), /* @__PURE__ */ import_react21.default.createElement("div", { style: { marginTop: "4px" } }, /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "11px", fontWeight: "700", color: "var(--text-muted)", marginBottom: "2px" } }, "시간 (선택사항)"), /* @__PURE__ */ import_react21.default.createElement("input", { type: "time", className: "form-input", value: form.event_time, onChange: (e) => setForm({ ...form, event_time: e.target.value }) }))) : /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" } }, /* @__PURE__ */ import_react21.default.createElement("div", null, /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "11px", fontWeight: "700", color: "var(--c-navy-primary)", marginBottom: "2px" } }, "일정 날짜 *"), /* @__PURE__ */ import_react21.default.createElement("input", { type: "date", className: "form-input", value: form.event_date, onChange: (e) => setForm({ ...form, event_date: e.target.value, end_date: e.target.value }) })), /* @__PURE__ */ import_react21.default.createElement("div", null, /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "11px", fontWeight: "700", color: "var(--c-navy-primary)", marginBottom: "2px" } }, "시간"), /* @__PURE__ */ import_react21.default.createElement("input", { type: "time", className: "form-input", value: form.event_time, onChange: (e) => setForm({ ...form, event_time: e.target.value }) })))), /* @__PURE__ */ import_react21.default.createElement("div", null, /* @__PURE__ */ import_react21.default.createElement("label", { className: "form-label" }, "일정 분류"), /* @__PURE__ */ import_react21.default.createElement("select", { className: "form-select", value: form.category, onChange: (e) => setForm({ ...form, category: e.target.value }) }, /* @__PURE__ */ import_react21.default.createElement("option", { value: "repair" }, "🚜 정비 / 출장 / 수리"), /* @__PURE__ */ import_react21.default.createElement("option", { value: "payment" }, "💳 수금 / 결제 예정일"), /* @__PURE__ */ import_react21.default.createElement("option", { value: "estimate" }, "📋 견적 제출 / 상담"), /* @__PURE__ */ import_react21.default.createElement("option", { value: "general" }, "📌 일반 업무 / 기타"))), /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" } }, /* @__PURE__ */ import_react21.default.createElement("div", null, /* @__PURE__ */ import_react21.default.createElement("label", { className: "form-label" }, "거래처명 (고객명)"), /* @__PURE__ */ import_react21.default.createElement("input", { type: "text", className: "form-input", placeholder: "예: 대성건설기계", value: form.customer_name, onChange: (e) => setForm({ ...form, customer_name: e.target.value }) })), /* @__PURE__ */ import_react21.default.createElement("div", null, /* @__PURE__ */ import_react21.default.createElement("label", { className: "form-label" }, "연락처"), /* @__PURE__ */ import_react21.default.createElement("input", { type: "text", className: "form-input", placeholder: "010-0000-0000", value: form.customer_phone, onChange: (e) => setForm({ ...form, customer_phone: e.target.value }) }))), /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" } }, /* @__PURE__ */ import_react21.default.createElement("div", null, /* @__PURE__ */ import_react21.default.createElement("label", { className: "form-label" }, "장비/기종"), /* @__PURE__ */ import_react21.default.createElement("input", { type: "text", className: "form-input", placeholder: "예: DX140W 1호기", value: form.machine_info, onChange: (e) => setForm({ ...form, machine_info: e.target.value }) })), /* @__PURE__ */ import_react21.default.createElement("div", null, /* @__PURE__ */ import_react21.default.createElement("label", { className: "form-label" }, "관련 금액 (원)"), /* @__PURE__ */ import_react21.default.createElement("input", { type: "number", className: "form-input", placeholder: "0", value: form.amount, onChange: (e) => setForm({ ...form, amount: e.target.value }) }))), /* @__PURE__ */ import_react21.default.createElement("div", null, /* @__PURE__ */ import_react21.default.createElement("label", { className: "form-label" }, "상세 메모"), /* @__PURE__ */ import_react21.default.createElement("textarea", { className: "form-input", style: { minHeight: "60px" }, placeholder: "특이사항, 챙길 부품, 현장 위치 등", value: form.memo, onChange: (e) => setForm({ ...form, memo: e.target.value }) }))), /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1.25rem", paddingTop: "0.75rem", borderTop: "1px solid #e2e8f0" } }, editingEvent ? /* @__PURE__ */ import_react21.default.createElement(
+    ), "기간 설정 (여러 날짜)"))), form.is_period ? /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "6px" } }, /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: "6px", alignItems: "center" } }, /* @__PURE__ */ import_react22.default.createElement("div", null, /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: "11px", fontWeight: "700", color: "var(--c-navy-primary)", marginBottom: "2px" } }, "시작일 *"), /* @__PURE__ */ import_react22.default.createElement("input", { type: "date", className: "form-input", value: form.event_date, onChange: (e) => setForm({ ...form, event_date: e.target.value }) })), /* @__PURE__ */ import_react22.default.createElement("span", { style: { fontWeight: "900", color: "var(--c-navy-dark)", marginTop: "16px" } }, "~"), /* @__PURE__ */ import_react22.default.createElement("div", null, /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: "11px", fontWeight: "700", color: "var(--c-navy-primary)", marginBottom: "2px" } }, "종료일 *"), /* @__PURE__ */ import_react22.default.createElement("input", { type: "date", className: "form-input", min: form.event_date, value: form.end_date || form.event_date, onChange: (e) => setForm({ ...form, end_date: e.target.value }) }))), /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: "11px", color: "var(--c-navy-primary)", backgroundColor: "var(--c-blue-light)", padding: "4px 8px", borderRadius: "4px", marginTop: "2px" } }, `💡 ${form.event_date}부터 ${form.end_date || form.event_date}까지 달력 모든 날짜에 연속 표시됩니다.`), /* @__PURE__ */ import_react22.default.createElement("div", { style: { marginTop: "4px" } }, /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: "11px", fontWeight: "700", color: "var(--text-muted)", marginBottom: "2px" } }, "시간 (선택사항)"), /* @__PURE__ */ import_react22.default.createElement("input", { type: "time", className: "form-input", value: form.event_time, onChange: (e) => setForm({ ...form, event_time: e.target.value }) }))) : /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" } }, /* @__PURE__ */ import_react22.default.createElement("div", null, /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: "11px", fontWeight: "700", color: "var(--c-navy-primary)", marginBottom: "2px" } }, "일정 날짜 *"), /* @__PURE__ */ import_react22.default.createElement("input", { type: "date", className: "form-input", value: form.event_date, onChange: (e) => setForm({ ...form, event_date: e.target.value, end_date: e.target.value }) })), /* @__PURE__ */ import_react22.default.createElement("div", null, /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: "11px", fontWeight: "700", color: "var(--c-navy-primary)", marginBottom: "2px" } }, "시간"), /* @__PURE__ */ import_react22.default.createElement("input", { type: "time", className: "form-input", value: form.event_time, onChange: (e) => setForm({ ...form, event_time: e.target.value }) })))), /* @__PURE__ */ import_react22.default.createElement("div", null, /* @__PURE__ */ import_react22.default.createElement("label", { className: "form-label" }, "일정 분류"), /* @__PURE__ */ import_react22.default.createElement("select", { className: "form-select", value: form.category, onChange: (e) => setForm({ ...form, category: e.target.value }) }, /* @__PURE__ */ import_react22.default.createElement("option", { value: "repair" }, "🚜 정비 / 출장 / 수리"), /* @__PURE__ */ import_react22.default.createElement("option", { value: "payment" }, "💳 수금 / 결제 예정일"), /* @__PURE__ */ import_react22.default.createElement("option", { value: "estimate" }, "📋 견적 제출 / 상담"), /* @__PURE__ */ import_react22.default.createElement("option", { value: "general" }, "📌 일반 업무 / 기타"))), /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" } }, /* @__PURE__ */ import_react22.default.createElement("div", null, /* @__PURE__ */ import_react22.default.createElement("label", { className: "form-label" }, "거래처명 (고객명)"), /* @__PURE__ */ import_react22.default.createElement("input", { type: "text", className: "form-input", placeholder: "예: 대성건설기계", value: form.customer_name, onChange: (e) => setForm({ ...form, customer_name: e.target.value }) })), /* @__PURE__ */ import_react22.default.createElement("div", null, /* @__PURE__ */ import_react22.default.createElement("label", { className: "form-label" }, "연락처"), /* @__PURE__ */ import_react22.default.createElement("input", { type: "text", className: "form-input", placeholder: "010-0000-0000", value: form.customer_phone, onChange: (e) => setForm({ ...form, customer_phone: e.target.value }) }))), /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" } }, /* @__PURE__ */ import_react22.default.createElement("div", null, /* @__PURE__ */ import_react22.default.createElement("label", { className: "form-label" }, "장비/기종"), /* @__PURE__ */ import_react22.default.createElement("input", { type: "text", className: "form-input", placeholder: "예: DX140W 1호기", value: form.machine_info, onChange: (e) => setForm({ ...form, machine_info: e.target.value }) })), /* @__PURE__ */ import_react22.default.createElement("div", null, /* @__PURE__ */ import_react22.default.createElement("label", { className: "form-label" }, "관련 금액 (원)"), /* @__PURE__ */ import_react22.default.createElement("input", { type: "number", className: "form-input", placeholder: "0", value: form.amount, onChange: (e) => setForm({ ...form, amount: e.target.value }) }))), /* @__PURE__ */ import_react22.default.createElement("div", null, /* @__PURE__ */ import_react22.default.createElement("label", { className: "form-label" }, "상세 메모"), /* @__PURE__ */ import_react22.default.createElement("textarea", { className: "form-input", style: { minHeight: "60px" }, placeholder: "특이사항, 챙길 부품, 현장 위치 등", value: form.memo, onChange: (e) => setForm({ ...form, memo: e.target.value }) }))), /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1.25rem", paddingTop: "0.75rem", borderTop: "1px solid #e2e8f0" } }, editingEvent ? /* @__PURE__ */ import_react22.default.createElement(
       "button",
       {
         type: "button",
@@ -36637,11 +37035,27 @@ IconFile=${currentUrl}favicon.ico\r
         onClick: () => handleDeleteEvent(editingEvent.id)
       },
       "🗑️ 삭제"
-    ) : /* @__PURE__ */ import_react21.default.createElement("div", null), /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", gap: "8px" } }, /* @__PURE__ */ import_react21.default.createElement("button", { type: "button", className: "btn btn-outline", onClick: () => setShowEventModal(false) }, "취소"), /* @__PURE__ */ import_react21.default.createElement("button", { type: "button", className: "btn btn-primary", style: { backgroundColor: "#03C75A", borderColor: "#03C75A", fontWeight: "800" }, onClick: handleSaveEvent }, "💾 일정 저장"))))));
+    ) : /* @__PURE__ */ import_react22.default.createElement("div", null), /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "flex", gap: "8px" } }, /* @__PURE__ */ import_react22.default.createElement("button", { type: "button", className: "btn btn-outline", onClick: () => setShowEventModal(false) }, "취소"), /* @__PURE__ */ import_react22.default.createElement("button", { type: "button", className: "btn btn-primary", style: { backgroundColor: "#03C75A", borderColor: "#03C75A", fontWeight: "800" }, onClick: handleSaveEvent }, "💾 일정 저장"))))), previewSchedule && /* @__PURE__ */ import_react22.default.createElement(
+      SchedulePreviewModal,
+      {
+        schedule: previewSchedule,
+        suppliersList,
+        onClose: () => setPreviewSchedule(null),
+        onEdit: (sch) => {
+          setPreviewSchedule(null);
+          handleOpenEditEvent(sch);
+        },
+        onDelete: (id) => {
+          setPreviewSchedule(null);
+          handleDeleteEvent(id);
+        },
+        onNavigateToDoc
+      }
+    ));
   }
 
   // src/pages/CustomerTab.jsx
-  var import_react22 = __toESM(require_react(), 1);
+  var import_react23 = __toESM(require_react(), 1);
   function CustomerTab({
     customers = [],
     onSaveCustomer,
@@ -36652,27 +37066,27 @@ IconFile=${currentUrl}favicon.ico\r
     onSyncCustomers,
     onOpenOcrModal
   }) {
-    const [search, setSearch] = (0, import_react22.useState)("");
-    const [showModal, setShowModal] = (0, import_react22.useState)(false);
-    const [modalMode, setModalMode] = (0, import_react22.useState)("add");
-    const [editingCustomer, setEditingCustomer] = (0, import_react22.useState)(null);
-    const [selectMachineCustomer, setSelectMachineCustomer] = (0, import_react22.useState)(null);
-    const [isSyncing, setIsSyncing] = (0, import_react22.useState)(false);
-    (0, import_react22.useEffect)(() => {
+    const [search, setSearch] = (0, import_react23.useState)("");
+    const [showModal, setShowModal] = (0, import_react23.useState)(false);
+    const [modalMode, setModalMode] = (0, import_react23.useState)("add");
+    const [editingCustomer, setEditingCustomer] = (0, import_react23.useState)(null);
+    const [selectMachineCustomer, setSelectMachineCustomer] = (0, import_react23.useState)(null);
+    const [isSyncing, setIsSyncing] = (0, import_react23.useState)(false);
+    (0, import_react23.useEffect)(() => {
       if (!showModal) return;
       return registerBackHandler(() => {
         setShowModal(false);
         return true;
       }, "CustomerTabModal");
     }, [showModal]);
-    (0, import_react22.useEffect)(() => {
+    (0, import_react23.useEffect)(() => {
       if (!selectMachineCustomer) return;
       return registerBackHandler(() => {
         setSelectMachineCustomer(null);
         return true;
       }, "SelectMachineModal");
     }, [selectMachineCustomer]);
-    const uniqueCustomers = (0, import_react22.useMemo)(() => {
+    const uniqueCustomers = (0, import_react23.useMemo)(() => {
       const seen = /* @__PURE__ */ new Set();
       const list = [];
       (customers || []).forEach((c) => {
@@ -36711,7 +37125,7 @@ IconFile=${currentUrl}favicon.ico\r
       setIsSyncing(false);
       alert("✓ 발행된 모든 문서의 거래처가 고객관리에 완벽하게 동기화되었습니다!");
     };
-    (0, import_react22.useEffect)(() => {
+    (0, import_react23.useEffect)(() => {
       if (openAddModal) {
         setModalMode("add");
         setEditingCustomer(null);
@@ -36728,8 +37142,8 @@ IconFile=${currentUrl}favicon.ico\r
       if (!machineStr) return "-";
       const list = machineStr.split(",").map((s) => s.trim()).filter(Boolean);
       if (list.length === 0) return "-";
-      if (list.length === 1) return /* @__PURE__ */ import_react22.default.createElement("span", { style: { fontWeight: "bold" } }, list[0]);
-      return /* @__PURE__ */ import_react22.default.createElement("span", { style: { fontWeight: "bold" } }, list[0], " ", /* @__PURE__ */ import_react22.default.createElement("span", { style: { fontSize: "0.6875rem", color: "#3b82f6" } }, `(외 ${list.length - 1}대)`));
+      if (list.length === 1) return /* @__PURE__ */ import_react23.default.createElement("span", { style: { fontWeight: "bold" } }, list[0]);
+      return /* @__PURE__ */ import_react23.default.createElement("span", { style: { fontWeight: "bold" } }, list[0], " ", /* @__PURE__ */ import_react23.default.createElement("span", { style: { fontSize: "0.6875rem", color: "#3b82f6" } }, `(외 ${list.length - 1}대)`));
     };
     const handleSelectInvoice = (c) => {
       const list = c.machine ? c.machine.split(",").map((s) => s.trim()).filter(Boolean) : [];
@@ -36745,7 +37159,7 @@ IconFile=${currentUrl}favicon.ico\r
         });
       }
     };
-    return /* @__PURE__ */ import_react22.default.createElement("div", { className: "management-container" }, /* @__PURE__ */ import_react22.default.createElement("div", { className: "card-box" }, /* @__PURE__ */ import_react22.default.createElement("div", { className: "card-box-header" }, /* @__PURE__ */ import_react22.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900" } }, "👥 고객 (거래처) 관리"), /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "flex", gap: "0.5rem", flexWrap: "wrap" } }, /* @__PURE__ */ import_react22.default.createElement(
+    return /* @__PURE__ */ import_react23.default.createElement("div", { className: "management-container" }, /* @__PURE__ */ import_react23.default.createElement("div", { className: "card-box" }, /* @__PURE__ */ import_react23.default.createElement("div", { className: "card-box-header" }, /* @__PURE__ */ import_react23.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900" } }, "👥 고객 (거래처) 관리"), /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", gap: "0.5rem", flexWrap: "wrap" } }, /* @__PURE__ */ import_react23.default.createElement(
       "button",
       {
         className: "btn btn-outline",
@@ -36754,7 +37168,7 @@ IconFile=${currentUrl}favicon.ico\r
         disabled: isSyncing
       },
       isSyncing ? "⏳ 동기화 중..." : "🔄 문서 거래처 동기화"
-    ), /* @__PURE__ */ import_react22.default.createElement(
+    ), /* @__PURE__ */ import_react23.default.createElement(
       "button",
       {
         type: "button",
@@ -36773,7 +37187,7 @@ IconFile=${currentUrl}favicon.ico\r
         onClick: () => onOpenOcrModal && onOpenOcrModal()
       },
       "📷 명함/등록증 AI 자동등록"
-    ), /* @__PURE__ */ import_react22.default.createElement("button", { className: "btn btn-primary", onClick: handleOpenAdd }, "+ 거래처 추가"))), /* @__PURE__ */ import_react22.default.createElement("div", { style: { padding: "0.75rem", backgroundColor: "#f9fafb" } }, /* @__PURE__ */ import_react22.default.createElement(
+    ), /* @__PURE__ */ import_react23.default.createElement("button", { className: "btn btn-primary", onClick: handleOpenAdd }, "+ 거래처 추가"))), /* @__PURE__ */ import_react23.default.createElement("div", { style: { padding: "0.75rem", backgroundColor: "#f9fafb" } }, /* @__PURE__ */ import_react23.default.createElement(
       "input",
       {
         type: "text",
@@ -36782,7 +37196,7 @@ IconFile=${currentUrl}favicon.ico\r
         value: search,
         onChange: (e) => setSearch(e.target.value)
       }
-    )), /* @__PURE__ */ import_react22.default.createElement("div", { className: "mobile-cards-view" }, filtered.map((c) => /* @__PURE__ */ import_react22.default.createElement("div", { key: c.id, className: "mobile-data-card" }, /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.375rem" } }, /* @__PURE__ */ import_react22.default.createElement("span", { style: { fontWeight: "900", fontSize: "0.9375rem" } }, c.name), /* @__PURE__ */ import_react22.default.createElement("span", { style: { fontSize: "0.6875rem", color: "#6b7280", fontFamily: "monospace" } }, c.code)), /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: "0.75rem", color: "#4b5563", marginBottom: "0.5rem" } }, /* @__PURE__ */ import_react22.default.createElement("div", null, "기종: ", renderMachineDisplay(c.machine)), /* @__PURE__ */ import_react22.default.createElement("div", null, "담당자: ", c.person || "-"), /* @__PURE__ */ import_react22.default.createElement("div", null, "연락처: ", c.phone || "-")), /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "flex", gap: "0.375rem", marginBottom: "0.375rem" } }, /* @__PURE__ */ import_react22.default.createElement(
+    )), /* @__PURE__ */ import_react23.default.createElement("div", { className: "mobile-cards-view" }, filtered.map((c) => /* @__PURE__ */ import_react23.default.createElement("div", { key: c.id, className: "mobile-data-card" }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.375rem" } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { fontWeight: "900", fontSize: "0.9375rem" } }, c.name), /* @__PURE__ */ import_react23.default.createElement("span", { style: { fontSize: "0.6875rem", color: "#6b7280", fontFamily: "monospace" } }, c.code)), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: "0.75rem", color: "#4b5563", marginBottom: "0.5rem" } }, /* @__PURE__ */ import_react23.default.createElement("div", null, "기종: ", renderMachineDisplay(c.machine)), /* @__PURE__ */ import_react23.default.createElement("div", null, "담당자: ", c.person || "-"), /* @__PURE__ */ import_react23.default.createElement("div", null, "연락처: ", c.phone || "-")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", gap: "0.375rem", marginBottom: "0.375rem" } }, /* @__PURE__ */ import_react23.default.createElement(
       "button",
       {
         className: "btn btn-outline",
@@ -36790,7 +37204,7 @@ IconFile=${currentUrl}favicon.ico\r
         onClick: () => handleOpenView(c)
       },
       "상세조회"
-    )), /* @__PURE__ */ import_react22.default.createElement(
+    )), /* @__PURE__ */ import_react23.default.createElement(
       "button",
       {
         className: "btn btn-primary",
@@ -36798,7 +37212,7 @@ IconFile=${currentUrl}favicon.ico\r
         onClick: () => handleSelectInvoice(c)
       },
       "명세서에 선택"
-    )))), /* @__PURE__ */ import_react22.default.createElement("div", { className: "desktop-table-view" }, /* @__PURE__ */ import_react22.default.createElement("table", { className: "data-table" }, /* @__PURE__ */ import_react22.default.createElement("thead", null, /* @__PURE__ */ import_react22.default.createElement("tr", null, /* @__PURE__ */ import_react22.default.createElement("th", null, "Code"), /* @__PURE__ */ import_react22.default.createElement("th", null, "상호명"), /* @__PURE__ */ import_react22.default.createElement("th", null, "기종"), /* @__PURE__ */ import_react22.default.createElement("th", null, "담당자"), /* @__PURE__ */ import_react22.default.createElement("th", null, "연락처"), /* @__PURE__ */ import_react22.default.createElement("th", null, "작업"))), /* @__PURE__ */ import_react22.default.createElement("tbody", null, filtered.map((c) => /* @__PURE__ */ import_react22.default.createElement("tr", { key: c.id }, /* @__PURE__ */ import_react22.default.createElement("td", { style: { fontFamily: "monospace" } }, c.code), /* @__PURE__ */ import_react22.default.createElement("td", { style: { fontWeight: "700" } }, c.name), /* @__PURE__ */ import_react22.default.createElement("td", null, renderMachineDisplay(c.machine)), /* @__PURE__ */ import_react22.default.createElement("td", null, c.person || "-"), /* @__PURE__ */ import_react22.default.createElement("td", null, c.phone || "-"), /* @__PURE__ */ import_react22.default.createElement("td", { style: { whiteSpace: "nowrap" } }, /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "flex", gap: "4px" } }, /* @__PURE__ */ import_react22.default.createElement(
+    )))), /* @__PURE__ */ import_react23.default.createElement("div", { className: "desktop-table-view" }, /* @__PURE__ */ import_react23.default.createElement("table", { className: "data-table" }, /* @__PURE__ */ import_react23.default.createElement("thead", null, /* @__PURE__ */ import_react23.default.createElement("tr", null, /* @__PURE__ */ import_react23.default.createElement("th", null, "Code"), /* @__PURE__ */ import_react23.default.createElement("th", null, "상호명"), /* @__PURE__ */ import_react23.default.createElement("th", null, "기종"), /* @__PURE__ */ import_react23.default.createElement("th", null, "담당자"), /* @__PURE__ */ import_react23.default.createElement("th", null, "연락처"), /* @__PURE__ */ import_react23.default.createElement("th", null, "작업"))), /* @__PURE__ */ import_react23.default.createElement("tbody", null, filtered.map((c) => /* @__PURE__ */ import_react23.default.createElement("tr", { key: c.id }, /* @__PURE__ */ import_react23.default.createElement("td", { style: { fontFamily: "monospace" } }, c.code), /* @__PURE__ */ import_react23.default.createElement("td", { style: { fontWeight: "700" } }, c.name), /* @__PURE__ */ import_react23.default.createElement("td", null, renderMachineDisplay(c.machine)), /* @__PURE__ */ import_react23.default.createElement("td", null, c.person || "-"), /* @__PURE__ */ import_react23.default.createElement("td", null, c.phone || "-"), /* @__PURE__ */ import_react23.default.createElement("td", { style: { whiteSpace: "nowrap" } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", gap: "4px" } }, /* @__PURE__ */ import_react23.default.createElement(
       "button",
       {
         className: "btn btn-primary",
@@ -36806,7 +37220,7 @@ IconFile=${currentUrl}favicon.ico\r
         onClick: () => handleSelectInvoice(c)
       },
       "명세서 선택"
-    ), /* @__PURE__ */ import_react22.default.createElement(
+    ), /* @__PURE__ */ import_react23.default.createElement(
       "button",
       {
         className: "btn btn-outline",
@@ -36814,7 +37228,7 @@ IconFile=${currentUrl}favicon.ico\r
         onClick: () => handleOpenView(c)
       },
       "상세조회"
-    ))))))))), showModal && /* @__PURE__ */ import_react22.default.createElement(
+    ))))))))), showModal && /* @__PURE__ */ import_react23.default.createElement(
       CustomerEditModal,
       {
         isOpen: showModal,
@@ -36825,7 +37239,7 @@ IconFile=${currentUrl}favicon.ico\r
         onSaveCustomer,
         onDeleteCustomer
       }
-    ), selectMachineCustomer && /* @__PURE__ */ import_react22.default.createElement("div", { className: "modal-overlay" }, /* @__PURE__ */ import_react22.default.createElement("div", { className: "modal-content", style: { maxWidth: "300px", textAlign: "center" } }, /* @__PURE__ */ import_react22.default.createElement("h3", { style: { marginBottom: "1rem", fontWeight: "900" } }, "🚜 기종 선택"), /* @__PURE__ */ import_react22.default.createElement("p", { style: { fontSize: "0.875rem", color: "#4b5563", marginBottom: "1rem" } }, "명세서를 작성할 장비를 선택해 주세요."), /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "0.5rem" } }, selectMachineCustomer.parsedMachines.map((m, idx) => /* @__PURE__ */ import_react22.default.createElement(
+    ), selectMachineCustomer && /* @__PURE__ */ import_react23.default.createElement("div", { className: "modal-overlay" }, /* @__PURE__ */ import_react23.default.createElement("div", { className: "modal-content", style: { maxWidth: "300px", textAlign: "center" } }, /* @__PURE__ */ import_react23.default.createElement("h3", { style: { marginBottom: "1rem", fontWeight: "900" } }, "🚜 기종 선택"), /* @__PURE__ */ import_react23.default.createElement("p", { style: { fontSize: "0.875rem", color: "#4b5563", marginBottom: "1rem" } }, "명세서를 작성할 장비를 선택해 주세요."), /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "0.5rem" } }, selectMachineCustomer.parsedMachines.map((m, idx) => /* @__PURE__ */ import_react23.default.createElement(
       "button",
       {
         key: idx,
@@ -36840,7 +37254,7 @@ IconFile=${currentUrl}favicon.ico\r
         }
       },
       m
-    )), /* @__PURE__ */ import_react22.default.createElement(
+    )), /* @__PURE__ */ import_react23.default.createElement(
       "button",
       {
         className: "btn btn-red-outline",
@@ -36852,24 +37266,24 @@ IconFile=${currentUrl}favicon.ico\r
   }
 
   // src/pages/SupplierTab.jsx
-  var import_react23 = __toESM(require_react(), 1);
+  var import_react24 = __toESM(require_react(), 1);
   function SupplierTab({
     suppliers = [],
     onSaveSupplier,
     onDeleteSupplier,
     onSelectSupplier
   }) {
-    const [search, setSearch] = (0, import_react23.useState)("");
-    const [showModal, setShowModal] = (0, import_react23.useState)(false);
-    const [modalMode, setModalMode] = (0, import_react23.useState)("add");
-    (0, import_react23.useEffect)(() => {
+    const [search, setSearch] = (0, import_react24.useState)("");
+    const [showModal, setShowModal] = (0, import_react24.useState)(false);
+    const [modalMode, setModalMode] = (0, import_react24.useState)("add");
+    (0, import_react24.useEffect)(() => {
       if (!showModal) return;
       return registerBackHandler(() => {
         setShowModal(false);
         return true;
       }, "SupplierTabModal");
     }, [showModal]);
-    const [form, setForm] = (0, import_react23.useState)({
+    const [form, setForm] = (0, import_react24.useState)({
       id: null,
       code: "",
       name: "",
@@ -36951,7 +37365,7 @@ IconFile=${currentUrl}favicon.ico\r
       onSaveSupplier(form, modalMode === "edit" || modalMode === "add" ? form.id != null : false);
       setShowModal(false);
     };
-    return /* @__PURE__ */ import_react23.default.createElement("div", { className: "management-container" }, /* @__PURE__ */ import_react23.default.createElement("div", { className: "card-box" }, /* @__PURE__ */ import_react23.default.createElement("div", { className: "card-box-header" }, /* @__PURE__ */ import_react23.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900" } }, "🏢 공급자 관리"), /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", gap: "8px" } }, /* @__PURE__ */ import_react23.default.createElement(
+    return /* @__PURE__ */ import_react24.default.createElement("div", { className: "management-container" }, /* @__PURE__ */ import_react24.default.createElement("div", { className: "card-box" }, /* @__PURE__ */ import_react24.default.createElement("div", { className: "card-box-header" }, /* @__PURE__ */ import_react24.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900" } }, "🏢 공급자 관리"), /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", gap: "8px" } }, /* @__PURE__ */ import_react24.default.createElement(
       "button",
       {
         className: "btn btn-outline",
@@ -36959,7 +37373,7 @@ IconFile=${currentUrl}favicon.ico\r
         onClick: handleOpenAdminPwdChange
       },
       "🔑 관리자 비번 변경"
-    ), /* @__PURE__ */ import_react23.default.createElement("button", { className: "btn btn-primary", onClick: handleOpenAdd }, "+ 공급자 추가"))), /* @__PURE__ */ import_react23.default.createElement("div", { style: { padding: "0.75rem", backgroundColor: "#f9fafb" } }, /* @__PURE__ */ import_react23.default.createElement(
+    ), /* @__PURE__ */ import_react24.default.createElement("button", { className: "btn btn-primary", onClick: handleOpenAdd }, "+ 공급자 추가"))), /* @__PURE__ */ import_react24.default.createElement("div", { style: { padding: "0.75rem", backgroundColor: "#f9fafb" } }, /* @__PURE__ */ import_react24.default.createElement(
       "input",
       {
         type: "text",
@@ -36968,7 +37382,7 @@ IconFile=${currentUrl}favicon.ico\r
         value: search,
         onChange: (e) => setSearch(e.target.value)
       }
-    )), /* @__PURE__ */ import_react23.default.createElement("div", { className: "mobile-cards-view" }, filtered.map((s) => /* @__PURE__ */ import_react23.default.createElement("div", { key: s.id, className: "mobile-data-card" }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { fontWeight: "900", fontSize: "0.9375rem" } }, s.name || s.company), /* @__PURE__ */ import_react23.default.createElement("span", { style: { fontSize: "0.6875rem", color: "#6b7280", fontFamily: "monospace" } }, s.bizno)), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: "0.75rem", color: "#4b5563", marginBottom: "0.5rem" } }, /* @__PURE__ */ import_react23.default.createElement("div", null, "대표자: ", s.person || s.owner || "-"), /* @__PURE__ */ import_react23.default.createElement("div", null, "연락처: ", s.phone || s.tel || "-"), /* @__PURE__ */ import_react23.default.createElement("div", { style: { textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" } }, "주소: ", s.addr || "-"), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: "0.6875rem", color: "#9ca3af", marginTop: "2px" } }, "계좌: ", s.bank || "-")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", gap: "0.375rem", marginTop: "0.5rem" } }, /* @__PURE__ */ import_react23.default.createElement(
+    )), /* @__PURE__ */ import_react24.default.createElement("div", { className: "mobile-cards-view" }, filtered.map((s) => /* @__PURE__ */ import_react24.default.createElement("div", { key: s.id, className: "mobile-data-card" }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" } }, /* @__PURE__ */ import_react24.default.createElement("span", { style: { fontWeight: "900", fontSize: "0.9375rem" } }, s.name || s.company), /* @__PURE__ */ import_react24.default.createElement("span", { style: { fontSize: "0.6875rem", color: "#6b7280", fontFamily: "monospace" } }, s.bizno)), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: "0.75rem", color: "#4b5563", marginBottom: "0.5rem" } }, /* @__PURE__ */ import_react24.default.createElement("div", null, "대표자: ", s.person || s.owner || "-"), /* @__PURE__ */ import_react24.default.createElement("div", null, "연락처: ", s.phone || s.tel || "-"), /* @__PURE__ */ import_react24.default.createElement("div", { style: { textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" } }, "주소: ", s.addr || "-"), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: "0.6875rem", color: "#9ca3af", marginTop: "2px" } }, "계좌: ", s.bank || "-")), /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", gap: "0.375rem", marginTop: "0.5rem" } }, /* @__PURE__ */ import_react24.default.createElement(
       "button",
       {
         className: "btn btn-outline",
@@ -36976,7 +37390,7 @@ IconFile=${currentUrl}favicon.ico\r
         onClick: () => handleOpenView(s)
       },
       "🔍 상세조회 / 정보수정"
-    ))))), /* @__PURE__ */ import_react23.default.createElement("div", { className: "desktop-table-view" }, /* @__PURE__ */ import_react23.default.createElement("table", { className: "data-table" }, /* @__PURE__ */ import_react23.default.createElement("thead", null, /* @__PURE__ */ import_react23.default.createElement("tr", null, /* @__PURE__ */ import_react23.default.createElement("th", null, "상호명 / 대표자"), /* @__PURE__ */ import_react23.default.createElement("th", null, "사업자번호"), /* @__PURE__ */ import_react23.default.createElement("th", null, "연락처 / 팩스"), /* @__PURE__ */ import_react23.default.createElement("th", null, "주소"), /* @__PURE__ */ import_react23.default.createElement("th", null, "작업"))), /* @__PURE__ */ import_react23.default.createElement("tbody", null, filtered.map((s) => /* @__PURE__ */ import_react23.default.createElement("tr", { key: s.id }, /* @__PURE__ */ import_react23.default.createElement("td", null, /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontWeight: "700" } }, s.name || s.company), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: "10px", color: "#6b7280" } }, s.person || s.owner)), /* @__PURE__ */ import_react23.default.createElement("td", { style: { fontFamily: "monospace" } }, s.bizno), /* @__PURE__ */ import_react23.default.createElement("td", null, /* @__PURE__ */ import_react23.default.createElement("div", null, s.phone || s.tel), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: "10px", color: "#6b7280" } }, s.fax)), /* @__PURE__ */ import_react23.default.createElement("td", { style: { fontSize: "11px" } }, s.addr), /* @__PURE__ */ import_react23.default.createElement("td", { style: { whiteSpace: "nowrap" } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", gap: "4px" } }, /* @__PURE__ */ import_react23.default.createElement(
+    ))))), /* @__PURE__ */ import_react24.default.createElement("div", { className: "desktop-table-view" }, /* @__PURE__ */ import_react24.default.createElement("table", { className: "data-table" }, /* @__PURE__ */ import_react24.default.createElement("thead", null, /* @__PURE__ */ import_react24.default.createElement("tr", null, /* @__PURE__ */ import_react24.default.createElement("th", null, "상호명 / 대표자"), /* @__PURE__ */ import_react24.default.createElement("th", null, "사업자번호"), /* @__PURE__ */ import_react24.default.createElement("th", null, "연락처 / 팩스"), /* @__PURE__ */ import_react24.default.createElement("th", null, "주소"), /* @__PURE__ */ import_react24.default.createElement("th", null, "작업"))), /* @__PURE__ */ import_react24.default.createElement("tbody", null, filtered.map((s) => /* @__PURE__ */ import_react24.default.createElement("tr", { key: s.id }, /* @__PURE__ */ import_react24.default.createElement("td", null, /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontWeight: "700" } }, s.name || s.company), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: "10px", color: "#6b7280" } }, s.person || s.owner)), /* @__PURE__ */ import_react24.default.createElement("td", { style: { fontFamily: "monospace" } }, s.bizno), /* @__PURE__ */ import_react24.default.createElement("td", null, /* @__PURE__ */ import_react24.default.createElement("div", null, s.phone || s.tel), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: "10px", color: "#6b7280" } }, s.fax)), /* @__PURE__ */ import_react24.default.createElement("td", { style: { fontSize: "11px" } }, s.addr), /* @__PURE__ */ import_react24.default.createElement("td", { style: { whiteSpace: "nowrap" } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", gap: "4px" } }, /* @__PURE__ */ import_react24.default.createElement(
       "button",
       {
         className: "btn btn-outline",
@@ -36984,7 +37398,7 @@ IconFile=${currentUrl}favicon.ico\r
         onClick: () => handleOpenView(s)
       },
       "🔍 상세조회 / 수정"
-    ))))))))), showModal && /* @__PURE__ */ import_react23.default.createElement("div", { className: "modal-overlay" }, /* @__PURE__ */ import_react23.default.createElement("div", { className: "modal-content", style: { maxHeight: "90vh", overflowY: "auto" } }, /* @__PURE__ */ import_react23.default.createElement("h3", { style: { marginBottom: "1rem", fontWeight: "900" } }, modalMode === "add" ? "➕ 새 공급자 등록" : modalMode === "edit" ? "✏️ 공급자 정보 수정" : "🔍 공급자 상세 조회"), /* @__PURE__ */ import_react23.default.createElement("div", { className: "form-section" }, /* @__PURE__ */ import_react23.default.createElement("div", { className: "section-title" }, "🏢 기본 정보"), /* @__PURE__ */ import_react23.default.createElement("div", { className: "grid-2" }, /* @__PURE__ */ import_react23.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react23.default.createElement("label", { className: "form-label" }, "상호명 *"), modalMode === "view" ? /* @__PURE__ */ import_react23.default.createElement("div", { className: "view-value", style: { fontWeight: "700" } }, form.name) : /* @__PURE__ */ import_react23.default.createElement("input", { type: "text", className: "form-input", value: form.name, onChange: (e) => setForm({ ...form, name: e.target.value }) })), /* @__PURE__ */ import_react23.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react23.default.createElement("label", { className: "form-label" }, "대표자"), modalMode === "view" ? /* @__PURE__ */ import_react23.default.createElement("div", { className: "view-value" }, form.person || "-") : /* @__PURE__ */ import_react23.default.createElement("input", { type: "text", className: "form-input", value: form.person, onChange: (e) => setForm({ ...form, person: e.target.value }) }))), /* @__PURE__ */ import_react23.default.createElement("div", { className: "grid-2" }, /* @__PURE__ */ import_react23.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react23.default.createElement("label", { className: "form-label" }, "연락처"), modalMode === "view" ? /* @__PURE__ */ import_react23.default.createElement("div", { className: "view-value" }, form.phone || "-") : /* @__PURE__ */ import_react23.default.createElement("input", { type: "text", className: "form-input", value: form.phone, onChange: (e) => setForm({ ...form, phone: e.target.value }) })), /* @__PURE__ */ import_react23.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react23.default.createElement("label", { className: "form-label" }, "팩스번호"), modalMode === "view" ? /* @__PURE__ */ import_react23.default.createElement("div", { className: "view-value" }, form.fax || "-") : /* @__PURE__ */ import_react23.default.createElement("input", { type: "text", className: "form-input", value: form.fax, onChange: (e) => setForm({ ...form, fax: e.target.value }) }))), /* @__PURE__ */ import_react23.default.createElement("div", { className: "grid-2" }, /* @__PURE__ */ import_react23.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react23.default.createElement("label", { className: "form-label" }, "🔑 로그인 필수 비밀번호 (4자리 숫자)"), modalMode === "view" ? /* @__PURE__ */ import_react23.default.createElement("div", { className: "view-value", style: { fontFamily: "monospace", letterSpacing: "2px", fontWeight: "bold", color: "#1d4ed8" } }, form.pwd || "0000") : /* @__PURE__ */ import_react23.default.createElement(
+    ))))))))), showModal && /* @__PURE__ */ import_react24.default.createElement("div", { className: "modal-overlay" }, /* @__PURE__ */ import_react24.default.createElement("div", { className: "modal-content", style: { maxHeight: "90vh", overflowY: "auto" } }, /* @__PURE__ */ import_react24.default.createElement("h3", { style: { marginBottom: "1rem", fontWeight: "900" } }, modalMode === "add" ? "➕ 새 공급자 등록" : modalMode === "edit" ? "✏️ 공급자 정보 수정" : "🔍 공급자 상세 조회"), /* @__PURE__ */ import_react24.default.createElement("div", { className: "form-section" }, /* @__PURE__ */ import_react24.default.createElement("div", { className: "section-title" }, "🏢 기본 정보"), /* @__PURE__ */ import_react24.default.createElement("div", { className: "grid-2" }, /* @__PURE__ */ import_react24.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react24.default.createElement("label", { className: "form-label" }, "상호명 *"), modalMode === "view" ? /* @__PURE__ */ import_react24.default.createElement("div", { className: "view-value", style: { fontWeight: "700" } }, form.name) : /* @__PURE__ */ import_react24.default.createElement("input", { type: "text", className: "form-input", value: form.name, onChange: (e) => setForm({ ...form, name: e.target.value }) })), /* @__PURE__ */ import_react24.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react24.default.createElement("label", { className: "form-label" }, "대표자"), modalMode === "view" ? /* @__PURE__ */ import_react24.default.createElement("div", { className: "view-value" }, form.person || "-") : /* @__PURE__ */ import_react24.default.createElement("input", { type: "text", className: "form-input", value: form.person, onChange: (e) => setForm({ ...form, person: e.target.value }) }))), /* @__PURE__ */ import_react24.default.createElement("div", { className: "grid-2" }, /* @__PURE__ */ import_react24.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react24.default.createElement("label", { className: "form-label" }, "연락처"), modalMode === "view" ? /* @__PURE__ */ import_react24.default.createElement("div", { className: "view-value" }, form.phone || "-") : /* @__PURE__ */ import_react24.default.createElement("input", { type: "text", className: "form-input", value: form.phone, onChange: (e) => setForm({ ...form, phone: e.target.value }) })), /* @__PURE__ */ import_react24.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react24.default.createElement("label", { className: "form-label" }, "팩스번호"), modalMode === "view" ? /* @__PURE__ */ import_react24.default.createElement("div", { className: "view-value" }, form.fax || "-") : /* @__PURE__ */ import_react24.default.createElement("input", { type: "text", className: "form-input", value: form.fax, onChange: (e) => setForm({ ...form, fax: e.target.value }) }))), /* @__PURE__ */ import_react24.default.createElement("div", { className: "grid-2" }, /* @__PURE__ */ import_react24.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react24.default.createElement("label", { className: "form-label" }, "🔑 로그인 필수 비밀번호 (4자리 숫자)"), modalMode === "view" ? /* @__PURE__ */ import_react24.default.createElement("div", { className: "view-value", style: { fontFamily: "monospace", letterSpacing: "2px", fontWeight: "bold", color: "#1d4ed8" } }, form.pwd || "0000") : /* @__PURE__ */ import_react24.default.createElement(
       "input",
       {
         type: "text",
@@ -36995,7 +37409,7 @@ IconFile=${currentUrl}favicon.ico\r
         value: form.pwd,
         onChange: (e) => setForm({ ...form, pwd: e.target.value.replace(/[^0-9]/g, "") })
       }
-    )), /* @__PURE__ */ import_react23.default.createElement("div", { className: "form-group" }))), /* @__PURE__ */ import_react23.default.createElement("div", { className: "form-section" }, /* @__PURE__ */ import_react23.default.createElement("div", { className: "section-title" }, "📜 세금계산서 / 계좌 정보"), /* @__PURE__ */ import_react23.default.createElement("div", { className: "grid-2" }, /* @__PURE__ */ import_react23.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react23.default.createElement("label", { className: "form-label" }, "사업자등록번호"), modalMode === "view" ? /* @__PURE__ */ import_react23.default.createElement("div", { className: "view-value" }, form.bizno || "-") : /* @__PURE__ */ import_react23.default.createElement("input", { type: "text", className: "form-input", value: form.bizno, onChange: (e) => setForm({ ...form, bizno: e.target.value }) })), /* @__PURE__ */ import_react23.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react23.default.createElement("label", { className: "form-label" }, "이메일"), modalMode === "view" ? /* @__PURE__ */ import_react23.default.createElement("div", { className: "view-value" }, form.email || "-") : /* @__PURE__ */ import_react23.default.createElement("input", { type: "email", className: "form-input", value: form.email, onChange: (e) => setForm({ ...form, email: e.target.value }) }))), /* @__PURE__ */ import_react23.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react23.default.createElement("label", { className: "form-label" }, "사업장 주소"), modalMode === "view" ? /* @__PURE__ */ import_react23.default.createElement("div", { className: "view-value" }, form.addr || "-") : /* @__PURE__ */ import_react23.default.createElement("input", { type: "text", className: "form-input", value: form.addr, onChange: (e) => setForm({ ...form, addr: e.target.value }) })), /* @__PURE__ */ import_react23.default.createElement("div", { className: "grid-2" }, /* @__PURE__ */ import_react23.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react23.default.createElement("label", { className: "form-label" }, "업태"), modalMode === "view" ? /* @__PURE__ */ import_react23.default.createElement("div", { className: "view-value" }, form.bizType || "-") : /* @__PURE__ */ import_react23.default.createElement("input", { type: "text", className: "form-input", value: form.bizType, onChange: (e) => setForm({ ...form, bizType: e.target.value }) })), /* @__PURE__ */ import_react23.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react23.default.createElement("label", { className: "form-label" }, "종목"), modalMode === "view" ? /* @__PURE__ */ import_react23.default.createElement("div", { className: "view-value" }, form.bizItem || "-") : /* @__PURE__ */ import_react23.default.createElement("input", { type: "text", className: "form-input", value: form.bizItem, onChange: (e) => setForm({ ...form, bizItem: e.target.value }) }))), /* @__PURE__ */ import_react23.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react23.default.createElement("label", { className: "form-label" }, "계좌번호 (은행명 포함)"), modalMode === "view" ? /* @__PURE__ */ import_react23.default.createElement("div", { className: "view-value" }, form.bank || "-") : /* @__PURE__ */ import_react23.default.createElement("input", { type: "text", className: "form-input", value: form.bank, onChange: (e) => setForm({ ...form, bank: e.target.value }) }))), /* @__PURE__ */ import_react23.default.createElement("div", { className: "form-section", style: { borderBottom: "none" } }, /* @__PURE__ */ import_react23.default.createElement("div", { className: "section-title" }, "📝 메모 / 특이사항"), /* @__PURE__ */ import_react23.default.createElement("div", { className: "form-group" }, modalMode === "view" ? /* @__PURE__ */ import_react23.default.createElement("div", { className: "view-value", style: { whiteSpace: "pre-wrap", minHeight: "40px" } }, form.memo || "-") : /* @__PURE__ */ import_react23.default.createElement("textarea", { className: "form-textarea", rows: "2", value: form.memo, onChange: (e) => setForm({ ...form, memo: e.target.value }) }))), /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", gap: "0.5rem", marginTop: "1.5rem", paddingTop: "1rem", borderTop: "1px solid #e2e8f0" } }, modalMode === "view" ? /* @__PURE__ */ import_react23.default.createElement(import_react23.default.Fragment, null, /* @__PURE__ */ import_react23.default.createElement("button", { className: "btn btn-outline", style: { flex: 1 }, onClick: () => setShowModal(false) }, "닫기"), /* @__PURE__ */ import_react23.default.createElement("button", { className: "btn btn-primary", style: { flex: 1 }, onClick: () => setModalMode("edit") }, "수정"), /* @__PURE__ */ import_react23.default.createElement(
+    )), /* @__PURE__ */ import_react24.default.createElement("div", { className: "form-group" }))), /* @__PURE__ */ import_react24.default.createElement("div", { className: "form-section" }, /* @__PURE__ */ import_react24.default.createElement("div", { className: "section-title" }, "📜 세금계산서 / 계좌 정보"), /* @__PURE__ */ import_react24.default.createElement("div", { className: "grid-2" }, /* @__PURE__ */ import_react24.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react24.default.createElement("label", { className: "form-label" }, "사업자등록번호"), modalMode === "view" ? /* @__PURE__ */ import_react24.default.createElement("div", { className: "view-value" }, form.bizno || "-") : /* @__PURE__ */ import_react24.default.createElement("input", { type: "text", className: "form-input", value: form.bizno, onChange: (e) => setForm({ ...form, bizno: e.target.value }) })), /* @__PURE__ */ import_react24.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react24.default.createElement("label", { className: "form-label" }, "이메일"), modalMode === "view" ? /* @__PURE__ */ import_react24.default.createElement("div", { className: "view-value" }, form.email || "-") : /* @__PURE__ */ import_react24.default.createElement("input", { type: "email", className: "form-input", value: form.email, onChange: (e) => setForm({ ...form, email: e.target.value }) }))), /* @__PURE__ */ import_react24.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react24.default.createElement("label", { className: "form-label" }, "사업장 주소"), modalMode === "view" ? /* @__PURE__ */ import_react24.default.createElement("div", { className: "view-value" }, form.addr || "-") : /* @__PURE__ */ import_react24.default.createElement("input", { type: "text", className: "form-input", value: form.addr, onChange: (e) => setForm({ ...form, addr: e.target.value }) })), /* @__PURE__ */ import_react24.default.createElement("div", { className: "grid-2" }, /* @__PURE__ */ import_react24.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react24.default.createElement("label", { className: "form-label" }, "업태"), modalMode === "view" ? /* @__PURE__ */ import_react24.default.createElement("div", { className: "view-value" }, form.bizType || "-") : /* @__PURE__ */ import_react24.default.createElement("input", { type: "text", className: "form-input", value: form.bizType, onChange: (e) => setForm({ ...form, bizType: e.target.value }) })), /* @__PURE__ */ import_react24.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react24.default.createElement("label", { className: "form-label" }, "종목"), modalMode === "view" ? /* @__PURE__ */ import_react24.default.createElement("div", { className: "view-value" }, form.bizItem || "-") : /* @__PURE__ */ import_react24.default.createElement("input", { type: "text", className: "form-input", value: form.bizItem, onChange: (e) => setForm({ ...form, bizItem: e.target.value }) }))), /* @__PURE__ */ import_react24.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react24.default.createElement("label", { className: "form-label" }, "계좌번호 (은행명 포함)"), modalMode === "view" ? /* @__PURE__ */ import_react24.default.createElement("div", { className: "view-value" }, form.bank || "-") : /* @__PURE__ */ import_react24.default.createElement("input", { type: "text", className: "form-input", value: form.bank, onChange: (e) => setForm({ ...form, bank: e.target.value }) }))), /* @__PURE__ */ import_react24.default.createElement("div", { className: "form-section", style: { borderBottom: "none" } }, /* @__PURE__ */ import_react24.default.createElement("div", { className: "section-title" }, "📝 메모 / 특이사항"), /* @__PURE__ */ import_react24.default.createElement("div", { className: "form-group" }, modalMode === "view" ? /* @__PURE__ */ import_react24.default.createElement("div", { className: "view-value", style: { whiteSpace: "pre-wrap", minHeight: "40px" } }, form.memo || "-") : /* @__PURE__ */ import_react24.default.createElement("textarea", { className: "form-textarea", rows: "2", value: form.memo, onChange: (e) => setForm({ ...form, memo: e.target.value }) }))), /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", gap: "0.5rem", marginTop: "1.5rem", paddingTop: "1rem", borderTop: "1px solid #e2e8f0" } }, modalMode === "view" ? /* @__PURE__ */ import_react24.default.createElement(import_react24.default.Fragment, null, /* @__PURE__ */ import_react24.default.createElement("button", { className: "btn btn-outline", style: { flex: 1 }, onClick: () => setShowModal(false) }, "닫기"), /* @__PURE__ */ import_react24.default.createElement("button", { className: "btn btn-primary", style: { flex: 1 }, onClick: () => setModalMode("edit") }, "수정"), /* @__PURE__ */ import_react24.default.createElement(
       "button",
       {
         className: "btn btn-red-outline",
@@ -37008,7 +37422,7 @@ IconFile=${currentUrl}favicon.ico\r
         }
       },
       "삭제"
-    )) : /* @__PURE__ */ import_react23.default.createElement(import_react23.default.Fragment, null, /* @__PURE__ */ import_react23.default.createElement("button", { className: "btn btn-primary", style: { flex: 1 }, onClick: handleSave }, modalMode === "edit" ? "저장" : "등록 완료"), /* @__PURE__ */ import_react23.default.createElement(
+    )) : /* @__PURE__ */ import_react24.default.createElement(import_react24.default.Fragment, null, /* @__PURE__ */ import_react24.default.createElement("button", { className: "btn btn-primary", style: { flex: 1 }, onClick: handleSave }, modalMode === "edit" ? "저장" : "등록 완료"), /* @__PURE__ */ import_react24.default.createElement(
       "button",
       {
         className: "btn btn-outline",
@@ -37028,12 +37442,12 @@ IconFile=${currentUrl}favicon.ico\r
   }
 
   // src/pages/PartsTab.jsx
-  var import_react24 = __toESM(require_react(), 1);
+  var import_react25 = __toESM(require_react(), 1);
   function PartsTab({
     parts = [],
     onSelectPart
   }) {
-    return /* @__PURE__ */ import_react24.default.createElement("div", { className: "management-container" }, /* @__PURE__ */ import_react24.default.createElement("div", { className: "card-box" }, /* @__PURE__ */ import_react24.default.createElement("div", { className: "card-box-header" }, /* @__PURE__ */ import_react24.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900" } }, "🛠️ 부품 및 재고 관리")), /* @__PURE__ */ import_react24.default.createElement("div", { className: "mobile-cards-view" }, parts.map((p) => /* @__PURE__ */ import_react24.default.createElement("div", { key: p.id, className: "mobile-data-card" }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" } }, /* @__PURE__ */ import_react24.default.createElement("span", { style: { fontWeight: "900", fontSize: "0.9375rem" } }, p.name), /* @__PURE__ */ import_react24.default.createElement("span", { style: { fontSize: "0.6875rem", backgroundColor: "#dcfce7", color: "#166534", padding: "2px 6px", borderRadius: "9999px", fontWeight: "700" } }, "재고 ", p.stock)), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: "0.75rem", color: "#4b5563", marginBottom: "0.5rem" } }, /* @__PURE__ */ import_react24.default.createElement("div", null, "단가: ₩ ", Number(p.price).toLocaleString(), " | 분류: ", p.category)), /* @__PURE__ */ import_react24.default.createElement(
+    return /* @__PURE__ */ import_react25.default.createElement("div", { className: "management-container" }, /* @__PURE__ */ import_react25.default.createElement("div", { className: "card-box" }, /* @__PURE__ */ import_react25.default.createElement("div", { className: "card-box-header" }, /* @__PURE__ */ import_react25.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900" } }, "🛠️ 부품 및 재고 관리")), /* @__PURE__ */ import_react25.default.createElement("div", { className: "mobile-cards-view" }, parts.map((p) => /* @__PURE__ */ import_react25.default.createElement("div", { key: p.id, className: "mobile-data-card" }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" } }, /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontWeight: "900", fontSize: "0.9375rem" } }, p.name), /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "0.6875rem", backgroundColor: "#dcfce7", color: "#166534", padding: "2px 6px", borderRadius: "9999px", fontWeight: "700" } }, "재고 ", p.stock)), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: "0.75rem", color: "#4b5563", marginBottom: "0.5rem" } }, /* @__PURE__ */ import_react25.default.createElement("div", null, "단가: ₩ ", Number(p.price).toLocaleString(), " | 분류: ", p.category)), /* @__PURE__ */ import_react25.default.createElement(
       "button",
       {
         className: "btn btn-primary",
@@ -37041,7 +37455,7 @@ IconFile=${currentUrl}favicon.ico\r
         onClick: () => onSelectPart(p)
       },
       "명세서 항목으로 선택"
-    )))), /* @__PURE__ */ import_react24.default.createElement("div", { className: "desktop-table-view" }, /* @__PURE__ */ import_react24.default.createElement("table", { className: "data-table" }, /* @__PURE__ */ import_react24.default.createElement("thead", null, /* @__PURE__ */ import_react24.default.createElement("tr", null, /* @__PURE__ */ import_react24.default.createElement("th", null, "코드"), /* @__PURE__ */ import_react24.default.createElement("th", null, "품명"), /* @__PURE__ */ import_react24.default.createElement("th", null, "카테고리"), /* @__PURE__ */ import_react24.default.createElement("th", null, "단가"), /* @__PURE__ */ import_react24.default.createElement("th", null, "재고"), /* @__PURE__ */ import_react24.default.createElement("th", null, "작업"))), /* @__PURE__ */ import_react24.default.createElement("tbody", null, parts.map((p) => /* @__PURE__ */ import_react24.default.createElement("tr", { key: p.id }, /* @__PURE__ */ import_react24.default.createElement("td", null, p.code), /* @__PURE__ */ import_react24.default.createElement("td", { style: { fontWeight: "700" } }, p.name), /* @__PURE__ */ import_react24.default.createElement("td", null, p.category), /* @__PURE__ */ import_react24.default.createElement("td", null, "₩ ", Number(p.price).toLocaleString()), /* @__PURE__ */ import_react24.default.createElement("td", null, p.stock), /* @__PURE__ */ import_react24.default.createElement("td", null, /* @__PURE__ */ import_react24.default.createElement(
+    )))), /* @__PURE__ */ import_react25.default.createElement("div", { className: "desktop-table-view" }, /* @__PURE__ */ import_react25.default.createElement("table", { className: "data-table" }, /* @__PURE__ */ import_react25.default.createElement("thead", null, /* @__PURE__ */ import_react25.default.createElement("tr", null, /* @__PURE__ */ import_react25.default.createElement("th", null, "코드"), /* @__PURE__ */ import_react25.default.createElement("th", null, "품명"), /* @__PURE__ */ import_react25.default.createElement("th", null, "카테고리"), /* @__PURE__ */ import_react25.default.createElement("th", null, "단가"), /* @__PURE__ */ import_react25.default.createElement("th", null, "재고"), /* @__PURE__ */ import_react25.default.createElement("th", null, "작업"))), /* @__PURE__ */ import_react25.default.createElement("tbody", null, parts.map((p) => /* @__PURE__ */ import_react25.default.createElement("tr", { key: p.id }, /* @__PURE__ */ import_react25.default.createElement("td", null, p.code), /* @__PURE__ */ import_react25.default.createElement("td", { style: { fontWeight: "700" } }, p.name), /* @__PURE__ */ import_react25.default.createElement("td", null, p.category), /* @__PURE__ */ import_react25.default.createElement("td", null, "₩ ", Number(p.price).toLocaleString()), /* @__PURE__ */ import_react25.default.createElement("td", null, p.stock), /* @__PURE__ */ import_react25.default.createElement("td", null, /* @__PURE__ */ import_react25.default.createElement(
       "button",
       {
         className: "btn btn-primary",
@@ -37053,7 +37467,7 @@ IconFile=${currentUrl}favicon.ico\r
   }
 
   // src/pages/DocHistoryTab.jsx
-  var import_react25 = __toESM(require_react(), 1);
+  var import_react26 = __toESM(require_react(), 1);
   function DocHistoryTab({
     onLoadDocument,
     onCopyDocument,
@@ -37062,18 +37476,18 @@ IconFile=${currentUrl}favicon.ico\r
     selectedSupplierKey,
     onPreviewDocument
   }) {
-    const [documents, setDocuments] = (0, import_react25.useState)([]);
-    const [loading, setLoading] = (0, import_react25.useState)(false);
-    const [activeSubTab, setActiveSubTab] = (0, import_react25.useState)("all");
-    const [searchCustomer, setSearchCustomer] = (0, import_react25.useState)("");
-    const [searchItem, setSearchItem] = (0, import_react25.useState)("");
-    const [searchDocNo, setSearchDocNo] = (0, import_react25.useState)("");
-    const [paymentFilter, setPaymentFilter] = (0, import_react25.useState)("전체");
-    const [startDate, setStartDate] = (0, import_react25.useState)(() => {
+    const [documents, setDocuments] = (0, import_react26.useState)([]);
+    const [loading, setLoading] = (0, import_react26.useState)(false);
+    const [activeSubTab, setActiveSubTab] = (0, import_react26.useState)("all");
+    const [searchCustomer, setSearchCustomer] = (0, import_react26.useState)("");
+    const [searchItem, setSearchItem] = (0, import_react26.useState)("");
+    const [searchDocNo, setSearchDocNo] = (0, import_react26.useState)("");
+    const [paymentFilter, setPaymentFilter] = (0, import_react26.useState)("전체");
+    const [startDate, setStartDate] = (0, import_react26.useState)(() => {
       const d = /* @__PURE__ */ new Date();
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
     });
-    const [endDate, setEndDate] = (0, import_react25.useState)(() => {
+    const [endDate, setEndDate] = (0, import_react26.useState)(() => {
       const d = /* @__PURE__ */ new Date();
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     });
@@ -37102,7 +37516,7 @@ IconFile=${currentUrl}favicon.ico\r
       setDocuments(data || []);
       setLoading(false);
     };
-    (0, import_react25.useEffect)(() => {
+    (0, import_react26.useEffect)(() => {
       loadDocs();
     }, [isConnected, selectedSupplierKey]);
     const setPresetDate = (type) => {
@@ -37196,7 +37610,7 @@ IconFile=${currentUrl}favicon.ico\r
     const tabUnpaidSum = Math.max(0, tabSalesSum - tabPaidSum);
     const getPayBadge = (doc) => {
       if ((doc.doc_type || doc.docType) === "견적서") {
-        return /* @__PURE__ */ import_react25.default.createElement(
+        return /* @__PURE__ */ import_react26.default.createElement(
           "span",
           {
             style: {
@@ -37216,12 +37630,12 @@ IconFile=${currentUrl}favicon.ico\r
       const ps = getEffectivePaymentStatus(doc);
       const cls = ps === "입금완료" ? "paid" : ps === "부분입금" ? "partial" : "unpaid";
       const icon = ps === "입금완료" ? "✅" : ps === "부분입금" ? "🟡" : "🔴";
-      return /* @__PURE__ */ import_react25.default.createElement("span", { className: `pay-badge ${cls}` }, `${icon} ${ps}`);
+      return /* @__PURE__ */ import_react26.default.createElement("span", { className: `pay-badge ${cls}` }, `${icon} ${ps}`);
     };
     const sessionRole = sessionStorage.getItem("dd_user_role") || "supplier";
     const sessionKey = sessionStorage.getItem("selected_supplier_key") || localStorage.getItem("selected_supplier_key") || "sejin";
     const sessionName = sessionRole === "admin" ? "통합 관리자" : sessionKey === "ds_gimje" || sessionKey === "767fd9c8-d5e9-46b0-a7c4-713dac601ae4" ? "디에스건설기계 김제점" : "세진건설기계";
-    return /* @__PURE__ */ import_react25.default.createElement("div", { className: "management-container" }, /* @__PURE__ */ import_react25.default.createElement("div", { className: "card-box" }, /* @__PURE__ */ import_react25.default.createElement("div", { className: "card-box-header" }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" } }, /* @__PURE__ */ import_react25.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900", margin: 0 } }, "📁 문서 발행 및 조회 관리"), /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "11px", color: "#1e40af", backgroundColor: "#dbeafe", padding: "2px 8px", borderRadius: "12px", fontWeight: "700" } }, `접속: ${sessionName}`)), /* @__PURE__ */ import_react25.default.createElement("button", { className: "btn btn-outline", style: { fontSize: "0.75rem" }, onClick: loadDocs }, "🔄 새로고침")), /* @__PURE__ */ import_react25.default.createElement(
+    return /* @__PURE__ */ import_react26.default.createElement("div", { className: "management-container" }, /* @__PURE__ */ import_react26.default.createElement("div", { className: "card-box" }, /* @__PURE__ */ import_react26.default.createElement("div", { className: "card-box-header" }, /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" } }, /* @__PURE__ */ import_react26.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900", margin: 0 } }, "📁 문서 발행 및 조회 관리"), /* @__PURE__ */ import_react26.default.createElement("span", { style: { fontSize: "11px", color: "#1e40af", backgroundColor: "#dbeafe", padding: "2px 8px", borderRadius: "12px", fontWeight: "700" } }, `접속: ${sessionName}`)), /* @__PURE__ */ import_react26.default.createElement("button", { className: "btn btn-outline", style: { fontSize: "0.75rem" }, onClick: loadDocs }, "🔄 새로고침")), /* @__PURE__ */ import_react26.default.createElement(
       "div",
       {
         style: {
@@ -37243,7 +37657,7 @@ IconFile=${currentUrl}favicon.ico\r
         { key: "trash", icon: "🗑️", label: "휴지통", count: trashDocs.length, sum: null, color: "#dc2626" }
       ].map((tab) => {
         const isActive = activeSubTab === tab.key;
-        return /* @__PURE__ */ import_react25.default.createElement(
+        return /* @__PURE__ */ import_react26.default.createElement(
           "button",
           {
             key: tab.key,
@@ -37262,7 +37676,7 @@ IconFile=${currentUrl}favicon.ico\r
             },
             onClick: () => setActiveSubTab(tab.key)
           },
-          /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2px" } }, /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontWeight: isActive ? "900" : "700", fontSize: "0.875rem", color: isActive ? tab.color : "#334155" } }, `${tab.icon} ${tab.label}`), /* @__PURE__ */ import_react25.default.createElement(
+          /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2px" } }, /* @__PURE__ */ import_react26.default.createElement("span", { style: { fontWeight: isActive ? "900" : "700", fontSize: "0.875rem", color: isActive ? tab.color : "#334155" } }, `${tab.icon} ${tab.label}`), /* @__PURE__ */ import_react26.default.createElement(
             "span",
             {
               style: {
@@ -37276,10 +37690,10 @@ IconFile=${currentUrl}favicon.ico\r
             },
             tab.count
           )),
-          tab.sum !== null && /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: "11px", color: "#64748b", fontWeight: "600" } }, `${(tab.sum / 1e4).toLocaleString(void 0, { maximumFractionDigits: 1 })}만원`)
+          tab.sum !== null && /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: "11px", color: "#64748b", fontWeight: "600" } }, `${(tab.sum / 1e4).toLocaleString(void 0, { maximumFractionDigits: 1 })}만원`)
         );
       })
-    ), /* @__PURE__ */ import_react25.default.createElement(
+    ), /* @__PURE__ */ import_react26.default.createElement(
       "div",
       {
         style: {
@@ -37291,8 +37705,8 @@ IconFile=${currentUrl}favicon.ico\r
           gap: "0.625rem"
         }
       },
-      activeSubTab === "trash" && /* @__PURE__ */ import_react25.default.createElement("div", { style: { padding: "6px 12px", backgroundColor: "#fee2e2", color: "#991b1b", borderRadius: "6px", fontSize: "0.8125rem", fontWeight: "700", display: "flex", alignItems: "center", gap: "6px" } }, "🗑️ 휴지통에 보관된 삭제 문서 목록입니다. 언제든 [원클릭 복원]을 통해 정상 목록으로 되살릴 수 있습니다."),
-      /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px" } }, /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "0.8125rem", fontWeight: "700", color: "#334155" } }, "📅 기간:"), /* @__PURE__ */ import_react25.default.createElement(
+      activeSubTab === "trash" && /* @__PURE__ */ import_react26.default.createElement("div", { style: { padding: "6px 12px", backgroundColor: "#fee2e2", color: "#991b1b", borderRadius: "6px", fontSize: "0.8125rem", fontWeight: "700", display: "flex", alignItems: "center", gap: "6px" } }, "🗑️ 휴지통에 보관된 삭제 문서 목록입니다. 언제든 [원클릭 복원]을 통해 정상 목록으로 되살릴 수 있습니다."),
+      /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px" } }, /* @__PURE__ */ import_react26.default.createElement("span", { style: { fontSize: "0.8125rem", fontWeight: "700", color: "#334155" } }, "📅 기간:"), /* @__PURE__ */ import_react26.default.createElement(
         "input",
         {
           type: "date",
@@ -37301,7 +37715,7 @@ IconFile=${currentUrl}favicon.ico\r
           value: startDate,
           onChange: (e) => setStartDate(e.target.value)
         }
-      ), /* @__PURE__ */ import_react25.default.createElement("span", null, "~"), /* @__PURE__ */ import_react25.default.createElement(
+      ), /* @__PURE__ */ import_react26.default.createElement("span", null, "~"), /* @__PURE__ */ import_react26.default.createElement(
         "input",
         {
           type: "date",
@@ -37310,17 +37724,17 @@ IconFile=${currentUrl}favicon.ico\r
           value: endDate,
           onChange: (e) => setEndDate(e.target.value)
         }
-      ), /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", gap: "4px" } }, /* @__PURE__ */ import_react25.default.createElement("button", { className: "btn btn-outline", style: { fontSize: "0.75rem", padding: "0.2rem 0.4rem" }, onClick: () => setPresetDate("today") }, "오늘"), /* @__PURE__ */ import_react25.default.createElement("button", { className: "btn btn-outline", style: { fontSize: "0.75rem", padding: "0.2rem 0.4rem" }, onClick: () => setPresetDate("month") }, "이번달"), /* @__PURE__ */ import_react25.default.createElement("button", { className: "btn btn-outline", style: { fontSize: "0.75rem", padding: "0.2rem 0.4rem" }, onClick: () => setPresetDate("last_month") }, "지난달"), /* @__PURE__ */ import_react25.default.createElement("button", { className: "btn btn-outline", style: { fontSize: "0.75rem", padding: "0.2rem 0.4rem" }, onClick: () => setPresetDate("all") }, "전체"))),
-      /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "6px" } }, activeSubTab !== "estimate" && activeSubTab !== "trash" && /* @__PURE__ */ import_react25.default.createElement(
+      ), /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", gap: "4px" } }, /* @__PURE__ */ import_react26.default.createElement("button", { className: "btn btn-outline", style: { fontSize: "0.75rem", padding: "0.2rem 0.4rem" }, onClick: () => setPresetDate("today") }, "오늘"), /* @__PURE__ */ import_react26.default.createElement("button", { className: "btn btn-outline", style: { fontSize: "0.75rem", padding: "0.2rem 0.4rem" }, onClick: () => setPresetDate("month") }, "이번달"), /* @__PURE__ */ import_react26.default.createElement("button", { className: "btn btn-outline", style: { fontSize: "0.75rem", padding: "0.2rem 0.4rem" }, onClick: () => setPresetDate("last_month") }, "지난달"), /* @__PURE__ */ import_react26.default.createElement("button", { className: "btn btn-outline", style: { fontSize: "0.75rem", padding: "0.2rem 0.4rem" }, onClick: () => setPresetDate("all") }, "전체"))),
+      /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "6px" } }, activeSubTab !== "estimate" && activeSubTab !== "trash" && /* @__PURE__ */ import_react26.default.createElement(
         "select",
         {
           className: "form-select",
           value: paymentFilter,
           onChange: (e) => setPaymentFilter(e.target.value)
         },
-        /* @__PURE__ */ import_react25.default.createElement("option", { value: "전체" }, "모든 입금상태"),
-        ["미수금", "부분입금", "입금완료"].map((t) => /* @__PURE__ */ import_react25.default.createElement("option", { key: t, value: t }, t))
-      ), /* @__PURE__ */ import_react25.default.createElement(
+        /* @__PURE__ */ import_react26.default.createElement("option", { value: "전체" }, "모든 입금상태"),
+        ["미수금", "부분입금", "입금완료"].map((t) => /* @__PURE__ */ import_react26.default.createElement("option", { key: t, value: t }, t))
+      ), /* @__PURE__ */ import_react26.default.createElement(
         "input",
         {
           type: "text",
@@ -37329,7 +37743,7 @@ IconFile=${currentUrl}favicon.ico\r
           value: searchCustomer,
           onChange: (e) => setSearchCustomer(e.target.value)
         }
-      ), /* @__PURE__ */ import_react25.default.createElement(
+      ), /* @__PURE__ */ import_react26.default.createElement(
         "input",
         {
           type: "text",
@@ -37338,7 +37752,7 @@ IconFile=${currentUrl}favicon.ico\r
           value: searchItem,
           onChange: (e) => setSearchItem(e.target.value)
         }
-      ), /* @__PURE__ */ import_react25.default.createElement(
+      ), /* @__PURE__ */ import_react26.default.createElement(
         "input",
         {
           type: "text",
@@ -37348,7 +37762,7 @@ IconFile=${currentUrl}favicon.ico\r
           onChange: (e) => setSearchDocNo(e.target.value)
         }
       ))
-    ), activeSubTab !== "trash" && /* @__PURE__ */ import_react25.default.createElement(
+    ), activeSubTab !== "trash" && /* @__PURE__ */ import_react26.default.createElement(
       "div",
       {
         style: {
@@ -37365,9 +37779,9 @@ IconFile=${currentUrl}favicon.ico\r
           gap: "8px"
         }
       },
-      /* @__PURE__ */ import_react25.default.createElement("span", null, `📊 현재 탭 조회: ${filtered.length}건`),
-      activeSubTab === "estimate" ? /* @__PURE__ */ import_react25.default.createElement("span", null, "📋 견적 합계: ", /* @__PURE__ */ import_react25.default.createElement("strong", { style: { color: "#6b21a8" } }, `${filtered.reduce((s, d) => s + calculateTotal(d), 0).toLocaleString()}원`)) : /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", gap: "12px" } }, /* @__PURE__ */ import_react25.default.createElement("span", null, "매출: ", /* @__PURE__ */ import_react25.default.createElement("strong", { style: { color: "#1d6bf3" } }, `${tabSalesSum.toLocaleString()}원`)), /* @__PURE__ */ import_react25.default.createElement("span", null, "입금: ", /* @__PURE__ */ import_react25.default.createElement("strong", { style: { color: "#15803d" } }, `${tabPaidSum.toLocaleString()}원`)), /* @__PURE__ */ import_react25.default.createElement("span", null, "미수: ", /* @__PURE__ */ import_react25.default.createElement("strong", { style: { color: "#b91c1c" } }, `${tabUnpaidSum.toLocaleString()}원`)))
-    ), loading ? /* @__PURE__ */ import_react25.default.createElement("div", { style: { padding: "2rem", textAlign: "center", color: "#64748b" } }, "문서를 불러오는 중입니다...") : filtered.length === 0 ? /* @__PURE__ */ import_react25.default.createElement("div", { style: { padding: "3rem", textAlign: "center", color: "#94a3b8" } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: "2rem", marginBottom: "0.5rem" } }, activeSubTab === "trash" ? "🗑️" : "📄"), activeSubTab === "trash" ? "휴지통이 비어 있습니다." : "해당 조건의 저장된 문서가 없습니다.") : /* @__PURE__ */ import_react25.default.createElement(import_react25.default.Fragment, null, /* @__PURE__ */ import_react25.default.createElement("div", { className: "desktop-table-view" }, /* @__PURE__ */ import_react25.default.createElement("table", { className: "data-table" }, /* @__PURE__ */ import_react25.default.createElement("thead", null, /* @__PURE__ */ import_react25.default.createElement("tr", null, /* @__PURE__ */ import_react25.default.createElement("th", null, "발행일자 / 번호"), /* @__PURE__ */ import_react25.default.createElement("th", null, "종류"), /* @__PURE__ */ import_react25.default.createElement("th", null, "공급받는자 (거래처)"), /* @__PURE__ */ import_react25.default.createElement("th", null, "품목 요약"), /* @__PURE__ */ import_react25.default.createElement("th", null, "합계금액"), /* @__PURE__ */ import_react25.default.createElement("th", null, "작업"))), /* @__PURE__ */ import_react25.default.createElement("tbody", null, filtered.map((doc) => {
+      /* @__PURE__ */ import_react26.default.createElement("span", null, `📊 현재 탭 조회: ${filtered.length}건`),
+      activeSubTab === "estimate" ? /* @__PURE__ */ import_react26.default.createElement("span", null, "📋 견적 합계: ", /* @__PURE__ */ import_react26.default.createElement("strong", { style: { color: "#6b21a8" } }, `${filtered.reduce((s, d) => s + calculateTotal(d), 0).toLocaleString()}원`)) : /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", gap: "12px" } }, /* @__PURE__ */ import_react26.default.createElement("span", null, "매출: ", /* @__PURE__ */ import_react26.default.createElement("strong", { style: { color: "#1d6bf3" } }, `${tabSalesSum.toLocaleString()}원`)), /* @__PURE__ */ import_react26.default.createElement("span", null, "입금: ", /* @__PURE__ */ import_react26.default.createElement("strong", { style: { color: "#15803d" } }, `${tabPaidSum.toLocaleString()}원`)), /* @__PURE__ */ import_react26.default.createElement("span", null, "미수: ", /* @__PURE__ */ import_react26.default.createElement("strong", { style: { color: "#b91c1c" } }, `${tabUnpaidSum.toLocaleString()}원`)))
+    ), loading ? /* @__PURE__ */ import_react26.default.createElement("div", { style: { padding: "2rem", textAlign: "center", color: "#64748b" } }, "문서를 불러오는 중입니다...") : filtered.length === 0 ? /* @__PURE__ */ import_react26.default.createElement("div", { style: { padding: "3rem", textAlign: "center", color: "#94a3b8" } }, /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: "2rem", marginBottom: "0.5rem" } }, activeSubTab === "trash" ? "🗑️" : "📄"), activeSubTab === "trash" ? "휴지통이 비어 있습니다." : "해당 조건의 저장된 문서가 없습니다.") : /* @__PURE__ */ import_react26.default.createElement(import_react26.default.Fragment, null, /* @__PURE__ */ import_react26.default.createElement("div", { className: "desktop-table-view" }, /* @__PURE__ */ import_react26.default.createElement("table", { className: "data-table" }, /* @__PURE__ */ import_react26.default.createElement("thead", null, /* @__PURE__ */ import_react26.default.createElement("tr", null, /* @__PURE__ */ import_react26.default.createElement("th", null, "발행일자 / 번호"), /* @__PURE__ */ import_react26.default.createElement("th", null, "종류"), /* @__PURE__ */ import_react26.default.createElement("th", null, "공급받는자 (거래처)"), /* @__PURE__ */ import_react26.default.createElement("th", null, "품목 요약"), /* @__PURE__ */ import_react26.default.createElement("th", null, "합계금액"), /* @__PURE__ */ import_react26.default.createElement("th", null, "작업"))), /* @__PURE__ */ import_react26.default.createElement("tbody", null, filtered.map((doc) => {
       const items = doc.items || [];
       const firstItemName = items[0]?.name || "품목 없음";
       const itemSummary = items.length > 1 ? `${firstItemName} 외 ${items.length - 1}건` : firstItemName;
@@ -37375,7 +37789,7 @@ IconFile=${currentUrl}favicon.ico\r
       const custName = doc.customer_name || doc.customer_data?.name || doc.customer?.name || "-";
       const custMachine = doc.customer_data?.selectedMachine ? ` (${doc.customer_data.selectedMachine})` : "";
       const currentDocType = doc.doc_type || doc.docType || "거래명세서";
-      return /* @__PURE__ */ import_react25.default.createElement(
+      return /* @__PURE__ */ import_react26.default.createElement(
         "tr",
         {
           key: doc.id || doc.doc_no,
@@ -37390,8 +37804,8 @@ IconFile=${currentUrl}favicon.ico\r
             else onLoadDocument(doc);
           }
         },
-        /* @__PURE__ */ import_react25.default.createElement("td", null, /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontWeight: "700" } }, doc.doc_date || doc.docDate || "-"), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: "11px", color: "#64748b", fontFamily: "monospace" } }, doc.doc_no || doc.docNo), doc.revision > 0 && /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "10px", color: "#2563eb", backgroundColor: "#eff6ff", padding: "1px 4px", borderRadius: "4px" } }, `Rev.${doc.revision}`)),
-        /* @__PURE__ */ import_react25.default.createElement("td", null, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "3px", alignItems: "flex-start" } }, /* @__PURE__ */ import_react25.default.createElement(
+        /* @__PURE__ */ import_react26.default.createElement("td", null, /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontWeight: "700" } }, doc.doc_date || doc.docDate || "-"), /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: "11px", color: "#64748b", fontFamily: "monospace" } }, doc.doc_no || doc.docNo), doc.revision > 0 && /* @__PURE__ */ import_react26.default.createElement("span", { style: { fontSize: "10px", color: "#2563eb", backgroundColor: "#eff6ff", padding: "1px 4px", borderRadius: "4px" } }, `Rev.${doc.revision}`)),
+        /* @__PURE__ */ import_react26.default.createElement("td", null, /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "3px", alignItems: "flex-start" } }, /* @__PURE__ */ import_react26.default.createElement(
           "span",
           {
             style: {
@@ -37410,7 +37824,7 @@ IconFile=${currentUrl}favicon.ico\r
           if (!isShared) return null;
           const partnerSum = docPartners.reduce((s, p) => s + (Number(p.amount) || 0), 0);
           const partnerNames = docPartners.map((p) => `${p.name || p.company || p.key}(${(Number(p.amount) || 0).toLocaleString()}원)`).join(", ");
-          return /* @__PURE__ */ import_react25.default.createElement(
+          return /* @__PURE__ */ import_react26.default.createElement(
             "span",
             {
               style: {
@@ -37427,10 +37841,10 @@ IconFile=${currentUrl}favicon.ico\r
             `🤝 공동작업${docPartners.length > 0 ? ` (${docPartners.length}명)` : ""}`
           );
         })())),
-        /* @__PURE__ */ import_react25.default.createElement("td", { style: { fontWeight: "700", color: "#0f172a" } }, custName, custMachine && /* @__PURE__ */ import_react25.default.createElement("span", { style: { color: "#1d6bf3", fontSize: "11px" } }, custMachine)),
-        /* @__PURE__ */ import_react25.default.createElement("td", { style: { fontSize: "12px", color: "#475569" } }, itemSummary),
-        /* @__PURE__ */ import_react25.default.createElement("td", { style: { fontWeight: "900", fontFamily: "monospace", color: "#1d6bf3" } }, `${total.toLocaleString()}원`, !doc.is_deleted && /* @__PURE__ */ import_react25.default.createElement("br", null), !doc.is_deleted && getPayBadge(doc)),
-        /* @__PURE__ */ import_react25.default.createElement("td", { onClick: (e) => e.stopPropagation() }, doc.is_deleted ? /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", gap: "4px" } }, /* @__PURE__ */ import_react25.default.createElement(
+        /* @__PURE__ */ import_react26.default.createElement("td", { style: { fontWeight: "700", color: "#0f172a" } }, custName, custMachine && /* @__PURE__ */ import_react26.default.createElement("span", { style: { color: "#1d6bf3", fontSize: "11px" } }, custMachine)),
+        /* @__PURE__ */ import_react26.default.createElement("td", { style: { fontSize: "12px", color: "#475569" } }, itemSummary),
+        /* @__PURE__ */ import_react26.default.createElement("td", { style: { fontWeight: "900", fontFamily: "monospace", color: "#1d6bf3" } }, `${total.toLocaleString()}원`, !doc.is_deleted && /* @__PURE__ */ import_react26.default.createElement("br", null), !doc.is_deleted && getPayBadge(doc)),
+        /* @__PURE__ */ import_react26.default.createElement("td", { onClick: (e) => e.stopPropagation() }, doc.is_deleted ? /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", gap: "4px" } }, /* @__PURE__ */ import_react26.default.createElement(
           "button",
           {
             className: "btn btn-primary",
@@ -37441,7 +37855,7 @@ IconFile=${currentUrl}favicon.ico\r
             }
           },
           "🔄 복원하기"
-        ), /* @__PURE__ */ import_react25.default.createElement(
+        ), /* @__PURE__ */ import_react26.default.createElement(
           "button",
           {
             className: "btn btn-red-outline",
@@ -37452,7 +37866,7 @@ IconFile=${currentUrl}favicon.ico\r
             }
           },
           "❌ 영구삭제"
-        )) : /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", gap: "4px", flexWrap: "wrap" } }, /* @__PURE__ */ import_react25.default.createElement(
+        )) : /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", gap: "4px", flexWrap: "wrap" } }, /* @__PURE__ */ import_react26.default.createElement(
           "button",
           {
             type: "button",
@@ -37465,7 +37879,7 @@ IconFile=${currentUrl}favicon.ico\r
             }
           },
           "👁️ 보기"
-        ), /* @__PURE__ */ import_react25.default.createElement(
+        ), /* @__PURE__ */ import_react26.default.createElement(
           "button",
           {
             className: "btn btn-primary",
@@ -37476,7 +37890,7 @@ IconFile=${currentUrl}favicon.ico\r
             }
           },
           "📥 불러오기"
-        ), currentDocType === "견적서" ? /* @__PURE__ */ import_react25.default.createElement(
+        ), currentDocType === "견적서" ? /* @__PURE__ */ import_react26.default.createElement(
           "button",
           {
             className: "btn btn-primary",
@@ -37487,7 +37901,7 @@ IconFile=${currentUrl}favicon.ico\r
             }
           },
           "📦 명세서로"
-        ) : /* @__PURE__ */ import_react25.default.createElement(
+        ) : /* @__PURE__ */ import_react26.default.createElement(
           "button",
           {
             className: "btn btn-primary",
@@ -37498,7 +37912,7 @@ IconFile=${currentUrl}favicon.ico\r
             }
           },
           "📋 견적서로"
-        ), /* @__PURE__ */ import_react25.default.createElement(
+        ), /* @__PURE__ */ import_react26.default.createElement(
           "button",
           {
             className: "btn btn-primary",
@@ -37509,7 +37923,7 @@ IconFile=${currentUrl}favicon.ico\r
             }
           },
           "📋 복사"
-        ), /* @__PURE__ */ import_react25.default.createElement(
+        ), /* @__PURE__ */ import_react26.default.createElement(
           "button",
           {
             className: "btn btn-red-outline",
@@ -37522,7 +37936,7 @@ IconFile=${currentUrl}favicon.ico\r
           "🗑️"
         )))
       );
-    })))), /* @__PURE__ */ import_react25.default.createElement("div", { className: "mobile-cards-view" }, filtered.map((doc) => {
+    })))), /* @__PURE__ */ import_react26.default.createElement("div", { className: "mobile-cards-view" }, filtered.map((doc) => {
       const items = doc.items || [];
       const firstItemName = items[0]?.name || "품목 없음";
       const itemSummary = items.length > 1 ? `${firstItemName} 외 ${items.length - 1}건` : firstItemName;
@@ -37530,7 +37944,7 @@ IconFile=${currentUrl}favicon.ico\r
       const custName = doc.customer_name || doc.customer_data?.name || doc.customer?.name || "-";
       const custMachine = doc.customer_data?.selectedMachine ? ` (${doc.customer_data.selectedMachine})` : "";
       const currentDocType = doc.doc_type || doc.docType || "거래명세서";
-      return /* @__PURE__ */ import_react25.default.createElement(
+      return /* @__PURE__ */ import_react26.default.createElement(
         "div",
         {
           key: doc.id || doc.doc_no,
@@ -37547,7 +37961,7 @@ IconFile=${currentUrl}favicon.ico\r
             else onLoadDocument(doc);
           }
         },
-        /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "6px" } }, /* @__PURE__ */ import_react25.default.createElement(
+        /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" } }, /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "6px" } }, /* @__PURE__ */ import_react26.default.createElement(
           "span",
           {
             style: {
@@ -37564,7 +37978,7 @@ IconFile=${currentUrl}favicon.ico\r
           const docPartners = normalizePartners(doc);
           const isShared = !!(doc.is_shared || doc.partner_key || docPartners.length > 0);
           if (!isShared) return null;
-          return /* @__PURE__ */ import_react25.default.createElement(
+          return /* @__PURE__ */ import_react26.default.createElement(
             "span",
             {
               style: {
@@ -37579,16 +37993,16 @@ IconFile=${currentUrl}favicon.ico\r
             },
             `🤝 공동${docPartners.length > 0 ? `(${docPartners.length})` : ""}`
           );
-        })(), !doc.is_deleted && getPayBadge(doc)), /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "11px", color: "#64748b", fontFamily: "monospace" } }, doc.doc_no || doc.docNo, doc.revision > 0 && ` (Rev.${doc.revision})`)),
-        /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontWeight: "800", fontSize: "0.9375rem", marginBottom: "2px", color: "#0f172a" } }, custName, custMachine && /* @__PURE__ */ import_react25.default.createElement("span", { style: { color: "#1d6bf3", fontSize: "11px" } }, custMachine)),
-        /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: "0.75rem", color: "#64748b", marginBottom: "8px" } }, /* @__PURE__ */ import_react25.default.createElement("div", null, `일자: ${doc.doc_date || doc.docDate || "-"} | 품목: ${itemSummary}`), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: "0.9375rem", fontWeight: "900", color: "#1d6bf3", marginTop: "2px" } }, `합계: ${total.toLocaleString()}원`)),
-        /* @__PURE__ */ import_react25.default.createElement(
+        })(), !doc.is_deleted && getPayBadge(doc)), /* @__PURE__ */ import_react26.default.createElement("span", { style: { fontSize: "11px", color: "#64748b", fontFamily: "monospace" } }, doc.doc_no || doc.docNo, doc.revision > 0 && ` (Rev.${doc.revision})`)),
+        /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontWeight: "800", fontSize: "0.9375rem", marginBottom: "2px", color: "#0f172a" } }, custName, custMachine && /* @__PURE__ */ import_react26.default.createElement("span", { style: { color: "#1d6bf3", fontSize: "11px" } }, custMachine)),
+        /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: "0.75rem", color: "#64748b", marginBottom: "8px" } }, /* @__PURE__ */ import_react26.default.createElement("div", null, `일자: ${doc.doc_date || doc.docDate || "-"} | 품목: ${itemSummary}`), /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: "0.9375rem", fontWeight: "900", color: "#1d6bf3", marginTop: "2px" } }, `합계: ${total.toLocaleString()}원`)),
+        /* @__PURE__ */ import_react26.default.createElement(
           "div",
           {
             style: { display: "flex", gap: "4px", flexWrap: "wrap" },
             onClick: (e) => e.stopPropagation()
           },
-          doc.is_deleted ? /* @__PURE__ */ import_react25.default.createElement(import_react25.default.Fragment, null, /* @__PURE__ */ import_react25.default.createElement(
+          doc.is_deleted ? /* @__PURE__ */ import_react26.default.createElement(import_react26.default.Fragment, null, /* @__PURE__ */ import_react26.default.createElement(
             "button",
             {
               className: "btn btn-primary",
@@ -37599,7 +38013,7 @@ IconFile=${currentUrl}favicon.ico\r
               }
             },
             "🔄 복원하기"
-          ), /* @__PURE__ */ import_react25.default.createElement(
+          ), /* @__PURE__ */ import_react26.default.createElement(
             "button",
             {
               className: "btn btn-red-outline",
@@ -37610,7 +38024,7 @@ IconFile=${currentUrl}favicon.ico\r
               }
             },
             "❌ 영구삭제"
-          )) : /* @__PURE__ */ import_react25.default.createElement(import_react25.default.Fragment, null, /* @__PURE__ */ import_react25.default.createElement(
+          )) : /* @__PURE__ */ import_react26.default.createElement(import_react26.default.Fragment, null, /* @__PURE__ */ import_react26.default.createElement(
             "button",
             {
               type: "button",
@@ -37631,7 +38045,7 @@ IconFile=${currentUrl}favicon.ico\r
               }
             },
             "👁️ 미리보기"
-          ), /* @__PURE__ */ import_react25.default.createElement(
+          ), /* @__PURE__ */ import_react26.default.createElement(
             "button",
             {
               className: "btn btn-primary",
@@ -37642,7 +38056,7 @@ IconFile=${currentUrl}favicon.ico\r
               }
             },
             "📥 불러오기"
-          ), currentDocType === "견적서" ? /* @__PURE__ */ import_react25.default.createElement(
+          ), currentDocType === "견적서" ? /* @__PURE__ */ import_react26.default.createElement(
             "button",
             {
               className: "btn btn-primary",
@@ -37653,7 +38067,7 @@ IconFile=${currentUrl}favicon.ico\r
               }
             },
             "📦 명세서로"
-          ) : /* @__PURE__ */ import_react25.default.createElement(
+          ) : /* @__PURE__ */ import_react26.default.createElement(
             "button",
             {
               className: "btn btn-primary",
@@ -37664,7 +38078,7 @@ IconFile=${currentUrl}favicon.ico\r
               }
             },
             "📋 견적서로"
-          ), /* @__PURE__ */ import_react25.default.createElement(
+          ), /* @__PURE__ */ import_react26.default.createElement(
             "button",
             {
               className: "btn btn-primary",
@@ -37675,7 +38089,7 @@ IconFile=${currentUrl}favicon.ico\r
               }
             },
             "📋 복사"
-          ), /* @__PURE__ */ import_react25.default.createElement(
+          ), /* @__PURE__ */ import_react26.default.createElement(
             "button",
             {
               className: "btn btn-red-outline",
@@ -37693,7 +38107,7 @@ IconFile=${currentUrl}favicon.ico\r
   }
 
   // src/pages/SettingsTab.jsx
-  var import_react26 = __toESM(require_react(), 1);
+  var import_react27 = __toESM(require_react(), 1);
   function SettingsTab({
     currentSupplier = {},
     selectedSupplierKey = "sejin",
@@ -37712,13 +38126,13 @@ IconFile=${currentUrl}favicon.ico\r
     isAdmin = false
   }) {
     const isUserAdmin = isAdmin || userRole === "admin" || sessionStorage.getItem("dd_user_role") === "admin";
-    const [copiedSQL, setCopiedSQL] = (0, import_react26.useState)(false);
-    const [saveSuccess, setSaveSuccess] = (0, import_react26.useState)(false);
-    const [geminiApiKey, setGeminiApiKey] = (0, import_react26.useState)(() => localStorage.getItem("gemini_api_key") || "");
-    const [geminiSaved, setGeminiSaved] = (0, import_react26.useState)(false);
+    const [copiedSQL, setCopiedSQL] = (0, import_react27.useState)(false);
+    const [saveSuccess, setSaveSuccess] = (0, import_react27.useState)(false);
+    const [geminiApiKey, setGeminiApiKey] = (0, import_react27.useState)(() => localStorage.getItem("gemini_api_key") || "");
+    const [geminiSaved, setGeminiSaved] = (0, import_react27.useState)(false);
     const targetId = currentSupplier.id || selectedSupplierKey;
     const initialPwd = currentSupplier.pwd || (targetId ? localStorage.getItem("dd_pwd_" + targetId) : "") || "0000";
-    const [form, setForm] = (0, import_react26.useState)({
+    const [form, setForm] = (0, import_react27.useState)({
       id: targetId,
       name: currentSupplier.name || currentSupplier.company || "",
       person: currentSupplier.person || currentSupplier.owner || "",
@@ -37731,7 +38145,7 @@ IconFile=${currentUrl}favicon.ico\r
       pwd: initialPwd,
       defaultShared: false
     });
-    (0, import_react26.useEffect)(() => {
+    (0, import_react27.useEffect)(() => {
       const tId = currentSupplier.id || selectedSupplierKey;
       const sPwd = currentSupplier.pwd || (tId ? localStorage.getItem("dd_pwd_" + tId) : "") || "0000";
       setForm({
@@ -37805,7 +38219,7 @@ IconFile=${currentUrl}favicon.ico\r
         if (onTestConnection) onTestConnection(DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_KEY);
       }, 50);
     };
-    return /* @__PURE__ */ import_react26.default.createElement("div", { className: "management-container" }, /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "1.25rem", maxWidth: "900px", margin: "0 auto" } }, /* @__PURE__ */ import_react26.default.createElement("div", { className: "card-box" }, /* @__PURE__ */ import_react26.default.createElement("div", { className: "card-box-header" }, /* @__PURE__ */ import_react26.default.createElement("div", null, /* @__PURE__ */ import_react26.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900" } }, "🏢 내 사업자(공급자) 정보 관리"), /* @__PURE__ */ import_react26.default.createElement("p", { style: { fontSize: "0.75rem", color: "var(--text-muted)" } }, "거래명세서, 견적서, 청구서 상단에 인쇄되는 사업자 공급자 정보 및 로그인 비밀번호입니다."))), /* @__PURE__ */ import_react26.default.createElement("form", { onSubmit: handleSaveSupplierProfile, style: { padding: "1.25rem" } }, /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" } }, /* @__PURE__ */ import_react26.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react26.default.createElement("label", { className: "form-label" }, "상호(사업자명) *"), /* @__PURE__ */ import_react26.default.createElement(
+    return /* @__PURE__ */ import_react27.default.createElement("div", { className: "management-container" }, /* @__PURE__ */ import_react27.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "1.25rem", maxWidth: "900px", margin: "0 auto" } }, /* @__PURE__ */ import_react27.default.createElement("div", { className: "card-box" }, /* @__PURE__ */ import_react27.default.createElement("div", { className: "card-box-header" }, /* @__PURE__ */ import_react27.default.createElement("div", null, /* @__PURE__ */ import_react27.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900" } }, "🏢 내 사업자(공급자) 정보 관리"), /* @__PURE__ */ import_react27.default.createElement("p", { style: { fontSize: "0.75rem", color: "var(--text-muted)" } }, "거래명세서, 견적서, 청구서 상단에 인쇄되는 사업자 공급자 정보 및 로그인 비밀번호입니다."))), /* @__PURE__ */ import_react27.default.createElement("form", { onSubmit: handleSaveSupplierProfile, style: { padding: "1.25rem" } }, /* @__PURE__ */ import_react27.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" } }, /* @__PURE__ */ import_react27.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react27.default.createElement("label", { className: "form-label" }, "상호(사업자명) *"), /* @__PURE__ */ import_react27.default.createElement(
       "input",
       {
         type: "text",
@@ -37814,7 +38228,7 @@ IconFile=${currentUrl}favicon.ico\r
         onChange: (e) => setForm({ ...form, name: e.target.value }),
         required: true
       }
-    )), /* @__PURE__ */ import_react26.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react26.default.createElement("label", { className: "form-label" }, "대표자 성명 *"), /* @__PURE__ */ import_react26.default.createElement(
+    )), /* @__PURE__ */ import_react27.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react27.default.createElement("label", { className: "form-label" }, "대표자 성명 *"), /* @__PURE__ */ import_react27.default.createElement(
       "input",
       {
         type: "text",
@@ -37823,7 +38237,7 @@ IconFile=${currentUrl}favicon.ico\r
         onChange: (e) => setForm({ ...form, person: e.target.value }),
         required: true
       }
-    ))), /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" } }, /* @__PURE__ */ import_react26.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react26.default.createElement("label", { className: "form-label" }, "사업자등록번호"), /* @__PURE__ */ import_react26.default.createElement(
+    ))), /* @__PURE__ */ import_react27.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" } }, /* @__PURE__ */ import_react27.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react27.default.createElement("label", { className: "form-label" }, "사업자등록번호"), /* @__PURE__ */ import_react27.default.createElement(
       "input",
       {
         type: "text",
@@ -37832,7 +38246,7 @@ IconFile=${currentUrl}favicon.ico\r
         value: form.bizno,
         onChange: (e) => setForm({ ...form, bizno: e.target.value })
       }
-    )), /* @__PURE__ */ import_react26.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react26.default.createElement("label", { className: "form-label" }, "대표 전화번호"), /* @__PURE__ */ import_react26.default.createElement(
+    )), /* @__PURE__ */ import_react27.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react27.default.createElement("label", { className: "form-label" }, "대표 전화번호"), /* @__PURE__ */ import_react27.default.createElement(
       "input",
       {
         type: "text",
@@ -37841,7 +38255,7 @@ IconFile=${currentUrl}favicon.ico\r
         value: form.phone,
         onChange: (e) => setForm({ ...form, phone: e.target.value })
       }
-    ))), /* @__PURE__ */ import_react26.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react26.default.createElement("label", { className: "form-label" }, "사업장 주소"), /* @__PURE__ */ import_react26.default.createElement(
+    ))), /* @__PURE__ */ import_react27.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react27.default.createElement("label", { className: "form-label" }, "사업장 주소"), /* @__PURE__ */ import_react27.default.createElement(
       "input",
       {
         type: "text",
@@ -37849,7 +38263,7 @@ IconFile=${currentUrl}favicon.ico\r
         value: form.addr,
         onChange: (e) => setForm({ ...form, addr: e.target.value })
       }
-    )), /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" } }, /* @__PURE__ */ import_react26.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react26.default.createElement("label", { className: "form-label" }, "이메일"), /* @__PURE__ */ import_react26.default.createElement(
+    )), /* @__PURE__ */ import_react27.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" } }, /* @__PURE__ */ import_react27.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react27.default.createElement("label", { className: "form-label" }, "이메일"), /* @__PURE__ */ import_react27.default.createElement(
       "input",
       {
         type: "email",
@@ -37857,7 +38271,7 @@ IconFile=${currentUrl}favicon.ico\r
         value: form.email,
         onChange: (e) => setForm({ ...form, email: e.target.value })
       }
-    )), /* @__PURE__ */ import_react26.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react26.default.createElement("label", { className: "form-label" }, "입금 계좌번호 (은행 / 예금주)"), /* @__PURE__ */ import_react26.default.createElement(
+    )), /* @__PURE__ */ import_react27.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react27.default.createElement("label", { className: "form-label" }, "입금 계좌번호 (은행 / 예금주)"), /* @__PURE__ */ import_react27.default.createElement(
       "input",
       {
         type: "text",
@@ -37866,7 +38280,7 @@ IconFile=${currentUrl}favicon.ico\r
         value: form.bank,
         onChange: (e) => setForm({ ...form, bank: e.target.value })
       }
-    ))), /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", borderTop: "1px dashed var(--border-color)", paddingTop: "0.75rem", marginTop: "0.5rem" } }, /* @__PURE__ */ import_react26.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react26.default.createElement("label", { className: "form-label", style: { fontWeight: "800", color: "#1d4ed8" } }, "🔑 내 로그인 접속 비밀번호 (4자리 숫자)"), /* @__PURE__ */ import_react26.default.createElement(
+    ))), /* @__PURE__ */ import_react27.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", borderTop: "1px dashed var(--border-color)", paddingTop: "0.75rem", marginTop: "0.5rem" } }, /* @__PURE__ */ import_react27.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react27.default.createElement("label", { className: "form-label", style: { fontWeight: "800", color: "#1d4ed8" } }, "🔑 내 로그인 접속 비밀번호 (4자리 숫자)"), /* @__PURE__ */ import_react27.default.createElement(
       "input",
       {
         type: "text",
@@ -37877,7 +38291,7 @@ IconFile=${currentUrl}favicon.ico\r
         value: form.pwd || "",
         onChange: (e) => setForm({ ...form, pwd: e.target.value.replace(/[^0-9]/g, "") })
       }
-    ), /* @__PURE__ */ import_react26.default.createElement("span", { style: { fontSize: "0.6875rem", color: "var(--text-muted)", display: "block", marginTop: "2px" } }, "스플래시 화면에서 내 사업자 선택 시 입력할 4자리 비밀번호입니다.")), /* @__PURE__ */ import_react26.default.createElement("div", { className: "form-group" })), /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "1rem" } }, saveSuccess && /* @__PURE__ */ import_react26.default.createElement("span", { style: { color: "var(--accent-green)", fontWeight: "700", fontSize: "0.8125rem", display: "flex", alignItems: "center" } }, "✓ 사업자 정보 및 비밀번호가 성공적으로 저장되었습니다!"), /* @__PURE__ */ import_react26.default.createElement("button", { type: "submit", className: "btn btn-primary" }, "사업자 정보 및 비밀번호 저장")))), isUserAdmin && /* @__PURE__ */ import_react26.default.createElement("div", { className: "card-box", style: { border: "1.5px solid #2563eb", boxShadow: "0 4px 15px rgba(37, 99, 235, 0.08)" } }, /* @__PURE__ */ import_react26.default.createElement("div", { className: "card-box-header", style: { backgroundColor: "rgba(37, 99, 235, 0.06)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" } }, /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "0.5rem" } }, /* @__PURE__ */ import_react26.default.createElement("span", { style: { fontSize: "1.25rem" } }, "👑"), /* @__PURE__ */ import_react26.default.createElement("div", null, /* @__PURE__ */ import_react26.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900", color: "#1e40af" } }, "전체 공급자 관리 & 비밀번호 제어"), /* @__PURE__ */ import_react26.default.createElement("p", { style: { fontSize: "0.75rem", color: "var(--text-muted)" } }, "등록된 모든 사업자의 접속 비밀번호를 일괄 확인하고 관리할 수 있습니다."))), /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", gap: "6px" } }, /* @__PURE__ */ import_react26.default.createElement(
+    ), /* @__PURE__ */ import_react27.default.createElement("span", { style: { fontSize: "0.6875rem", color: "var(--text-muted)", display: "block", marginTop: "2px" } }, "스플래시 화면에서 내 사업자 선택 시 입력할 4자리 비밀번호입니다.")), /* @__PURE__ */ import_react27.default.createElement("div", { className: "form-group" })), /* @__PURE__ */ import_react27.default.createElement("div", { style: { display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "1rem" } }, saveSuccess && /* @__PURE__ */ import_react27.default.createElement("span", { style: { color: "var(--accent-green)", fontWeight: "700", fontSize: "0.8125rem", display: "flex", alignItems: "center" } }, "✓ 사업자 정보 및 비밀번호가 성공적으로 저장되었습니다!"), /* @__PURE__ */ import_react27.default.createElement("button", { type: "submit", className: "btn btn-primary" }, "사업자 정보 및 비밀번호 저장")))), isUserAdmin && /* @__PURE__ */ import_react27.default.createElement("div", { className: "card-box", style: { border: "1.5px solid #2563eb", boxShadow: "0 4px 15px rgba(37, 99, 235, 0.08)" } }, /* @__PURE__ */ import_react27.default.createElement("div", { className: "card-box-header", style: { backgroundColor: "rgba(37, 99, 235, 0.06)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" } }, /* @__PURE__ */ import_react27.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "0.5rem" } }, /* @__PURE__ */ import_react27.default.createElement("span", { style: { fontSize: "1.25rem" } }, "👑"), /* @__PURE__ */ import_react27.default.createElement("div", null, /* @__PURE__ */ import_react27.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900", color: "#1e40af" } }, "전체 공급자 관리 & 비밀번호 제어"), /* @__PURE__ */ import_react27.default.createElement("p", { style: { fontSize: "0.75rem", color: "var(--text-muted)" } }, "등록된 모든 사업자의 접속 비밀번호를 일괄 확인하고 관리할 수 있습니다."))), /* @__PURE__ */ import_react27.default.createElement("div", { style: { display: "flex", gap: "6px" } }, /* @__PURE__ */ import_react27.default.createElement(
       "button",
       {
         type: "button",
@@ -37886,7 +38300,7 @@ IconFile=${currentUrl}favicon.ico\r
         onClick: handleOpenAdminPwdChange
       },
       "🔑 관리자 비번 변경"
-    ), onNavigateToSuppliers && /* @__PURE__ */ import_react26.default.createElement(
+    ), onNavigateToSuppliers && /* @__PURE__ */ import_react27.default.createElement(
       "button",
       {
         type: "button",
@@ -37895,10 +38309,10 @@ IconFile=${currentUrl}favicon.ico\r
         onClick: onNavigateToSuppliers
       },
       "🏢 공급자 전체 상세관리 열기 →"
-    ))), /* @__PURE__ */ import_react26.default.createElement("div", { style: { padding: "1.25rem" } }, /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "0.75rem" } }, suppliersList.map((s) => {
+    ))), /* @__PURE__ */ import_react27.default.createElement("div", { style: { padding: "1.25rem" } }, /* @__PURE__ */ import_react27.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "0.75rem" } }, suppliersList.map((s) => {
       const sPwd = s.pwd || localStorage.getItem("dd_pwd_" + s.id) || "0000";
-      return /* @__PURE__ */ import_react26.default.createElement("div", { key: s.id, style: { padding: "0.75rem 1rem", border: "1px solid #e2e8f0", borderRadius: "8px", backgroundColor: "#f8fafc" } }, /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" } }, /* @__PURE__ */ import_react26.default.createElement("strong", { style: { fontSize: "0.875rem", color: "#0f172a" } }, s.name || s.company), /* @__PURE__ */ import_react26.default.createElement("span", { style: { fontSize: "0.75rem", padding: "2px 8px", backgroundColor: "#dbeafe", color: "#1e40af", borderRadius: "4px", fontFamily: "monospace", fontWeight: "bold" } }, "PW: ", sPwd)), /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: "0.75rem", color: "#64748b" } }, /* @__PURE__ */ import_react26.default.createElement("div", null, "대표: ", s.person || s.owner || "-"), /* @__PURE__ */ import_react26.default.createElement("div", null, "연락처: ", s.phone || s.tel || "-")));
-    })))), /* @__PURE__ */ import_react26.default.createElement("div", { className: "card-box" }, /* @__PURE__ */ import_react26.default.createElement("div", { className: "card-box-header" }, /* @__PURE__ */ import_react26.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900" } }, "🔒 데이터 보안 및 공개 범위 설정")), /* @__PURE__ */ import_react26.default.createElement("div", { style: { padding: "1.25rem", display: "flex", flexDirection: "column", gap: "1rem" } }, /* @__PURE__ */ import_react26.default.createElement("div", { style: { padding: "0.875rem 1rem", backgroundColor: "var(--bg-muted)", borderRadius: "var(--radius-md)", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", justifyContent: "space-between" } }, /* @__PURE__ */ import_react26.default.createElement("div", null, /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontWeight: "800", fontSize: "0.875rem" } }, "고객 거래명세서 / 회계 / 미수금 데이터"), /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: "0.75rem", color: "var(--text-muted)" } }, "사업자별 완전 비공개 격리 원칙 (타 사업자 열람 절대 불가)")), /* @__PURE__ */ import_react26.default.createElement("span", { className: "priority-pill urgent", style: { fontSize: "0.75rem", padding: "4px 8px" } }, "🔒 강제 비공개 (안전)")), /* @__PURE__ */ import_react26.default.createElement("div", { style: { padding: "0.875rem 1rem", backgroundColor: "var(--bg-muted)", borderRadius: "var(--radius-md)", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", justifyContent: "space-between" } }, /* @__PURE__ */ import_react26.default.createElement("div", null, /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontWeight: "800", fontSize: "0.875rem" } }, "정비 및 예약 일정 공개 여부"), /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: "0.75rem", color: "var(--text-muted)" } }, "개별 일정 생성 시 [공유 일정] 체크박스로 선택적 공개 가능")), /* @__PURE__ */ import_react26.default.createElement("span", { style: { fontSize: "0.75rem", backgroundColor: "var(--accent-blue-bg)", color: "var(--accent-blue)", padding: "4px 8px", borderRadius: "4px", fontWeight: "800" } }, "🌐 선택적 공개 지원")))), isUserAdmin ? /* @__PURE__ */ import_react26.default.createElement("div", { className: "card-box", style: { border: "1.5px solid #ca8a04", boxShadow: "0 4px 15px rgba(202, 138, 4, 0.1)" } }, /* @__PURE__ */ import_react26.default.createElement("div", { className: "card-box-header", style: { backgroundColor: "rgba(254, 240, 138, 0.25)", borderBottom: "1px solid rgba(202, 138, 4, 0.2)" } }, /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" } }, /* @__PURE__ */ import_react26.default.createElement("span", { style: { fontSize: "1.25rem" } }, "👑"), /* @__PURE__ */ import_react26.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900", color: "#854d0e" } }, "시스템 관리자 설정 (DB & AI API)"), /* @__PURE__ */ import_react26.default.createElement("span", { className: `status-badge ${isConnected ? "connected" : "disconnected"}` }, isConnected ? "🟢 클라우드 동기화 완료" : "🔴 로컬 모드 (오프라인)")), /* @__PURE__ */ import_react26.default.createElement(
+      return /* @__PURE__ */ import_react27.default.createElement("div", { key: s.id, style: { padding: "0.75rem 1rem", border: "1px solid #e2e8f0", borderRadius: "8px", backgroundColor: "#f8fafc" } }, /* @__PURE__ */ import_react27.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" } }, /* @__PURE__ */ import_react27.default.createElement("strong", { style: { fontSize: "0.875rem", color: "#0f172a" } }, s.name || s.company), /* @__PURE__ */ import_react27.default.createElement("span", { style: { fontSize: "0.75rem", padding: "2px 8px", backgroundColor: "#dbeafe", color: "#1e40af", borderRadius: "4px", fontFamily: "monospace", fontWeight: "bold" } }, "PW: ", sPwd)), /* @__PURE__ */ import_react27.default.createElement("div", { style: { fontSize: "0.75rem", color: "#64748b" } }, /* @__PURE__ */ import_react27.default.createElement("div", null, "대표: ", s.person || s.owner || "-"), /* @__PURE__ */ import_react27.default.createElement("div", null, "연락처: ", s.phone || s.tel || "-")));
+    })))), /* @__PURE__ */ import_react27.default.createElement("div", { className: "card-box" }, /* @__PURE__ */ import_react27.default.createElement("div", { className: "card-box-header" }, /* @__PURE__ */ import_react27.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900" } }, "🔒 데이터 보안 및 공개 범위 설정")), /* @__PURE__ */ import_react27.default.createElement("div", { style: { padding: "1.25rem", display: "flex", flexDirection: "column", gap: "1rem" } }, /* @__PURE__ */ import_react27.default.createElement("div", { style: { padding: "0.875rem 1rem", backgroundColor: "var(--bg-muted)", borderRadius: "var(--radius-md)", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", justifyContent: "space-between" } }, /* @__PURE__ */ import_react27.default.createElement("div", null, /* @__PURE__ */ import_react27.default.createElement("div", { style: { fontWeight: "800", fontSize: "0.875rem" } }, "고객 거래명세서 / 회계 / 미수금 데이터"), /* @__PURE__ */ import_react27.default.createElement("div", { style: { fontSize: "0.75rem", color: "var(--text-muted)" } }, "사업자별 완전 비공개 격리 원칙 (타 사업자 열람 절대 불가)")), /* @__PURE__ */ import_react27.default.createElement("span", { className: "priority-pill urgent", style: { fontSize: "0.75rem", padding: "4px 8px" } }, "🔒 강제 비공개 (안전)")), /* @__PURE__ */ import_react27.default.createElement("div", { style: { padding: "0.875rem 1rem", backgroundColor: "var(--bg-muted)", borderRadius: "var(--radius-md)", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", justifyContent: "space-between" } }, /* @__PURE__ */ import_react27.default.createElement("div", null, /* @__PURE__ */ import_react27.default.createElement("div", { style: { fontWeight: "800", fontSize: "0.875rem" } }, "정비 및 예약 일정 공개 여부"), /* @__PURE__ */ import_react27.default.createElement("div", { style: { fontSize: "0.75rem", color: "var(--text-muted)" } }, "개별 일정 생성 시 [공유 일정] 체크박스로 선택적 공개 가능")), /* @__PURE__ */ import_react27.default.createElement("span", { style: { fontSize: "0.75rem", backgroundColor: "var(--accent-blue-bg)", color: "var(--accent-blue)", padding: "4px 8px", borderRadius: "4px", fontWeight: "800" } }, "🌐 선택적 공개 지원")))), isUserAdmin ? /* @__PURE__ */ import_react27.default.createElement("div", { className: "card-box", style: { border: "1.5px solid #ca8a04", boxShadow: "0 4px 15px rgba(202, 138, 4, 0.1)" } }, /* @__PURE__ */ import_react27.default.createElement("div", { className: "card-box-header", style: { backgroundColor: "rgba(254, 240, 138, 0.25)", borderBottom: "1px solid rgba(202, 138, 4, 0.2)" } }, /* @__PURE__ */ import_react27.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" } }, /* @__PURE__ */ import_react27.default.createElement("span", { style: { fontSize: "1.25rem" } }, "👑"), /* @__PURE__ */ import_react27.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900", color: "#854d0e" } }, "시스템 관리자 설정 (DB & AI API)"), /* @__PURE__ */ import_react27.default.createElement("span", { className: `status-badge ${isConnected ? "connected" : "disconnected"}` }, isConnected ? "🟢 클라우드 동기화 완료" : "🔴 로컬 모드 (오프라인)")), /* @__PURE__ */ import_react27.default.createElement(
       "button",
       {
         type: "button",
@@ -37907,7 +38321,7 @@ IconFile=${currentUrl}favicon.ico\r
         onClick: handleResetToDefaults
       },
       "기본 서버 주소로 복원"
-    )), /* @__PURE__ */ import_react26.default.createElement("div", { style: { padding: "1.25rem", display: "flex", flexDirection: "column", gap: "1rem" } }, /* @__PURE__ */ import_react26.default.createElement("div", null, /* @__PURE__ */ import_react26.default.createElement("h3", { style: { fontSize: "0.9375rem", fontWeight: "800", color: "#1e293b", marginBottom: "0.75rem", display: "flex", alignItems: "center", gap: "6px" } }, "☁️ 클라우드 DB (Supabase) 연동"), /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "0.75rem" } }, /* @__PURE__ */ import_react26.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react26.default.createElement("label", { className: "form-label" }, "Supabase Project URL"), /* @__PURE__ */ import_react26.default.createElement(
+    )), /* @__PURE__ */ import_react27.default.createElement("div", { style: { padding: "1.25rem", display: "flex", flexDirection: "column", gap: "1rem" } }, /* @__PURE__ */ import_react27.default.createElement("div", null, /* @__PURE__ */ import_react27.default.createElement("h3", { style: { fontSize: "0.9375rem", fontWeight: "800", color: "#1e293b", marginBottom: "0.75rem", display: "flex", alignItems: "center", gap: "6px" } }, "☁️ 클라우드 DB (Supabase) 연동"), /* @__PURE__ */ import_react27.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "0.75rem" } }, /* @__PURE__ */ import_react27.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react27.default.createElement("label", { className: "form-label" }, "Supabase Project URL"), /* @__PURE__ */ import_react27.default.createElement(
       "input",
       {
         type: "text",
@@ -37916,7 +38330,7 @@ IconFile=${currentUrl}favicon.ico\r
         onChange: (e) => setSupabaseUrl(e.target.value),
         placeholder: "https://your-project.supabase.co"
       }
-    )), /* @__PURE__ */ import_react26.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react26.default.createElement("label", { className: "form-label" }, "Supabase Anon Key"), /* @__PURE__ */ import_react26.default.createElement(
+    )), /* @__PURE__ */ import_react27.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react27.default.createElement("label", { className: "form-label" }, "Supabase Anon Key"), /* @__PURE__ */ import_react27.default.createElement(
       "input",
       {
         type: "password",
@@ -37925,7 +38339,7 @@ IconFile=${currentUrl}favicon.ico\r
         onChange: (e) => setSupabaseKey(e.target.value),
         placeholder: "sb_publishable_..."
       }
-    )), /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ import_react26.default.createElement(
+    )), /* @__PURE__ */ import_react27.default.createElement("div", { style: { display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ import_react27.default.createElement(
       "button",
       {
         type: "button",
@@ -37934,7 +38348,7 @@ IconFile=${currentUrl}favicon.ico\r
         disabled: isTesting
       },
       isTesting ? "연결 테스트 중..." : "⚡ 연결 테스트 및 즉시 동기화"
-    ), /* @__PURE__ */ import_react26.default.createElement(
+    ), /* @__PURE__ */ import_react27.default.createElement(
       "button",
       {
         type: "button",
@@ -37942,7 +38356,7 @@ IconFile=${currentUrl}favicon.ico\r
         onClick: handleCopySQL
       },
       copiedSQL ? "✓ SQL 클립보드 복사 완료!" : "📋 Supabase 테이블 생성 SQL 복사"
-    )), connectionMessage && /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: "0.8125rem", color: isConnected ? "var(--accent-green)" : "var(--accent-red)", fontWeight: "700", marginTop: "0.25rem" } }, connectionMessage))), /* @__PURE__ */ import_react26.default.createElement("div", { style: { borderTop: "1px solid #e2e8f0", paddingTop: "1rem", marginTop: "0.5rem" } }, /* @__PURE__ */ import_react26.default.createElement("h3", { style: { fontSize: "0.9375rem", fontWeight: "800", color: "#1e293b", marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "6px" } }, "🤖 Google Gemini Vision OCR AI 키 설정"), /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "0.75rem" } }, "명함 및 사업자등록증 초고속 이미지 인식에 사용되는 Google Gemini API 키입니다."), /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", gap: "6px", alignItems: "center" } }, /* @__PURE__ */ import_react26.default.createElement(
+    )), connectionMessage && /* @__PURE__ */ import_react27.default.createElement("div", { style: { fontSize: "0.8125rem", color: isConnected ? "var(--accent-green)" : "var(--accent-red)", fontWeight: "700", marginTop: "0.25rem" } }, connectionMessage))), /* @__PURE__ */ import_react27.default.createElement("div", { style: { borderTop: "1px solid #e2e8f0", paddingTop: "1rem", marginTop: "0.5rem" } }, /* @__PURE__ */ import_react27.default.createElement("h3", { style: { fontSize: "0.9375rem", fontWeight: "800", color: "#1e293b", marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "6px" } }, "🤖 Google Gemini Vision OCR AI 키 설정"), /* @__PURE__ */ import_react27.default.createElement("div", { style: { fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "0.75rem" } }, "명함 및 사업자등록증 초고속 이미지 인식에 사용되는 Google Gemini API 키입니다."), /* @__PURE__ */ import_react27.default.createElement("div", { style: { display: "flex", gap: "6px", alignItems: "center" } }, /* @__PURE__ */ import_react27.default.createElement(
       "input",
       {
         type: "password",
@@ -37952,7 +38366,7 @@ IconFile=${currentUrl}favicon.ico\r
         onChange: (e) => setGeminiApiKey(e.target.value),
         style: { flex: 1 }
       }
-    ), /* @__PURE__ */ import_react26.default.createElement(
+    ), /* @__PURE__ */ import_react27.default.createElement(
       "button",
       {
         type: "button",
@@ -37961,36 +38375,36 @@ IconFile=${currentUrl}favicon.ico\r
         style: { whiteSpace: "nowrap" }
       },
       "AI 키 저장"
-    )), geminiSaved && /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: "0.75rem", color: "var(--accent-green)", fontWeight: "700", marginTop: "4px" } }, "✓ Gemini API 키가 성공적으로 저장되었습니다!")))) : /* @__PURE__ */ import_react26.default.createElement("div", { className: "card-box" }, /* @__PURE__ */ import_react26.default.createElement("div", { className: "card-box-header" }, /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "0.5rem" } }, /* @__PURE__ */ import_react26.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900" } }, "☁️ 클라우드 DB 연동 상태"), /* @__PURE__ */ import_react26.default.createElement("span", { className: `status-badge ${isConnected ? "connected" : "disconnected"}` }, isConnected ? "🟢 클라우드 정상 연동 중" : "🔴 로컬 모드 (오프라인)"))), /* @__PURE__ */ import_react26.default.createElement("div", { style: { padding: "1.25rem", color: "var(--text-muted)", fontSize: "0.8125rem", display: "flex", alignItems: "center", gap: "8px" } }, /* @__PURE__ */ import_react26.default.createElement("span", null, "🔒"), /* @__PURE__ */ import_react26.default.createElement("span", null, "데이터베이스 접속 주소, 보안 키 및 AI API 설정은 ", /* @__PURE__ */ import_react26.default.createElement("strong", null, "시스템 관리자(Admin)"), " 전용 제어 항목입니다.")))));
+    )), geminiSaved && /* @__PURE__ */ import_react27.default.createElement("div", { style: { fontSize: "0.75rem", color: "var(--accent-green)", fontWeight: "700", marginTop: "4px" } }, "✓ Gemini API 키가 성공적으로 저장되었습니다!")))) : /* @__PURE__ */ import_react27.default.createElement("div", { className: "card-box" }, /* @__PURE__ */ import_react27.default.createElement("div", { className: "card-box-header" }, /* @__PURE__ */ import_react27.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "0.5rem" } }, /* @__PURE__ */ import_react27.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900" } }, "☁️ 클라우드 DB 연동 상태"), /* @__PURE__ */ import_react27.default.createElement("span", { className: `status-badge ${isConnected ? "connected" : "disconnected"}` }, isConnected ? "🟢 클라우드 정상 연동 중" : "🔴 로컬 모드 (오프라인)"))), /* @__PURE__ */ import_react27.default.createElement("div", { style: { padding: "1.25rem", color: "var(--text-muted)", fontSize: "0.8125rem", display: "flex", alignItems: "center", gap: "8px" } }, /* @__PURE__ */ import_react27.default.createElement("span", null, "🔒"), /* @__PURE__ */ import_react27.default.createElement("span", null, "데이터베이스 접속 주소, 보안 키 및 AI API 설정은 ", /* @__PURE__ */ import_react27.default.createElement("strong", null, "시스템 관리자(Admin)"), " 전용 제어 항목입니다.")))));
   }
 
   // src/App.jsx
   function App() {
-    const [activeTab, setActiveTab] = (0, import_react27.useState)("dashboard");
-    const [mobileSidebarOpen, setMobileSidebarOpen] = (0, import_react27.useState)(false);
-    const [openAddCustomerModal, setOpenAddCustomerModal] = (0, import_react27.useState)(false);
-    const [editingDocId, setEditingDocId] = (0, import_react27.useState)(null);
-    const [isLoggedIn, setIsLoggedIn] = (0, import_react27.useState)(() => !!sessionStorage.getItem("dd_logged_in"));
-    const [userRole, setUserRole] = (0, import_react27.useState)(() => sessionStorage.getItem("dd_user_role") || "supplier");
-    const [previewDoc, setPreviewDoc] = (0, import_react27.useState)(null);
-    const [isDraftsModalOpen, setIsDraftsModalOpen] = (0, import_react27.useState)(false);
-    const [draftsList, setDraftsList] = (0, import_react27.useState)(() => getDraftDocuments());
-    const [supabaseUrl, setSupabaseUrl] = (0, import_react27.useState)(() => {
+    const [activeTab, setActiveTab] = (0, import_react28.useState)("dashboard");
+    const [mobileSidebarOpen, setMobileSidebarOpen] = (0, import_react28.useState)(false);
+    const [openAddCustomerModal, setOpenAddCustomerModal] = (0, import_react28.useState)(false);
+    const [editingDocId, setEditingDocId] = (0, import_react28.useState)(null);
+    const [isLoggedIn, setIsLoggedIn] = (0, import_react28.useState)(() => !!sessionStorage.getItem("dd_logged_in"));
+    const [userRole, setUserRole] = (0, import_react28.useState)(() => sessionStorage.getItem("dd_user_role") || "supplier");
+    const [previewDoc, setPreviewDoc] = (0, import_react28.useState)(null);
+    const [isDraftsModalOpen, setIsDraftsModalOpen] = (0, import_react28.useState)(false);
+    const [draftsList, setDraftsList] = (0, import_react28.useState)(() => getDraftDocuments());
+    const [supabaseUrl, setSupabaseUrl] = (0, import_react28.useState)(() => {
       const saved = localStorage.getItem("supabase_url");
       return saved && saved.trim() ? saved.trim() : DEFAULT_SUPABASE_URL;
     });
-    const [supabaseKey, setSupabaseKey] = (0, import_react27.useState)(() => {
+    const [supabaseKey, setSupabaseKey] = (0, import_react28.useState)(() => {
       const saved = localStorage.getItem("supabase_anon_key");
       return saved && saved.trim() ? saved.trim() : DEFAULT_SUPABASE_KEY;
     });
-    const [isConnected, setIsConnected] = (0, import_react27.useState)(false);
-    const [isTesting, setIsTesting] = (0, import_react27.useState)(false);
-    const [connectionMessage, setConnectionMessage] = (0, import_react27.useState)("");
-    const [suppliersList, setSuppliersList] = (0, import_react27.useState)(() => getLocalItem("dd_suppliers_list_v1", INITIAL_SUPPLIERS_LIST));
-    const [loggedInSupplierKey, setLoggedInSupplierKey] = (0, import_react27.useState)(() => sessionStorage.getItem("selected_supplier_key") || localStorage.getItem("selected_supplier_key") || "sejin");
-    const [selectedSupplierKey, setSelectedSupplierKey] = (0, import_react27.useState)(() => sessionStorage.getItem("selected_supplier_key") || localStorage.getItem("selected_supplier_key") || "sejin");
-    const [currentSupplier, setCurrentSupplier] = (0, import_react27.useState)(DEFAULT_SUPPLIERS.sejin);
-    const loggedInSupplier = (0, import_react27.useMemo)(() => {
+    const [isConnected, setIsConnected] = (0, import_react28.useState)(false);
+    const [isTesting, setIsTesting] = (0, import_react28.useState)(false);
+    const [connectionMessage, setConnectionMessage] = (0, import_react28.useState)("");
+    const [suppliersList, setSuppliersList] = (0, import_react28.useState)(() => getLocalItem("dd_suppliers_list_v1", INITIAL_SUPPLIERS_LIST));
+    const [loggedInSupplierKey, setLoggedInSupplierKey] = (0, import_react28.useState)(() => sessionStorage.getItem("selected_supplier_key") || localStorage.getItem("selected_supplier_key") || "sejin");
+    const [selectedSupplierKey, setSelectedSupplierKey] = (0, import_react28.useState)(() => sessionStorage.getItem("selected_supplier_key") || localStorage.getItem("selected_supplier_key") || "sejin");
+    const [currentSupplier, setCurrentSupplier] = (0, import_react28.useState)(DEFAULT_SUPPLIERS.sejin);
+    const loggedInSupplier = (0, import_react28.useMemo)(() => {
       const key = loggedInSupplierKey || sessionStorage.getItem("selected_supplier_key") || "sejin";
       const found = suppliersList.find((s) => areSupplierKeysEquivalent(s.id, key));
       if (found) {
@@ -38007,74 +38421,74 @@ IconFile=${currentUrl}favicon.ico\r
       }
       return DEFAULT_SUPPLIERS[key] || DEFAULT_SUPPLIERS.sejin;
     }, [loggedInSupplierKey, suppliersList]);
-    const [customersList, setCustomersList] = (0, import_react27.useState)(() => getLocalItem("dd_customers_list_v1", DEMO_CUSTOMERS));
-    const [documentsList, setDocumentsList] = (0, import_react27.useState)(() => getLocalItem("dd_documents_history_v1", []));
-    const [schedulesList, setSchedulesList] = (0, import_react27.useState)(() => getLocalItem("dd_schedules_list_v1", DEMO_SCHEDULES));
-    const [partsList, setPartsList] = (0, import_react27.useState)(() => getLocalItem("dd_parts_list_v1", DEMO_PARTS));
-    const hasSyncedCustRef = (0, import_react27.useRef)(false);
-    const [customer, setCustomer] = (0, import_react27.useState)({ name: "", person: "", phone: "", addr: "" });
-    const [docType, setDocType] = (0, import_react27.useState)("거래명세서");
-    const [docDate, setDocDate] = (0, import_react27.useState)(() => {
+    const [customersList, setCustomersList] = (0, import_react28.useState)(() => getLocalItem("dd_customers_list_v1", DEMO_CUSTOMERS));
+    const [documentsList, setDocumentsList] = (0, import_react28.useState)(() => getLocalItem("dd_documents_history_v1", []));
+    const [schedulesList, setSchedulesList] = (0, import_react28.useState)(() => getLocalItem("dd_schedules_list_v1", DEMO_SCHEDULES));
+    const [partsList, setPartsList] = (0, import_react28.useState)(() => getLocalItem("dd_parts_list_v1", DEMO_PARTS));
+    const hasSyncedCustRef = (0, import_react28.useRef)(false);
+    const [customer, setCustomer] = (0, import_react28.useState)({ name: "", person: "", phone: "", addr: "" });
+    const [docType, setDocType] = (0, import_react28.useState)("거래명세서");
+    const [docDate, setDocDate] = (0, import_react28.useState)(() => {
       const now = /* @__PURE__ */ new Date();
       return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
     });
-    const [docNo, setDocNo] = (0, import_react27.useState)(() => {
+    const [docNo, setDocNo] = (0, import_react28.useState)(() => {
       const now = /* @__PURE__ */ new Date();
       const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
       const localDocs = getLocalItem("dd_documents_history_v1", []);
       const suppKey = sessionStorage.getItem("selected_supplier_key") || localStorage.getItem("selected_supplier_key") || "sejin";
       return generateNextDocNo(todayStr, localDocs, suppKey, null, "거래명세서", INITIAL_SUPPLIERS_LIST, DEMO_CUSTOMERS);
     });
-    const [docTime, setDocTime] = (0, import_react27.useState)(() => {
+    const [docTime, setDocTime] = (0, import_react28.useState)(() => {
       const now = /* @__PURE__ */ new Date();
       return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
     });
-    const [items, setItems] = (0, import_react27.useState)([{ id: "1", code: "", name: "", unit: "EA", qty: 1, price: 0 }]);
-    const [vatIncluded, setVatIncluded] = (0, import_react27.useState)(true);
-    const [vat, setVat] = (0, import_react27.useState)(0);
-    const [paid, setPaid] = (0, import_react27.useState)(0);
-    const [paymentStatus, setPaymentStatus] = (0, import_react27.useState)("미수금");
-    const [paymentMethod, setPaymentMethod] = (0, import_react27.useState)("계좌이체");
-    const [paymentDate, setPaymentDate] = (0, import_react27.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]);
-    const [validityPeriod, setValidityPeriod] = (0, import_react27.useState)("");
-    const [deliveryDate, setDeliveryDate] = (0, import_react27.useState)("");
-    const [deliveryLocation, setDeliveryLocation] = (0, import_react27.useState)("");
-    const [paymentTerms, setPaymentTerms] = (0, import_react27.useState)("");
-    const [bankAccount, setBankAccount2] = (0, import_react27.useState)("");
-    const [dueDate, setDueDate2] = (0, import_react27.useState)("");
-    const [receiverName, setReceiverName] = (0, import_react27.useState)("");
-    const [receiveDate, setReceiveDate] = (0, import_react27.useState)("");
-    const [remark, setRemark] = (0, import_react27.useState)("");
-    const [isDocShared, setIsDocShared] = (0, import_react27.useState)(false);
-    const [collaborativePartners, setCollaborativePartners] = (0, import_react27.useState)([]);
-    const [partnerKey, setPartnerKey] = (0, import_react27.useState)("");
-    const [partnerName, setPartnerName] = (0, import_react27.useState)("");
-    const [settlementAmount, setSettlementAmount] = (0, import_react27.useState)(0);
-    const [settlementMemo, setSettlementMemo] = (0, import_react27.useState)("");
-    const [docDrafts, setDocDrafts] = (0, import_react27.useState)({});
-    const [isSavedThisSession, setIsSavedThisSession] = (0, import_react27.useState)(true);
-    const [isAggregationModalOpen, setIsAggregationModalOpen] = (0, import_react27.useState)(false);
-    const [isEstimateModalOpen, setIsEstimateModalOpen] = (0, import_react27.useState)(false);
-    const [estimateModalTargetMode, setEstimateModalTargetMode] = (0, import_react27.useState)("convert_to_statement");
-    const [quickCustomerModalOpen, setQuickCustomerModalOpen] = (0, import_react27.useState)(false);
-    const [quickCustomerInitialName, setQuickCustomerInitialName] = (0, import_react27.useState)("");
-    const [isPastStatementModalOpen, setIsPastStatementModalOpen] = (0, import_react27.useState)(false);
-    const [isOcrModalOpen, setIsOcrModalOpen] = (0, import_react27.useState)(false);
-    const [isDesktopShortcutModalOpen, setIsDesktopShortcutModalOpen] = (0, import_react27.useState)(false);
-    const [isDocConvertModalOpen, setIsDocConvertModalOpen] = (0, import_react27.useState)(false);
-    const [isExitConfirmModalOpen, setIsExitConfirmModalOpen] = (0, import_react27.useState)(false);
-    const [canGoBack, setCanGoBack] = (0, import_react27.useState)(() => canGoBackTab());
-    const [pendingTab, setPendingTab] = (0, import_react27.useState)(null);
-    const [pendingReset, setPendingReset] = (0, import_react27.useState)(false);
-    const handleReloadDocuments = (0, import_react27.useCallback)(() => {
+    const [items, setItems] = (0, import_react28.useState)([{ id: "1", code: "", name: "", unit: "EA", qty: 1, price: 0 }]);
+    const [vatIncluded, setVatIncluded] = (0, import_react28.useState)(true);
+    const [vat, setVat] = (0, import_react28.useState)(0);
+    const [paid, setPaid] = (0, import_react28.useState)(0);
+    const [paymentStatus, setPaymentStatus] = (0, import_react28.useState)("미수금");
+    const [paymentMethod, setPaymentMethod] = (0, import_react28.useState)("계좌이체");
+    const [paymentDate, setPaymentDate] = (0, import_react28.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]);
+    const [validityPeriod, setValidityPeriod] = (0, import_react28.useState)("");
+    const [deliveryDate, setDeliveryDate] = (0, import_react28.useState)("");
+    const [deliveryLocation, setDeliveryLocation] = (0, import_react28.useState)("");
+    const [paymentTerms, setPaymentTerms] = (0, import_react28.useState)("");
+    const [bankAccount, setBankAccount2] = (0, import_react28.useState)("");
+    const [dueDate, setDueDate2] = (0, import_react28.useState)("");
+    const [receiverName, setReceiverName] = (0, import_react28.useState)("");
+    const [receiveDate, setReceiveDate] = (0, import_react28.useState)("");
+    const [remark, setRemark] = (0, import_react28.useState)("");
+    const [isDocShared, setIsDocShared] = (0, import_react28.useState)(false);
+    const [collaborativePartners, setCollaborativePartners] = (0, import_react28.useState)([]);
+    const [partnerKey, setPartnerKey] = (0, import_react28.useState)("");
+    const [partnerName, setPartnerName] = (0, import_react28.useState)("");
+    const [settlementAmount, setSettlementAmount] = (0, import_react28.useState)(0);
+    const [settlementMemo, setSettlementMemo] = (0, import_react28.useState)("");
+    const [docDrafts, setDocDrafts] = (0, import_react28.useState)({});
+    const [isSavedThisSession, setIsSavedThisSession] = (0, import_react28.useState)(true);
+    const [isAggregationModalOpen, setIsAggregationModalOpen] = (0, import_react28.useState)(false);
+    const [isEstimateModalOpen, setIsEstimateModalOpen] = (0, import_react28.useState)(false);
+    const [estimateModalTargetMode, setEstimateModalTargetMode] = (0, import_react28.useState)("convert_to_statement");
+    const [quickCustomerModalOpen, setQuickCustomerModalOpen] = (0, import_react28.useState)(false);
+    const [quickCustomerInitialName, setQuickCustomerInitialName] = (0, import_react28.useState)("");
+    const [isPastStatementModalOpen, setIsPastStatementModalOpen] = (0, import_react28.useState)(false);
+    const [isOcrModalOpen, setIsOcrModalOpen] = (0, import_react28.useState)(false);
+    const [isDesktopShortcutModalOpen, setIsDesktopShortcutModalOpen] = (0, import_react28.useState)(false);
+    const [isDocConvertModalOpen, setIsDocConvertModalOpen] = (0, import_react28.useState)(false);
+    const [isExitConfirmModalOpen, setIsExitConfirmModalOpen] = (0, import_react28.useState)(false);
+    const [canGoBack, setCanGoBack] = (0, import_react28.useState)(() => canGoBackTab());
+    const [pendingTab, setPendingTab] = (0, import_react28.useState)(null);
+    const [pendingReset, setPendingReset] = (0, import_react28.useState)(false);
+    const handleReloadDocuments = (0, import_react28.useCallback)(() => {
       fetchDocuments().then((data) => {
         setDocumentsList(data);
       });
     }, [selectedSupplierKey]);
-    (0, import_react27.useEffect)(() => {
+    (0, import_react28.useEffect)(() => {
       handleReloadDocuments();
     }, [handleReloadDocuments]);
-    const [scheduleSubView, setScheduleSubView] = (0, import_react27.useState)("calendar");
+    const [scheduleSubView, setScheduleSubView] = (0, import_react28.useState)("calendar");
     const handleDocTypeChange = (targetType) => {
       if (docType === targetType && activeTab === "doc") return;
       setDocDrafts((prev) => ({
@@ -38211,7 +38625,7 @@ IconFile=${currentUrl}favicon.ico\r
       setActiveTab(newTab);
       setCanGoBack(canGoBackTab());
     };
-    (0, import_react27.useEffect)(() => {
+    (0, import_react28.useEffect)(() => {
       pushTabHistory("dashboard");
       initNavigationManager({
         onNavigateTab: (targetTab) => {
@@ -38223,77 +38637,77 @@ IconFile=${currentUrl}favicon.ico\r
       });
       setCanGoBack(canGoBackTab());
     }, []);
-    (0, import_react27.useEffect)(() => {
+    (0, import_react28.useEffect)(() => {
       if (!previewDoc) return;
       return registerBackHandler(() => {
         setPreviewDoc(null);
         return true;
       }, "DocumentPreviewModal");
     }, [previewDoc]);
-    (0, import_react27.useEffect)(() => {
+    (0, import_react28.useEffect)(() => {
       if (!isDraftsModalOpen) return;
       return registerBackHandler(() => {
         setIsDraftsModalOpen(false);
         return true;
       }, "DraftsModal");
     }, [isDraftsModalOpen]);
-    (0, import_react27.useEffect)(() => {
+    (0, import_react28.useEffect)(() => {
       if (!isAggregationModalOpen) return;
       return registerBackHandler(() => {
         setIsAggregationModalOpen(false);
         return true;
       }, "StatementAggregationModal");
     }, [isAggregationModalOpen]);
-    (0, import_react27.useEffect)(() => {
+    (0, import_react28.useEffect)(() => {
       if (!isEstimateModalOpen) return;
       return registerBackHandler(() => {
         setIsEstimateModalOpen(false);
         return true;
       }, "EstimateImportModal");
     }, [isEstimateModalOpen]);
-    (0, import_react27.useEffect)(() => {
+    (0, import_react28.useEffect)(() => {
       if (!isPastStatementModalOpen) return;
       return registerBackHandler(() => {
         setIsPastStatementModalOpen(false);
         return true;
       }, "PastStatementImportModal");
     }, [isPastStatementModalOpen]);
-    (0, import_react27.useEffect)(() => {
+    (0, import_react28.useEffect)(() => {
       if (!quickCustomerModalOpen) return;
       return registerBackHandler(() => {
         setQuickCustomerModalOpen(false);
         return true;
       }, "QuickCustomerModal");
     }, [quickCustomerModalOpen]);
-    (0, import_react27.useEffect)(() => {
+    (0, import_react28.useEffect)(() => {
       if (!isOcrModalOpen) return;
       return registerBackHandler(() => {
         setIsOcrModalOpen(false);
         return true;
       }, "OcrCustomerModal");
     }, [isOcrModalOpen]);
-    (0, import_react27.useEffect)(() => {
+    (0, import_react28.useEffect)(() => {
       if (!isDesktopShortcutModalOpen) return;
       return registerBackHandler(() => {
         setIsDesktopShortcutModalOpen(false);
         return true;
       }, "DesktopShortcutModal");
     }, [isDesktopShortcutModalOpen]);
-    (0, import_react27.useEffect)(() => {
+    (0, import_react28.useEffect)(() => {
       if (!isDocConvertModalOpen) return;
       return registerBackHandler(() => {
         setIsDocConvertModalOpen(false);
         return true;
       }, "DocConvertModal");
     }, [isDocConvertModalOpen]);
-    (0, import_react27.useEffect)(() => {
+    (0, import_react28.useEffect)(() => {
       if (!openAddCustomerModal) return;
       return registerBackHandler(() => {
         setOpenAddCustomerModal(false);
         return true;
       }, "OpenAddCustomerModal");
     }, [openAddCustomerModal]);
-    (0, import_react27.useEffect)(() => {
+    (0, import_react28.useEffect)(() => {
       if (!pendingTab && !pendingReset) return;
       return registerBackHandler(() => {
         setPendingTab(null);
@@ -38373,21 +38787,21 @@ IconFile=${currentUrl}favicon.ico\r
         alert(`✓ 견적서(${doc.doc_no || doc.docNo})를 성공적으로 불러왔습니다.`);
       }
     };
-    const isDocumentDirty = (0, import_react27.useMemo)(() => {
+    const isDocumentDirty = (0, import_react28.useMemo)(() => {
       if (isSavedThisSession) return false;
       const hasCustomer = (customer.name || "").trim().length > 0;
       const hasItems = items.some((i) => (i.name || "").trim().length > 0 || (i.price || 0) > 0);
       return hasCustomer || hasItems || editingDocId !== null;
     }, [customer, items, editingDocId, isSavedThisSession]);
-    (0, import_react27.useEffect)(() => {
+    (0, import_react28.useEffect)(() => {
       setIsSavedThisSession(false);
     }, [customer, items, docType, docNo, docDate, remark, vatIncluded]);
-    (0, import_react27.useEffect)(() => {
+    (0, import_react28.useEffect)(() => {
       if (!editingDocId) {
         setDocNo(generateNextDocNo(docDate, documentsList, selectedSupplierKey, customer, docType, suppliersList, customersList));
       }
     }, [customer?.name, customer?.code, customer?.id, docDate, docType, selectedSupplierKey, editingDocId, documentsList.length]);
-    (0, import_react27.useEffect)(() => {
+    (0, import_react28.useEffect)(() => {
       const onBeforeUnload = (e) => {
         if (activeTab === "doc" && isDocumentDirty) {
           e.preventDefault();
@@ -38405,7 +38819,7 @@ IconFile=${currentUrl}favicon.ico\r
         handleResetForm();
       }
     };
-    (0, import_react27.useEffect)(() => {
+    (0, import_react28.useEffect)(() => {
       const found = suppliersList.find((s) => areSupplierKeysEquivalent(s.id, selectedSupplierKey));
       if (found) {
         setCurrentSupplier({
@@ -38447,7 +38861,7 @@ IconFile=${currentUrl}favicon.ico\r
         if (schs.length > 0) setSchedulesList(schs);
       }
     };
-    (0, import_react27.useEffect)(() => {
+    (0, import_react28.useEffect)(() => {
       if (documentsList.length > 0 && !hasSyncedCustRef.current) {
         hasSyncedCustRef.current = true;
         syncCustomersFromDocuments(customersList, documentsList).then((synced) => {
@@ -38457,7 +38871,7 @@ IconFile=${currentUrl}favicon.ico\r
         });
       }
     }, [documentsList]);
-    (0, import_react27.useEffect)(() => {
+    (0, import_react28.useEffect)(() => {
       if (isLoggedIn) {
         dbFetch("customers", DEMO_CUSTOMERS).then(setCustomersList);
         dbFetch("suppliers", INITIAL_SUPPLIERS_LIST).then((d) => {
@@ -38468,7 +38882,7 @@ IconFile=${currentUrl}favicon.ico\r
         handleReloadDocuments();
       }
     }, [isLoggedIn, selectedSupplierKey, handleReloadDocuments]);
-    (0, import_react27.useEffect)(() => {
+    (0, import_react28.useEffect)(() => {
       handleTestConnection();
       dbFetch("customers", DEMO_CUSTOMERS).then(setCustomersList);
       dbFetch("suppliers", INITIAL_SUPPLIERS_LIST).then((d) => {
@@ -38477,7 +38891,7 @@ IconFile=${currentUrl}favicon.ico\r
       dbFetch("parts", DEMO_PARTS).then(setPartsList);
       dbFetch("schedules", DEMO_SCHEDULES).then(setSchedulesList);
     }, []);
-    (0, import_react27.useEffect)(() => {
+    (0, import_react28.useEffect)(() => {
       if (activeTab === "accounting" || activeTab === "doc" || activeTab === "schedule" || activeTab === "history") {
         handleReloadDocuments();
       }
@@ -38530,7 +38944,7 @@ IconFile=${currentUrl}favicon.ico\r
       }
       setActiveTab("doc");
     };
-    const badgeCounts = (0, import_react27.useMemo)(() => {
+    const badgeCounts = (0, import_react28.useMemo)(() => {
       const todayStr = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
       const todayWork = schedulesList.filter((s) => {
         const isMine = areSupplierKeysEquivalent(s.supplier_key, selectedSupplierKey);
@@ -38890,7 +39304,7 @@ IconFile=${currentUrl}favicon.ico\r
       }
     };
     if (!isLoggedIn) {
-      return /* @__PURE__ */ import_react27.default.createElement(
+      return /* @__PURE__ */ import_react28.default.createElement(
         SplashScreen,
         {
           suppliersList,
@@ -38913,7 +39327,7 @@ IconFile=${currentUrl}favicon.ico\r
         }
       );
     }
-    return /* @__PURE__ */ import_react27.default.createElement("div", { className: "app-shell" }, /* @__PURE__ */ import_react27.default.createElement(
+    return /* @__PURE__ */ import_react28.default.createElement("div", { className: "app-shell" }, /* @__PURE__ */ import_react28.default.createElement(
       Sidebar,
       {
         activeTab,
@@ -38937,7 +39351,7 @@ IconFile=${currentUrl}favicon.ico\r
         onOpenExitModal: () => setIsExitConfirmModalOpen(true),
         badgeCounts
       }
-    ), /* @__PURE__ */ import_react27.default.createElement("div", { className: "main-viewport" }, /* @__PURE__ */ import_react27.default.createElement(
+    ), /* @__PURE__ */ import_react28.default.createElement("div", { className: "main-viewport" }, /* @__PURE__ */ import_react28.default.createElement(
       Header,
       {
         activeTab,
@@ -38956,13 +39370,13 @@ IconFile=${currentUrl}favicon.ico\r
         onBack: () => triggerBackAction({ onNavigateTab: (tab) => handleRequestTabChange(tab, null, false) }),
         onOpenExitModal: () => setIsExitConfirmModalOpen(true)
       }
-    ), /* @__PURE__ */ import_react27.default.createElement(
+    ), /* @__PURE__ */ import_react28.default.createElement(
       DesktopShortcutModal,
       {
         isOpen: isDesktopShortcutModalOpen,
         onClose: () => setIsDesktopShortcutModalOpen(false)
       }
-    ), /* @__PURE__ */ import_react27.default.createElement(
+    ), /* @__PURE__ */ import_react28.default.createElement(
       StatementAggregationModal,
       {
         isOpen: isAggregationModalOpen,
@@ -38977,7 +39391,7 @@ IconFile=${currentUrl}favicon.ico\r
           setIsAggregationModalOpen(false);
         }
       }
-    ), /* @__PURE__ */ import_react27.default.createElement(
+    ), /* @__PURE__ */ import_react28.default.createElement(
       CustomerEditModal,
       {
         isOpen: quickCustomerModalOpen,
@@ -39010,7 +39424,7 @@ IconFile=${currentUrl}favicon.ico\r
           }
         }
       }
-    ), /* @__PURE__ */ import_react27.default.createElement(
+    ), /* @__PURE__ */ import_react28.default.createElement(
       EstimateImportModal,
       {
         isOpen: isEstimateModalOpen,
@@ -39021,7 +39435,7 @@ IconFile=${currentUrl}favicon.ico\r
         onApplyEstimate: handleApplyEstimate,
         onPreviewDoc: setPreviewDoc
       }
-    ), /* @__PURE__ */ import_react27.default.createElement(
+    ), /* @__PURE__ */ import_react28.default.createElement(
       PastStatementImportModal,
       {
         isOpen: isPastStatementModalOpen,
@@ -39031,7 +39445,7 @@ IconFile=${currentUrl}favicon.ico\r
         onApplyStatement: handleApplyPastStatement,
         onPreviewDoc: setPreviewDoc
       }
-    ), /* @__PURE__ */ import_react27.default.createElement(
+    ), /* @__PURE__ */ import_react28.default.createElement(
       OcrCustomerModal,
       {
         isOpen: isOcrModalOpen,
@@ -39051,7 +39465,7 @@ IconFile=${currentUrl}favicon.ico\r
           setActiveTab("doc");
         }
       }
-    ), previewDoc && /* @__PURE__ */ import_react27.default.createElement(
+    ), previewDoc && /* @__PURE__ */ import_react28.default.createElement(
       DocumentPreviewModal,
       {
         doc: previewDoc,
@@ -39066,7 +39480,7 @@ IconFile=${currentUrl}favicon.ico\r
           setPreviewDoc(null);
         }
       }
-    ), isDraftsModalOpen && /* @__PURE__ */ import_react27.default.createElement(
+    ), isDraftsModalOpen && /* @__PURE__ */ import_react28.default.createElement(
       DraftsModal,
       {
         isOpen: isDraftsModalOpen,
@@ -39085,7 +39499,7 @@ IconFile=${currentUrl}favicon.ico\r
           }
         }
       }
-    ), /* @__PURE__ */ import_react27.default.createElement(
+    ), /* @__PURE__ */ import_react28.default.createElement(
       DocConvertModal,
       {
         isOpen: isDocConvertModalOpen,
@@ -39096,7 +39510,7 @@ IconFile=${currentUrl}favicon.ico\r
         totalAmount: items.reduce((sum, i) => sum + (Number(i.qty) || 0) * (Number(i.price) || 0), 0) + (vatIncluded ? Math.floor(items.reduce((sum, i) => sum + (Number(i.qty) || 0) * (Number(i.price) || 0), 0) * 0.1) : Number(vat) || 0),
         onConfirmConvert: handleExecuteDocConvert
       }
-    ), /* @__PURE__ */ import_react27.default.createElement("main", { className: "main-content" }, activeTab === "dashboard" && /* @__PURE__ */ import_react27.default.createElement(
+    ), /* @__PURE__ */ import_react28.default.createElement("main", { className: "main-content" }, activeTab === "dashboard" && /* @__PURE__ */ import_react28.default.createElement(
       DashboardTab,
       {
         documentsList,
@@ -39114,7 +39528,7 @@ IconFile=${currentUrl}favicon.ico\r
           handleRequestTabChange("schedule", "work_orders");
         }
       }
-    ), activeTab === "doc" && /* @__PURE__ */ import_react27.default.createElement(
+    ), activeTab === "doc" && /* @__PURE__ */ import_react28.default.createElement(
       StatementTab,
       {
         docType,
@@ -39196,7 +39610,7 @@ IconFile=${currentUrl}favicon.ico\r
         onLoadDocument: handleLoadDocument,
         onCopyDocument: handleCopyDocument
       }
-    ), activeTab === "history" && /* @__PURE__ */ import_react27.default.createElement(
+    ), activeTab === "history" && /* @__PURE__ */ import_react28.default.createElement(
       DocHistoryTab,
       {
         onLoadDocument: handleLoadDocument,
@@ -39206,7 +39620,7 @@ IconFile=${currentUrl}favicon.ico\r
         selectedSupplierKey: loggedInSupplierKey,
         onPreviewDocument: (doc) => setPreviewDoc(doc)
       }
-    ), activeTab === "schedule" && /* @__PURE__ */ import_react27.default.createElement(
+    ), activeTab === "schedule" && /* @__PURE__ */ import_react28.default.createElement(
       ScheduleTab,
       {
         schedules: schedulesList,
@@ -39220,7 +39634,7 @@ IconFile=${currentUrl}favicon.ico\r
         onLoadDocument: handleLoadDocument,
         onPreviewDocument: (doc) => setPreviewDoc(doc)
       }
-    ), activeTab === "accounting" && /* @__PURE__ */ import_react27.default.createElement(
+    ), activeTab === "accounting" && /* @__PURE__ */ import_react28.default.createElement(
       AccountingTab,
       {
         documents: documentsList,
@@ -39236,7 +39650,7 @@ IconFile=${currentUrl}favicon.ico\r
           setDocumentsList(updated);
         }
       }
-    ), activeTab === "customers" && /* @__PURE__ */ import_react27.default.createElement(
+    ), activeTab === "customers" && /* @__PURE__ */ import_react28.default.createElement(
       CustomerTab,
       {
         customers: customersList,
@@ -39267,14 +39681,14 @@ IconFile=${currentUrl}favicon.ico\r
           setActiveTab("doc");
         }
       }
-    ), activeTab === "suppliers" && userRole === "admin" && /* @__PURE__ */ import_react27.default.createElement(
+    ), activeTab === "suppliers" && userRole === "admin" && /* @__PURE__ */ import_react28.default.createElement(
       SupplierTab,
       {
         suppliers: suppliersList,
         onSaveSupplier: handleSaveSupplier,
         onDeleteSupplier: handleDeleteSupplier
       }
-    ), activeTab === "parts" && /* @__PURE__ */ import_react27.default.createElement(
+    ), activeTab === "parts" && /* @__PURE__ */ import_react28.default.createElement(
       PartsTab,
       {
         parts: partsList,
@@ -39292,7 +39706,7 @@ IconFile=${currentUrl}favicon.ico\r
           setActiveTab("doc");
         }
       }
-    ), activeTab === "settings" && /* @__PURE__ */ import_react27.default.createElement(
+    ), activeTab === "settings" && /* @__PURE__ */ import_react28.default.createElement(
       SettingsTab,
       {
         currentSupplier,
@@ -39311,7 +39725,7 @@ IconFile=${currentUrl}favicon.ico\r
         userRole,
         isAdmin: userRole === "admin"
       }
-    ))), (pendingTab || pendingReset) && /* @__PURE__ */ import_react27.default.createElement("div", { className: "modal-overlay", style: { zIndex: 9999 } }, /* @__PURE__ */ import_react27.default.createElement("div", { className: "modal-content", style: { maxWidth: "420px", textAlign: "center", padding: "1.75rem 1.25rem" } }, /* @__PURE__ */ import_react27.default.createElement("div", { style: { fontSize: "2.5rem", marginBottom: "0.5rem" } }, "💾"), /* @__PURE__ */ import_react27.default.createElement("h3", { style: { fontSize: "1.125rem", fontWeight: "900", marginBottom: "0.5rem", color: "var(--text-main)" } }, "작성 중인 문서를 저장하시겠습니까?"), /* @__PURE__ */ import_react27.default.createElement("p", { style: { fontSize: "0.8125rem", color: "var(--text-secondary)", marginBottom: "1.25rem", lineHeight: "1.5" } }, pendingReset ? "신규 문서를 작성하기 전에 현재 작성 중인 명세서를 저장하시겠습니까?" : `'${pendingTab === "history" ? "문서조회" : pendingTab === "customers" ? "고객관리" : pendingTab === "suppliers" ? "공급자" : "부품관리"}' 페이지로 이동하기 전에 저장하시겠습니까?`), /* @__PURE__ */ import_react27.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "8px" } }, /* @__PURE__ */ import_react27.default.createElement(
+    ))), (pendingTab || pendingReset) && /* @__PURE__ */ import_react28.default.createElement("div", { className: "modal-overlay", style: { zIndex: 9999 } }, /* @__PURE__ */ import_react28.default.createElement("div", { className: "modal-content", style: { maxWidth: "420px", textAlign: "center", padding: "1.75rem 1.25rem" } }, /* @__PURE__ */ import_react28.default.createElement("div", { style: { fontSize: "2.5rem", marginBottom: "0.5rem" } }, "💾"), /* @__PURE__ */ import_react28.default.createElement("h3", { style: { fontSize: "1.125rem", fontWeight: "900", marginBottom: "0.5rem", color: "var(--text-main)" } }, "작성 중인 문서를 저장하시겠습니까?"), /* @__PURE__ */ import_react28.default.createElement("p", { style: { fontSize: "0.8125rem", color: "var(--text-secondary)", marginBottom: "1.25rem", lineHeight: "1.5" } }, pendingReset ? "신규 문서를 작성하기 전에 현재 작성 중인 명세서를 저장하시겠습니까?" : `'${pendingTab === "history" ? "문서조회" : pendingTab === "customers" ? "고객관리" : pendingTab === "suppliers" ? "공급자" : "부품관리"}' 페이지로 이동하기 전에 저장하시겠습니까?`), /* @__PURE__ */ import_react28.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "8px" } }, /* @__PURE__ */ import_react28.default.createElement(
       "button",
       {
         type: "button",
@@ -39328,7 +39742,7 @@ IconFile=${currentUrl}favicon.ico\r
         }
       },
       "💾 저장 후 진행하기"
-    ), /* @__PURE__ */ import_react27.default.createElement(
+    ), /* @__PURE__ */ import_react28.default.createElement(
       "button",
       {
         type: "button",
@@ -39344,7 +39758,7 @@ IconFile=${currentUrl}favicon.ico\r
         }
       },
       "🚀 저장하지 않고 진행"
-    ), /* @__PURE__ */ import_react27.default.createElement(
+    ), /* @__PURE__ */ import_react28.default.createElement(
       "button",
       {
         type: "button",
@@ -39356,7 +39770,7 @@ IconFile=${currentUrl}favicon.ico\r
         }
       },
       "✕ 취소 (현재 명세서 작성 계속)"
-    )))), /* @__PURE__ */ import_react27.default.createElement(
+    )))), /* @__PURE__ */ import_react28.default.createElement(
       ExitConfirmModal,
       {
         isOpen: isExitConfirmModalOpen,
@@ -39374,7 +39788,7 @@ IconFile=${currentUrl}favicon.ico\r
     try {
       const root = import_client.default.createRoot(rootElement);
       root.render(
-        /* @__PURE__ */ import_react28.default.createElement(import_react28.default.StrictMode, null, /* @__PURE__ */ import_react28.default.createElement(App, null))
+        /* @__PURE__ */ import_react29.default.createElement(import_react29.default.StrictMode, null, /* @__PURE__ */ import_react29.default.createElement(App, null))
       );
       if (loadingIndicator) {
         loadingIndicator.style.display = "none";

@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { areSupplierKeysEquivalent } from '../utils/validation.js';
 import { registerBackHandler } from '../utils/navigationManager.js';
+import SchedulePreviewModal from '../modals/SchedulePreviewModal.jsx';
 
 function getDatesInRange(startDateStr, endDateStr) {
   if (!startDateStr) return [];
@@ -45,6 +46,7 @@ export default function ScheduleTab({
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [showEventModal, setShowEventModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
+  const [previewSchedule, setPreviewSchedule] = useState(null);
 
   // Auto close schedule modal on mobile back button
   useEffect(() => {
@@ -249,12 +251,27 @@ export default function ScheduleTab({
     setShowEventModal(true);
   };
 
+  const handleOpenEventPreview = (ev) => {
+    if (!ev) return;
+    if (ev.isDocEvent) {
+      const targetDoc = ev.rawDoc || ev;
+      if (onPreviewDocument) {
+        onPreviewDocument(targetDoc);
+      } else if (onLoadDocument) {
+        onLoadDocument(targetDoc);
+      }
+    } else {
+      setPreviewSchedule(ev);
+    }
+  };
+
   const handleOpenEditEvent = (ev) => {
     if (ev.isDocEvent) {
-      if (onPreviewDocument && ev.rawDoc) {
-        onPreviewDocument(ev.rawDoc);
-      } else if (onLoadDocument && ev.rawDoc) {
-        onLoadDocument(ev.rawDoc);
+      const targetDoc = ev.rawDoc || ev;
+      if (onPreviewDocument) {
+        onPreviewDocument(targetDoc);
+      } else if (onLoadDocument) {
+        onLoadDocument(targetDoc);
       }
       return;
     }
@@ -426,7 +443,13 @@ export default function ScheduleTab({
                   cursor: 'pointer',
                   position: 'relative'
                 }}
-                onClick={() => setSelectedDate(cell.dateStr)}
+                onClick={() => {
+                  setSelectedDate(cell.dateStr);
+                  const dayEvents = cell.events || [];
+                  if (dayEvents.length === 1) {
+                    handleOpenEventPreview(dayEvents[0]);
+                  }
+                }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
                   <span
@@ -468,9 +491,12 @@ export default function ScheduleTab({
                       <div
                         key={`${ev.id}_${eIdx}`}
                         className="cal-badge-item"
-                        style={{ backgroundColor: badgeBg, color: badgeColor }}
-                        title={(ev.periodInfo ? `[${ev.periodInfo}] ` : '') + ev.title}
-                        onClick={(e) => { e.stopPropagation(); handleOpenEditEvent(ev); }}
+                        style={{ backgroundColor: badgeBg, color: badgeColor, cursor: 'pointer' }}
+                        title={(ev.periodInfo ? `[${ev.periodInfo}] ` : '') + ev.title + ' (클릭하여 미리보기)'}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenEventPreview(ev);
+                        }}
                       >
                         {(isPeriod ? '📅 ' : (isPrivate ? '🔒 ' : '')) + ev.title}
                       </div>
@@ -539,8 +565,12 @@ export default function ScheduleTab({
                       justifyContent: 'space-between',
                       alignItems: 'center',
                       flexWrap: 'wrap',
-                      gap: '8px'
+                      gap: '8px',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
                     }}
+                    title="클릭하여 상세 정보 미리보기"
+                    onClick={() => handleOpenEventPreview(ev)}
                   >
                     <div style={{ flex: 1, minWidth: '180px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px', flexWrap: 'wrap' }}>
@@ -579,23 +609,56 @@ export default function ScheduleTab({
                       {(ev.machine_info || ev.machine) && <div style={{ fontSize: '11px', color: 'var(--c-blue-accent)' }}>{`🚜 기종: ${ev.machine_info || ev.machine}`}</div>}
                       {ev.memo && <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{`📝 메모: ${ev.memo}`}</div>}
                     </div>
-                    <div style={{ display: 'flex', gap: '4px' }}>
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }} onClick={e => e.stopPropagation()}>
                       {ev.isDocEvent ? (
-                        <button
-                          type="button"
-                          className="btn btn-outline btn-sm"
-                          onClick={() => { onLoadDocument && onLoadDocument(ev.rawDoc); }}
-                        >
-                          문서 열기
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            className="btn btn-outline btn-sm"
+                            style={{ fontSize: '0.75rem', fontWeight: '800', color: '#1D4ED8', borderColor: '#BFDBFE', backgroundColor: '#EFF6FF' }}
+                            onClick={() => handleOpenEventPreview(ev)}
+                          >
+                            👁️ 미리보기
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline btn-sm"
+                            style={{ fontSize: '0.75rem' }}
+                            onClick={() => { onLoadDocument && onLoadDocument(ev.rawDoc); }}
+                          >
+                            문서 열기
+                          </button>
+                        </>
                       ) : (
-                        <button
-                          type="button"
-                          className="btn btn-primary btn-sm"
-                          onClick={() => handleOpenEditEvent(ev)}
-                        >
-                          수정
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            className="btn btn-outline btn-sm"
+                            style={{ fontSize: '0.75rem', fontWeight: '800', color: '#0284C7', borderColor: '#BAE6FD', backgroundColor: '#F0F9FF' }}
+                            onClick={() => setPreviewSchedule(ev)}
+                          >
+                            👁️ 미리보기
+                          </button>
+                          {onNavigateToDoc && (
+                            <button
+                              type="button"
+                              className="btn btn-outline btn-sm"
+                              style={{ fontSize: '0.75rem', fontWeight: '800', color: '#1D4ED8', borderColor: '#BFDBFE', backgroundColor: '#EFF6FF' }}
+                              title="이 일정을 기반으로 명세서 작성"
+                              onClick={() => onNavigateToDoc(ev)}
+                            >
+                              📄 명세서
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-sm"
+                            style={{ fontSize: '0.75rem', fontWeight: '800' }}
+                            onClick={() => handleOpenEditEvent(ev)}
+                          >
+                            수정
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -782,6 +845,24 @@ export default function ScheduleTab({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Schedule Detail Preview Modal */}
+      {previewSchedule && (
+        <SchedulePreviewModal
+          schedule={previewSchedule}
+          suppliersList={suppliersList}
+          onClose={() => setPreviewSchedule(null)}
+          onEdit={(sch) => {
+            setPreviewSchedule(null);
+            handleOpenEditEvent(sch);
+          }}
+          onDelete={(id) => {
+            setPreviewSchedule(null);
+            handleDeleteEvent(id);
+          }}
+          onNavigateToDoc={onNavigateToDoc}
+        />
       )}
     </div>
   );
