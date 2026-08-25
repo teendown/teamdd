@@ -183,14 +183,14 @@ export default function StatementTab({
     setIsShareChoiceOpen(true);
   };
 
-  const handleShareImage = async () => {
+  const handleShareImage = async (attachments = []) => {
     const page = document.querySelector('.document-page');
-    await shareDocumentImage(page, `${docType}_${docNo || '명세서'}`);
+    await shareDocumentImage(page, `${docType}_${docNo || '명세서'}`, attachments);
   };
 
-  const handleSharePDF = async () => {
+  const handleSharePDF = async (attachments = []) => {
     const pages = document.querySelectorAll('.document-page');
-    await shareDocumentPDF(pages, `${docType}_${docNo || '명세서'}`);
+    await shareDocumentPDF(pages, `${docType}_${docNo || '명세서'}`, attachments);
   };
 
   return (
@@ -1193,10 +1193,11 @@ export default function StatementTab({
         />
       </div>
 
-      {/* 모바일 공유 방식 선택 모달 (사진 vs PDF) */}
+      {/* 모바일 공유 방식 선택 모달 (사진 vs PDF & 첨부서류) */}
       <ShareChoiceModal
         isOpen={isShareChoiceOpen}
         title={`${docType} 공유`}
+        supplier={currentSupplier}
         onClose={() => setIsShareChoiceOpen(false)}
         onShareImage={handleShareImage}
         onSharePDF={handleSharePDF}

@@ -469,7 +469,9 @@ export default function App() {
         tel: found.phone || found.tel,
         email: found.email || '',
         stamp_image: found.stamp_image || found.stampUrl || found.stamp || '',
-        hasStamp: found.hasStamp !== undefined ? found.hasStamp : (!!(found.stamp_image || found.stampUrl || found.stamp) || areSupplierKeysEquivalent(selectedSupplierKey, 'sejin'))
+        hasStamp: found.hasStamp !== undefined ? found.hasStamp : (!!(found.stamp_image || found.stampUrl || found.stamp) || areSupplierKeysEquivalent(selectedSupplierKey, 'sejin')),
+        biz_cert_image: found.biz_cert_image || found.bizCertImage || found.bizCert || '',
+        bank_book_image: found.bank_book_image || found.bankBookImage || found.bankBook || ''
       });
     } else if (DEFAULT_SUPPLIERS[selectedSupplierKey]) {
       const def = DEFAULT_SUPPLIERS[selectedSupplierKey];
@@ -874,7 +876,9 @@ export default function App() {
         email: matchedSupplier.email || '',
         bank: matchedSupplier.bank || '',
         stamp_image: matchedSupplier.stamp_image || matchedSupplier.stampUrl || matchedSupplier.stamp || '',
-        hasStamp: matchedSupplier.hasStamp !== undefined ? matchedSupplier.hasStamp : (!!(matchedSupplier.stamp_image || matchedSupplier.stampUrl || matchedSupplier.stamp) || areSupplierKeysEquivalent(matchedSupplier.id, 'sejin'))
+        hasStamp: matchedSupplier.hasStamp !== undefined ? matchedSupplier.hasStamp : (!!(matchedSupplier.stamp_image || matchedSupplier.stampUrl || matchedSupplier.stamp) || areSupplierKeysEquivalent(matchedSupplier.id, 'sejin')),
+        biz_cert_image: matchedSupplier.biz_cert_image || matchedSupplier.bizCertImage || matchedSupplier.bizCert || '',
+        bank_book_image: matchedSupplier.bank_book_image || matchedSupplier.bankBookImage || matchedSupplier.bankBook || ''
       });
     } else if (DEFAULT_SUPPLIERS[finalSupplierKey]) {
       setCurrentSupplier(DEFAULT_SUPPLIERS[finalSupplierKey]);
@@ -928,7 +932,9 @@ export default function App() {
         email: foundSupplier.email || '',
         bank: foundSupplier.bank || '',
         stamp_image: foundSupplier.stamp_image || foundSupplier.stampUrl || foundSupplier.stamp || '',
-        hasStamp: foundSupplier.hasStamp !== undefined ? foundSupplier.hasStamp : (!!(foundSupplier.stamp_image || foundSupplier.stampUrl || foundSupplier.stamp) || areSupplierKeysEquivalent(foundSupplier.id, 'sejin'))
+        hasStamp: foundSupplier.hasStamp !== undefined ? foundSupplier.hasStamp : (!!(foundSupplier.stamp_image || foundSupplier.stampUrl || foundSupplier.stamp) || areSupplierKeysEquivalent(foundSupplier.id, 'sejin')),
+        biz_cert_image: foundSupplier.biz_cert_image || foundSupplier.bizCertImage || foundSupplier.bizCert || '',
+        bank_book_image: foundSupplier.bank_book_image || foundSupplier.bankBookImage || foundSupplier.bankBook || ''
       });
     } else if (DEFAULT_SUPPLIERS[sessionSupplierKey]) {
       setSelectedSupplierKey(sessionSupplierKey);

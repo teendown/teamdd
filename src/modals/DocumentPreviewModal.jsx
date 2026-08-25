@@ -43,14 +43,14 @@ export default function DocumentPreviewModal({
     setIsShareChoiceOpen(true);
   };
 
-  const handleShareImageModal = async () => {
+  const handleShareImageModal = async (attachments = []) => {
     const previewBody = document.querySelector('.doc-preview-body');
-    await shareDocumentImage(previewBody, `${docType}_${docNo || '명세서'}_${customer.name || '고객'}`);
+    await shareDocumentImage(previewBody, `${docType}_${docNo || '명세서'}_${customer.name || '고객'}`, attachments);
   };
 
-  const handleSharePDFModal = async () => {
+  const handleSharePDFModal = async (attachments = []) => {
     const previewBody = document.querySelector('.doc-preview-body');
-    await shareDocumentPDF(previewBody, `${docType}_${docNo || '명세서'}_${customer.name || '고객'}`);
+    await shareDocumentPDF(previewBody, `${docType}_${docNo || '명세서'}_${customer.name || '고객'}`, attachments);
   };
 
   const handleDownloadImageModal = async () => {
@@ -537,10 +537,11 @@ export default function DocumentPreviewModal({
         </div>
       </div>
 
-      {/* 모바일 공유 방식 선택 모달 (사진 vs PDF) */}
+      {/* 모바일 공유 방식 선택 모달 (사진 vs PDF & 첨부서류) */}
       <ShareChoiceModal
         isOpen={isShareChoiceOpen}
         title={`${docType} 공유`}
+        supplier={supplier}
         onClose={() => setIsShareChoiceOpen(false)}
         onShareImage={handleShareImageModal}
         onSharePDF={handleSharePDFModal}

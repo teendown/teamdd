@@ -1,6 +1,6 @@
 // 🎨 TEAM D.D EXPORT UTILITIES (HTML2CANVAS, JSPDF, NATIVE EXCELJS .XLSX, CLIPBOARD & SHARE)
 
-export async function exportPagesToPNG(pagesOrPrefix, maybePrefix) {
+export async function exportPagesToPNG(pagesOrPrefix, maybePrefix, attachments = []) {
   let pages = [];
   let prefix = '명세서';
 
@@ -51,6 +51,18 @@ export async function exportPagesToPNG(pagesOrPrefix, maybePrefix) {
       link.href = canvas.toDataURL('image/png');
       link.click();
     }
+
+    // 첨부 서류 이미지 다운로드
+    if (Array.isArray(attachments) && attachments.length > 0) {
+      for (const att of attachments) {
+        if (!att || !att.dataUrl) continue;
+        const link = document.createElement('a');
+        link.download = `${cleanPrefix}_${att.name || '첨부서류'}.png`;
+        link.href = att.dataUrl;
+        link.click();
+      }
+    }
+
     return true;
   } catch (err) {
     console.error('exportPagesToPNG Error:', err);
@@ -107,7 +119,7 @@ export async function copyPageToClipboard(elementOrSelector) {
   });
 }
 
-export async function shareDocumentImage(elementOrTitle, maybeTitle = 'TEAM D.D 거래명세서') {
+export async function shareDocumentImage(elementOrTitle, maybeTitle = 'TEAM D.D 거래명세서', attachments = []) {
   let targetElement = null;
   let title = 'TEAM D.D 거래명세서';
 
@@ -151,13 +163,27 @@ export async function shareDocumentImage(elementOrTitle, maybeTitle = 'TEAM D.D 
           return;
         }
 
-        const file = new File([blob], `${cleanFileName}.png`, { type: 'image/png' });
+        const files = [new File([blob], `${cleanFileName}.png`, { type: 'image/png' })];
 
-        // 스마트폰 모바일 브라우저 카톡/문자/인스타그램 등 공유 기능
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        // 첨부서류 이미지 파일들 추가
+        if (Array.isArray(attachments) && attachments.length > 0) {
+          for (const att of attachments) {
+            if (!att || !att.dataUrl) continue;
+            try {
+              const res = await fetch(att.dataUrl);
+              const attBlob = await res.blob();
+              files.push(new File([attBlob], `${cleanFileName}_${att.name || '첨부'}.png`, { type: 'image/png' }));
+            } catch (e) {
+              console.warn('Attachment file convert error:', e);
+            }
+          }
+        }
+
+        // 스마트폰 모바일 브라우저 카톡/문자/인스타그램 등 다중 파일 공유 기능
+        if (navigator.canShare && navigator.canShare({ files })) {
           try {
             await navigator.share({
-              files: [file],
+              files: files,
               title: title,
               text: `[TEAM D.D] ${title}`
             });
@@ -165,7 +191,6 @@ export async function shareDocumentImage(elementOrTitle, maybeTitle = 'TEAM D.D 
             return;
           } catch (e) {
             if (e.name === 'AbortError') {
-              // 사용자가 공유창에서 취소한 경우 정상 종료
               resolve(false);
               return;
             }
@@ -173,12 +198,23 @@ export async function shareDocumentImage(elementOrTitle, maybeTitle = 'TEAM D.D 
           }
         }
 
-        // PC 브라우저이거나 Web Share 미지원 환경인 경우: 사진 다운로드로 자동 연결
+        // PC 브라우저이거나 Web Share 미지원 환경인 경우: 사진 다운로드
         const link = document.createElement('a');
         link.download = `${cleanFileName}.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
-        alert('✓ 명세서 이미지가 다운로드되었습니다. 카카오톡이나 문자메시지로 공유해 보세요!');
+
+        if (Array.isArray(attachments) && attachments.length > 0) {
+          for (const att of attachments) {
+            if (!att || !att.dataUrl) continue;
+            const attLink = document.createElement('a');
+            attLink.download = `${cleanFileName}_${att.name || '첨부'}.png`;
+            attLink.href = att.dataUrl;
+            attLink.click();
+          }
+        }
+
+        alert('✓ 명세서 및 첨부 서류 이미지가 다운로드되었습니다. 카카오톡이나 문자메시지로 공유해 보세요!');
         resolve(true);
       }, 'image/png');
     });
@@ -190,9 +226,9 @@ export async function shareDocumentImage(elementOrTitle, maybeTitle = 'TEAM D.D 
 }
 
 /**
- * 📄 TEAM D.D 스마트폰/PC PDF 파일 직접 공유 (카톡, 문자, 이메일)
+ * 📄 TEAM D.D 스마트폰/PC PDF 파일 직접 공유 (카톡, 문자, 이메일) - 다중 페이지 첨부 서류 지원
  */
-export async function shareDocumentPDF(elementOrTitle, maybeTitle = 'TEAM D.D 거래명세서') {
+export async function shareDocumentPDF(elementOrTitle, maybeTitle = 'TEAM D.D 거래명세서', attachments = []) {
   let pages = [];
   let title = 'TEAM D.D 거래명세서';
 
@@ -234,6 +270,7 @@ export async function shareDocumentPDF(elementOrTitle, maybeTitle = 'TEAM D.D �
     const { jsPDF } = jspdfObj;
     const pdf = new jsPDF('p', 'mm', 'a4');
 
+    // 1. 거래명세서 본문 페이지 렌더링
     for (let i = 0; i < pages.length; i++) {
       if (i > 0) pdf.addPage();
       const canvas = await html2canvas(pages[i], {
@@ -246,6 +283,43 @@ export async function shareDocumentPDF(elementOrTitle, maybeTitle = 'TEAM D.D �
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    }
+
+    // 2. 첨부 서류 (사업자등록증, 통장사본 등) 다중 페이지 병합
+    if (Array.isArray(attachments) && attachments.length > 0) {
+      for (const att of attachments) {
+        if (!att || !att.dataUrl) continue;
+        pdf.addPage();
+
+        const a4W = pdf.internal.pageSize.getWidth(); // 210mm
+        const a4H = pdf.internal.pageSize.getHeight(); // 297mm
+        const margin = 10;
+        const maxW = a4W - (margin * 2);
+        const maxH = a4H - (margin * 2) - 15;
+
+        // 상단 제목
+        pdf.setFontSize(13);
+        pdf.setTextColor(30, 41, 59);
+        pdf.text(`[첨부서류] ${att.name || '공급자 첨부서류'}`, margin, margin + 8);
+
+        try {
+          const imgProps = pdf.getImageProperties(att.dataUrl);
+          let imgW = maxW;
+          let imgH = (imgProps.height * maxW) / imgProps.width;
+
+          if (imgH > maxH) {
+            imgH = maxH;
+            imgW = (imgProps.width * maxH) / imgProps.height;
+          }
+
+          const posX = margin + ((maxW - imgW) / 2);
+          const posY = margin + 15 + ((maxH - imgH) / 2);
+
+          pdf.addImage(att.dataUrl, 'PNG', posX, posY, imgW, imgH);
+        } catch (imgErr) {
+          console.warn('PDF Add Attachment Error:', imgErr);
+        }
+      }
     }
 
     const pdfBlob = pdf.output('blob');
@@ -270,7 +344,7 @@ export async function shareDocumentPDF(elementOrTitle, maybeTitle = 'TEAM D.D �
 
     // fallback: PC 브라우저 다운로드
     pdf.save(`${cleanFileName}.pdf`);
-    alert('✓ PDF 문서 파일이 다운로드되었습니다. 카카오톡이나 이메일로 전송해 보세요!');
+    alert('✓ PDF 문서 파일(첨부서류 포함)이 다운로드되었습니다. 카카오톡이나 이메일로 전송해 보세요!');
     return true;
   } catch (err) {
     console.error('shareDocumentPDF Error:', err);

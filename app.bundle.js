@@ -29391,7 +29391,7 @@ ${JSON.stringify(extra)}`;
   var import_react6 = __toESM(require_react(), 1);
 
   // src/utils/exportUtils.js
-  async function exportPagesToPNG(pagesOrPrefix, maybePrefix) {
+  async function exportPagesToPNG(pagesOrPrefix, maybePrefix, attachments = []) {
     let pages = [];
     let prefix = "명세서";
     if (typeof pagesOrPrefix === "string") {
@@ -29433,6 +29433,15 @@ ${JSON.stringify(extra)}`;
         link.download = `${cleanPrefix}${pages.length > 1 ? `_${i + 1}페이지` : ""}.png`;
         link.href = canvas.toDataURL("image/png");
         link.click();
+      }
+      if (Array.isArray(attachments) && attachments.length > 0) {
+        for (const att of attachments) {
+          if (!att || !att.dataUrl) continue;
+          const link = document.createElement("a");
+          link.download = `${cleanPrefix}_${att.name || "첨부서류"}.png`;
+          link.href = att.dataUrl;
+          link.click();
+        }
       }
       return true;
     } catch (err) {
@@ -29484,7 +29493,7 @@ ${JSON.stringify(extra)}`;
       }, "image/png");
     });
   }
-  async function shareDocumentImage(elementOrTitle, maybeTitle = "TEAM D.D 거래명세서") {
+  async function shareDocumentImage(elementOrTitle, maybeTitle = "TEAM D.D 거래명세서", attachments = []) {
     let targetElement = null;
     let title = "TEAM D.D 거래명세서";
     if (typeof elementOrTitle === "string") {
@@ -29521,11 +29530,23 @@ ${JSON.stringify(extra)}`;
             resolve(false);
             return;
           }
-          const file = new File([blob], `${cleanFileName}.png`, { type: "image/png" });
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          const files = [new File([blob], `${cleanFileName}.png`, { type: "image/png" })];
+          if (Array.isArray(attachments) && attachments.length > 0) {
+            for (const att of attachments) {
+              if (!att || !att.dataUrl) continue;
+              try {
+                const res = await fetch(att.dataUrl);
+                const attBlob = await res.blob();
+                files.push(new File([attBlob], `${cleanFileName}_${att.name || "첨부"}.png`, { type: "image/png" }));
+              } catch (e) {
+                console.warn("Attachment file convert error:", e);
+              }
+            }
+          }
+          if (navigator.canShare && navigator.canShare({ files })) {
             try {
               await navigator.share({
-                files: [file],
+                files,
                 title,
                 text: `[TEAM D.D] ${title}`
               });
@@ -29543,7 +29564,16 @@ ${JSON.stringify(extra)}`;
           link.download = `${cleanFileName}.png`;
           link.href = canvas.toDataURL("image/png");
           link.click();
-          alert("✓ 명세서 이미지가 다운로드되었습니다. 카카오톡이나 문자메시지로 공유해 보세요!");
+          if (Array.isArray(attachments) && attachments.length > 0) {
+            for (const att of attachments) {
+              if (!att || !att.dataUrl) continue;
+              const attLink = document.createElement("a");
+              attLink.download = `${cleanFileName}_${att.name || "첨부"}.png`;
+              attLink.href = att.dataUrl;
+              attLink.click();
+            }
+          }
+          alert("✓ 명세서 및 첨부 서류 이미지가 다운로드되었습니다. 카카오톡이나 문자메시지로 공유해 보세요!");
           resolve(true);
         }, "image/png");
       });
@@ -29553,7 +29583,7 @@ ${JSON.stringify(extra)}`;
       return false;
     }
   }
-  async function shareDocumentPDF(elementOrTitle, maybeTitle = "TEAM D.D 거래명세서") {
+  async function shareDocumentPDF(elementOrTitle, maybeTitle = "TEAM D.D 거래명세서", attachments = []) {
     let pages = [];
     let title = "TEAM D.D 거래명세서";
     if (typeof elementOrTitle === "string") {
@@ -29601,6 +29631,34 @@ ${JSON.stringify(extra)}`;
         const pdfHeight = canvas.height * pdfWidth / canvas.width;
         pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
       }
+      if (Array.isArray(attachments) && attachments.length > 0) {
+        for (const att of attachments) {
+          if (!att || !att.dataUrl) continue;
+          pdf.addPage();
+          const a4W = pdf.internal.pageSize.getWidth();
+          const a4H = pdf.internal.pageSize.getHeight();
+          const margin = 10;
+          const maxW = a4W - margin * 2;
+          const maxH = a4H - margin * 2 - 15;
+          pdf.setFontSize(13);
+          pdf.setTextColor(30, 41, 59);
+          pdf.text(`[첨부서류] ${att.name || "공급자 첨부서류"}`, margin, margin + 8);
+          try {
+            const imgProps = pdf.getImageProperties(att.dataUrl);
+            let imgW = maxW;
+            let imgH = imgProps.height * maxW / imgProps.width;
+            if (imgH > maxH) {
+              imgH = maxH;
+              imgW = imgProps.width * maxH / imgProps.height;
+            }
+            const posX = margin + (maxW - imgW) / 2;
+            const posY = margin + 15 + (maxH - imgH) / 2;
+            pdf.addImage(att.dataUrl, "PNG", posX, posY, imgW, imgH);
+          } catch (imgErr) {
+            console.warn("PDF Add Attachment Error:", imgErr);
+          }
+        }
+      }
       const pdfBlob = pdf.output("blob");
       const pdfFile = new File([pdfBlob], `${cleanFileName}.pdf`, { type: "application/pdf" });
       if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
@@ -29619,7 +29677,7 @@ ${JSON.stringify(extra)}`;
         }
       }
       pdf.save(`${cleanFileName}.pdf`);
-      alert("✓ PDF 문서 파일이 다운로드되었습니다. 카카오톡이나 이메일로 전송해 보세요!");
+      alert("✓ PDF 문서 파일(첨부서류 포함)이 다운로드되었습니다. 카카오톡이나 이메일로 전송해 보세요!");
       return true;
     } catch (err) {
       console.error("shareDocumentPDF Error:", err);
@@ -29951,10 +30009,15 @@ ${JSON.stringify(extra)}`;
   function ShareChoiceModal({
     isOpen,
     title = "문서 공유",
+    supplier = {},
     onClose,
     onShareImage,
     onSharePDF
   }) {
+    const [includeBizCert, setIncludeBizCert] = (0, import_react5.useState)(false);
+    const [includeBankBook, setIncludeBankBook] = (0, import_react5.useState)(false);
+    const hasBizCert = !!(supplier.biz_cert_image || supplier.bizCertImage || supplier.bizCert);
+    const hasBankBook = !!(supplier.bank_book_image || supplier.bankBookImage || supplier.bankBook);
     (0, import_react5.useEffect)(() => {
       if (!isOpen) return;
       return registerBackHandler(() => {
@@ -29963,6 +30026,22 @@ ${JSON.stringify(extra)}`;
       }, "ShareChoiceModal");
     }, [isOpen, onClose]);
     if (!isOpen) return null;
+    const getSelectedAttachments = () => {
+      const attachments = [];
+      if (includeBizCert && hasBizCert) {
+        attachments.push({
+          name: "사업자등록증",
+          dataUrl: supplier.biz_cert_image || supplier.bizCertImage || supplier.bizCert
+        });
+      }
+      if (includeBankBook && hasBankBook) {
+        attachments.push({
+          name: "통장사본",
+          dataUrl: supplier.bank_book_image || supplier.bankBookImage || supplier.bankBook
+        });
+      }
+      return attachments;
+    };
     return /* @__PURE__ */ import_react5.default.createElement(
       "div",
       {
@@ -29983,7 +30062,7 @@ ${JSON.stringify(extra)}`;
         {
           className: "modal-content",
           style: {
-            maxWidth: "400px",
+            maxWidth: "420px",
             width: "100%",
             padding: "1.5rem",
             borderRadius: "20px",
@@ -30022,7 +30101,7 @@ ${JSON.stringify(extra)}`;
               letterSpacing: "-0.02em"
             }
           },
-          "공유 형식 선택"
+          "공유 및 출력 옵션"
         ),
         /* @__PURE__ */ import_react5.default.createElement(
           "p",
@@ -30030,11 +30109,43 @@ ${JSON.stringify(extra)}`;
             style: {
               fontSize: "0.8125rem",
               color: "#64748B",
-              marginBottom: "1.5rem",
+              marginBottom: "1.25rem",
               lineHeight: "1.4"
             }
           },
-          "어떤 형식으로 공유하시겠습니까?"
+          "공유할 서류 및 파일 형식을 선택해 주세요."
+        ),
+        (hasBizCert || hasBankBook) && /* @__PURE__ */ import_react5.default.createElement(
+          "div",
+          {
+            style: {
+              padding: "0.875rem 1rem",
+              backgroundColor: "#F8FAFC",
+              border: "1.5px solid #E2E8F0",
+              borderRadius: "14px",
+              marginBottom: "1.25rem",
+              textAlign: "left"
+            }
+          },
+          /* @__PURE__ */ import_react5.default.createElement("div", { style: { fontSize: "0.8125rem", fontWeight: "800", color: "#1E293B", marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "4px" } }, "📎 함께 보낼 공급자 서류 선택"),
+          /* @__PURE__ */ import_react5.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "8px" } }, hasBizCert && /* @__PURE__ */ import_react5.default.createElement("label", { style: { display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "0.8125rem", color: "#334155" } }, /* @__PURE__ */ import_react5.default.createElement(
+            "input",
+            {
+              type: "checkbox",
+              checked: includeBizCert,
+              onChange: (e) => setIncludeBizCert(e.target.checked),
+              style: { width: "16px", height: "16px", accentColor: "#2563EB" }
+            }
+          ), /* @__PURE__ */ import_react5.default.createElement("span", null, "📑 ", /* @__PURE__ */ import_react5.default.createElement("b", null, "사업자등록증 사본"), " 포함")), hasBankBook && /* @__PURE__ */ import_react5.default.createElement("label", { style: { display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "0.8125rem", color: "#334155" } }, /* @__PURE__ */ import_react5.default.createElement(
+            "input",
+            {
+              type: "checkbox",
+              checked: includeBankBook,
+              onChange: (e) => setIncludeBankBook(e.target.checked),
+              style: { width: "16px", height: "16px", accentColor: "#2563EB" }
+            }
+          ), /* @__PURE__ */ import_react5.default.createElement("span", null, "🏦 ", /* @__PURE__ */ import_react5.default.createElement("b", null, "통장 사본"), " 포함"))),
+          (includeBizCert || includeBankBook) && /* @__PURE__ */ import_react5.default.createElement("div", { style: { fontSize: "11px", color: "#2563EB", marginTop: "6px", fontWeight: "600" } }, "💡 PDF 선택 시 명세서 뒤에 첨부 서류가 페이지로 자동 묶여 1개의 PDF로 전송됩니다.")
         ),
         /* @__PURE__ */ import_react5.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "0.75rem" } }, /* @__PURE__ */ import_react5.default.createElement(
           "button",
@@ -30046,7 +30157,48 @@ ${JSON.stringify(extra)}`;
               gap: "12px",
               padding: "0.875rem 1rem",
               borderRadius: "14px",
-              border: "2px solid #BFDBFE",
+              border: "2px solid #C7D2FE",
+              backgroundColor: "#EEF2FF",
+              cursor: "pointer",
+              textAlign: "left",
+              transition: "all 0.15s ease"
+            },
+            onClick: () => {
+              onClose();
+              if (onSharePDF) onSharePDF(getSelectedAttachments());
+            }
+          },
+          /* @__PURE__ */ import_react5.default.createElement(
+            "div",
+            {
+              style: {
+                width: "42px",
+                height: "42px",
+                borderRadius: "12px",
+                backgroundColor: "#E0E7FF",
+                color: "#4338CA",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "1.25rem",
+                flexShrink: 0
+              }
+            },
+            "📄"
+          ),
+          /* @__PURE__ */ import_react5.default.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ import_react5.default.createElement("div", { style: { fontWeight: "900", fontSize: "0.9375rem", color: "#312E81", marginBottom: "2px" } }, "PDF 전자 문서 파일", (includeBizCert || includeBankBook) && /* @__PURE__ */ import_react5.default.createElement("span", { style: { fontSize: "11px", color: "#4F46E5", fontWeight: "700", marginLeft: "6px" } }, "(", 1 + getSelectedAttachments().length, "장 묶음)")), /* @__PURE__ */ import_react5.default.createElement("div", { style: { fontSize: "0.75rem", color: "#4338CA" } }, "출력·보관용 정식 A4 PDF 문서")),
+          /* @__PURE__ */ import_react5.default.createElement("span", { style: { fontSize: "1rem", color: "#6366F1" } }, "➔")
+        ), /* @__PURE__ */ import_react5.default.createElement(
+          "button",
+          {
+            type: "button",
+            style: {
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              padding: "0.875rem 1rem",
+              borderRadius: "14px",
+              border: "2px solid #E2E8F0",
               backgroundColor: "#F8FAFC",
               cursor: "pointer",
               textAlign: "left",
@@ -30054,7 +30206,7 @@ ${JSON.stringify(extra)}`;
             },
             onClick: () => {
               onClose();
-              if (onShareImage) onShareImage();
+              if (onShareImage) onShareImage(getSelectedAttachments());
             }
           },
           /* @__PURE__ */ import_react5.default.createElement(
@@ -30076,47 +30228,6 @@ ${JSON.stringify(extra)}`;
             "📸"
           ),
           /* @__PURE__ */ import_react5.default.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ import_react5.default.createElement("div", { style: { fontWeight: "800", fontSize: "0.9375rem", color: "#1E293B", marginBottom: "2px" } }, "사진 (이미지 / PNG)"), /* @__PURE__ */ import_react5.default.createElement("div", { style: { fontSize: "0.75rem", color: "#64748B" } }, "카톡 채팅방·문자에 바로 보이게 전송")),
-          /* @__PURE__ */ import_react5.default.createElement("span", { style: { fontSize: "1rem", color: "#94A3B8" } }, "➔")
-        ), /* @__PURE__ */ import_react5.default.createElement(
-          "button",
-          {
-            type: "button",
-            style: {
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              padding: "0.875rem 1rem",
-              borderRadius: "14px",
-              border: "2px solid #E2E8F0",
-              backgroundColor: "#F8FAFC",
-              cursor: "pointer",
-              textAlign: "left",
-              transition: "all 0.15s ease"
-            },
-            onClick: () => {
-              onClose();
-              if (onSharePDF) onSharePDF();
-            }
-          },
-          /* @__PURE__ */ import_react5.default.createElement(
-            "div",
-            {
-              style: {
-                width: "42px",
-                height: "42px",
-                borderRadius: "12px",
-                backgroundColor: "#F3E8FF",
-                color: "#7E22CE",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "1.25rem",
-                flexShrink: 0
-              }
-            },
-            "📄"
-          ),
-          /* @__PURE__ */ import_react5.default.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ import_react5.default.createElement("div", { style: { fontWeight: "800", fontSize: "0.9375rem", color: "#1E293B", marginBottom: "2px" } }, "PDF 전자 문서 파일"), /* @__PURE__ */ import_react5.default.createElement("div", { style: { fontSize: "0.75rem", color: "#64748B" } }, "출력 및 보관용 정식 A4 PDF 파일")),
           /* @__PURE__ */ import_react5.default.createElement("span", { style: { fontSize: "1rem", color: "#94A3B8" } }, "➔")
         )),
         /* @__PURE__ */ import_react5.default.createElement(
@@ -30169,13 +30280,13 @@ ${JSON.stringify(extra)}`;
     const handleShareModal = () => {
       setIsShareChoiceOpen(true);
     };
-    const handleShareImageModal = async () => {
+    const handleShareImageModal = async (attachments = []) => {
       const previewBody = document.querySelector(".doc-preview-body");
-      await shareDocumentImage(previewBody, `${docType}_${docNo || "명세서"}_${customer.name || "고객"}`);
+      await shareDocumentImage(previewBody, `${docType}_${docNo || "명세서"}_${customer.name || "고객"}`, attachments);
     };
-    const handleSharePDFModal = async () => {
+    const handleSharePDFModal = async (attachments = []) => {
       const previewBody = document.querySelector(".doc-preview-body");
-      await shareDocumentPDF(previewBody, `${docType}_${docNo || "명세서"}_${customer.name || "고객"}`);
+      await shareDocumentPDF(previewBody, `${docType}_${docNo || "명세서"}_${customer.name || "고객"}`, attachments);
     };
     const handleDownloadImageModal = async () => {
       const previewBody = document.querySelector(".doc-preview-body");
@@ -30485,6 +30596,7 @@ ${JSON.stringify(extra)}`;
         {
           isOpen: isShareChoiceOpen,
           title: `${docType} 공유`,
+          supplier,
           onClose: () => setIsShareChoiceOpen(false),
           onShareImage: handleShareImageModal,
           onSharePDF: handleSharePDFModal
@@ -34444,13 +34556,13 @@ IconFile=${currentUrl}favicon.ico\r
       if (!validateBeforeAction()) return;
       setIsShareChoiceOpen(true);
     };
-    const handleShareImage = async () => {
+    const handleShareImage = async (attachments = []) => {
       const page = document.querySelector(".document-page");
-      await shareDocumentImage(page, `${docType}_${docNo || "명세서"}`);
+      await shareDocumentImage(page, `${docType}_${docNo || "명세서"}`, attachments);
     };
-    const handleSharePDF = async () => {
+    const handleSharePDF = async (attachments = []) => {
       const pages = document.querySelectorAll(".document-page");
-      await shareDocumentPDF(pages, `${docType}_${docNo || "명세서"}`);
+      await shareDocumentPDF(pages, `${docType}_${docNo || "명세서"}`, attachments);
     };
     return /* @__PURE__ */ import_react19.default.createElement("div", { className: "generator-split" }, /* @__PURE__ */ import_react19.default.createElement("div", { className: "form-panel" }, editingDocId && /* @__PURE__ */ import_react19.default.createElement(
       "div",
@@ -35290,6 +35402,7 @@ IconFile=${currentUrl}favicon.ico\r
       {
         isOpen: isShareChoiceOpen,
         title: `${docType} 공유`,
+        supplier: currentSupplier,
         onClose: () => setIsShareChoiceOpen(false),
         onShareImage: handleShareImage,
         onSharePDF: handleSharePDF
@@ -37677,13 +37790,18 @@ IconFile=${currentUrl}favicon.ico\r
     const [search, setSearch] = (0, import_react25.useState)("");
     const [showModal, setShowModal] = (0, import_react25.useState)(false);
     const [modalMode, setModalMode] = (0, import_react25.useState)("add");
+    const [previewAttachment, setPreviewAttachment] = (0, import_react25.useState)(null);
     (0, import_react25.useEffect)(() => {
-      if (!showModal) return;
+      if (!showModal && !previewAttachment) return;
       return registerBackHandler(() => {
+        if (previewAttachment) {
+          setPreviewAttachment(null);
+          return true;
+        }
         setShowModal(false);
         return true;
       }, "SupplierTabModal");
-    }, [showModal]);
+    }, [showModal, previewAttachment]);
     const [form, setForm] = (0, import_react25.useState)({
       id: null,
       code: "",
@@ -37700,6 +37818,8 @@ IconFile=${currentUrl}favicon.ico\r
       memo: "",
       stamp_image: "",
       hasStamp: false,
+      biz_cert_image: "",
+      bank_book_image: "",
       pwd: "0000"
     });
     const filtered = suppliers.filter(
@@ -37722,6 +37842,8 @@ IconFile=${currentUrl}favicon.ico\r
         memo: "",
         stamp_image: "",
         hasStamp: false,
+        biz_cert_image: "",
+        bank_book_image: "",
         pwd: "0000"
       });
     };
@@ -37760,6 +37882,8 @@ IconFile=${currentUrl}favicon.ico\r
         memo: s.memo || "",
         stamp_image: s.stamp_image || s.stampUrl || s.stamp || "",
         hasStamp: !!(s.stamp_image || s.stampUrl || s.stamp || s.hasStamp),
+        biz_cert_image: s.biz_cert_image || s.bizCertImage || s.bizCert || "",
+        bank_book_image: s.bank_book_image || s.bankBookImage || s.bankBook || "",
         pwd: s.pwd || localStorage.getItem("dd_pwd_" + s.id) || "0000"
       });
       setShowModal(true);
@@ -37791,7 +37915,9 @@ IconFile=${currentUrl}favicon.ico\r
       }
     )), /* @__PURE__ */ import_react25.default.createElement("div", { className: "mobile-cards-view" }, filtered.map((s) => {
       const hasStampImg = !!(s.stamp_image || s.stampUrl || s.stamp);
-      return /* @__PURE__ */ import_react25.default.createElement("div", { key: s.id, className: "mobile-data-card" }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "6px" } }, /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontWeight: "900", fontSize: "0.9375rem" } }, s.name || s.company), hasStampImg ? /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "10px", padding: "1px 5px", borderRadius: "4px", backgroundColor: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", fontWeight: "800" } }, "🔴 직인등록됨") : /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "10px", padding: "1px 5px", borderRadius: "4px", backgroundColor: "#f8fafc", color: "#94a3b8", border: "1px solid #e2e8f0" } }, "⚪ 직인미등록")), /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "0.6875rem", color: "#6b7280", fontFamily: "monospace" } }, s.bizno)), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: "0.75rem", color: "#4b5563", marginBottom: "0.5rem" } }, /* @__PURE__ */ import_react25.default.createElement("div", null, "대표자: ", s.person || s.owner || "-", " (인)"), /* @__PURE__ */ import_react25.default.createElement("div", null, "연락처: ", s.phone || s.tel || "-"), /* @__PURE__ */ import_react25.default.createElement("div", { style: { textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" } }, "주소: ", s.addr || "-"), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: "0.6875rem", color: "#9ca3af", marginTop: "2px" } }, "계좌: ", s.bank || "-")), /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", gap: "0.375rem", marginTop: "0.5rem" } }, /* @__PURE__ */ import_react25.default.createElement(
+      const hasBizCertImg = !!(s.biz_cert_image || s.bizCertImage || s.bizCert);
+      const hasBankBookImg = !!(s.bank_book_image || s.bankBookImage || s.bankBook);
+      return /* @__PURE__ */ import_react25.default.createElement("div", { key: s.id, className: "mobile-data-card" }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" } }, /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontWeight: "900", fontSize: "0.9375rem" } }, s.name || s.company), hasStampImg && /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "10px", padding: "1px 5px", borderRadius: "4px", backgroundColor: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", fontWeight: "800" } }, "🔴 직인"), hasBizCertImg && /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "10px", padding: "1px 5px", borderRadius: "4px", backgroundColor: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", fontWeight: "700" } }, "📑 사업자등록증"), hasBankBookImg && /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "10px", padding: "1px 5px", borderRadius: "4px", backgroundColor: "#f0fdf4", color: "#15803d", border: "1px solid #bbf7d0", fontWeight: "700" } }, "🏦 통장사본")), /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "0.6875rem", color: "#6b7280", fontFamily: "monospace" } }, s.bizno)), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: "0.75rem", color: "#4b5563", marginBottom: "0.5rem" } }, /* @__PURE__ */ import_react25.default.createElement("div", null, "대표자: ", s.person || s.owner || "-", " (인)"), /* @__PURE__ */ import_react25.default.createElement("div", null, "연락처: ", s.phone || s.tel || "-"), /* @__PURE__ */ import_react25.default.createElement("div", { style: { textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" } }, "주소: ", s.addr || "-"), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: "0.6875rem", color: "#9ca3af", marginTop: "2px" } }, "계좌: ", s.bank || "-")), /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", gap: "0.375rem", marginTop: "0.5rem" } }, /* @__PURE__ */ import_react25.default.createElement(
         "button",
         {
           className: "btn btn-outline",
@@ -37800,8 +37926,10 @@ IconFile=${currentUrl}favicon.ico\r
         },
         "🔍 상세조회 / 정보수정"
       )));
-    })), /* @__PURE__ */ import_react25.default.createElement("div", { className: "desktop-table-view" }, /* @__PURE__ */ import_react25.default.createElement("table", { className: "data-table" }, /* @__PURE__ */ import_react25.default.createElement("thead", null, /* @__PURE__ */ import_react25.default.createElement("tr", null, /* @__PURE__ */ import_react25.default.createElement("th", null, "상호명 / 대표자"), /* @__PURE__ */ import_react25.default.createElement("th", null, "직인(도장)"), /* @__PURE__ */ import_react25.default.createElement("th", null, "사업자번호"), /* @__PURE__ */ import_react25.default.createElement("th", null, "연락처 / 팩스"), /* @__PURE__ */ import_react25.default.createElement("th", null, "주소"), /* @__PURE__ */ import_react25.default.createElement("th", null, "작업"))), /* @__PURE__ */ import_react25.default.createElement("tbody", null, filtered.map((s) => {
+    })), /* @__PURE__ */ import_react25.default.createElement("div", { className: "desktop-table-view" }, /* @__PURE__ */ import_react25.default.createElement("table", { className: "data-table" }, /* @__PURE__ */ import_react25.default.createElement("thead", null, /* @__PURE__ */ import_react25.default.createElement("tr", null, /* @__PURE__ */ import_react25.default.createElement("th", null, "상호명 / 대표자"), /* @__PURE__ */ import_react25.default.createElement("th", null, "직인(도장)"), /* @__PURE__ */ import_react25.default.createElement("th", null, "첨부 서류"), /* @__PURE__ */ import_react25.default.createElement("th", null, "사업자번호"), /* @__PURE__ */ import_react25.default.createElement("th", null, "연락처 / 팩스"), /* @__PURE__ */ import_react25.default.createElement("th", null, "주소"), /* @__PURE__ */ import_react25.default.createElement("th", null, "작업"))), /* @__PURE__ */ import_react25.default.createElement("tbody", null, filtered.map((s) => {
       const stampSrc = s.stamp_image || s.stampUrl || s.stamp;
+      const hasBizCertImg = !!(s.biz_cert_image || s.bizCertImage || s.bizCert);
+      const hasBankBookImg = !!(s.bank_book_image || s.bankBookImage || s.bankBook);
       return /* @__PURE__ */ import_react25.default.createElement("tr", { key: s.id }, /* @__PURE__ */ import_react25.default.createElement("td", null, /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontWeight: "700" } }, s.name || s.company), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: "10px", color: "#6b7280" } }, s.person || s.owner, " (인)")), /* @__PURE__ */ import_react25.default.createElement("td", null, stampSrc ? /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "4px" } }, /* @__PURE__ */ import_react25.default.createElement(
         "img",
         {
@@ -37809,7 +37937,7 @@ IconFile=${currentUrl}favicon.ico\r
           alt: "직인",
           style: { width: "28px", height: "28px", objectFit: "contain", border: "1px solid #e2e8f0", borderRadius: "4px", backgroundColor: "#fff" }
         }
-      ), /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "10px", color: "#dc2626", fontWeight: "700" } }, "등록")) : /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "10px", color: "#94a3b8" } }, "미등록")), /* @__PURE__ */ import_react25.default.createElement("td", { style: { fontFamily: "monospace" } }, s.bizno), /* @__PURE__ */ import_react25.default.createElement("td", null, /* @__PURE__ */ import_react25.default.createElement("div", null, s.phone || s.tel), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: "10px", color: "#6b7280" } }, s.fax)), /* @__PURE__ */ import_react25.default.createElement("td", { style: { fontSize: "11px" } }, s.addr), /* @__PURE__ */ import_react25.default.createElement("td", { style: { whiteSpace: "nowrap" } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", gap: "4px" } }, /* @__PURE__ */ import_react25.default.createElement(
+      ), /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "10px", color: "#dc2626", fontWeight: "700" } }, "등록")) : /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "10px", color: "#94a3b8" } }, "미등록")), /* @__PURE__ */ import_react25.default.createElement("td", null, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", gap: "4px", flexWrap: "wrap" } }, hasBizCertImg ? /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "10px", padding: "1px 5px", borderRadius: "4px", backgroundColor: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", fontWeight: "700" } }, "📑 사업자증") : /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "10px", color: "#cbd5e1" } }, "등록증-"), hasBankBookImg ? /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "10px", padding: "1px 5px", borderRadius: "4px", backgroundColor: "#f0fdf4", color: "#15803d", border: "1px solid #bbf7d0", fontWeight: "700" } }, "🏦 통장사본") : /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "10px", color: "#cbd5e1" } }, "통장-"))), /* @__PURE__ */ import_react25.default.createElement("td", { style: { fontFamily: "monospace" } }, s.bizno), /* @__PURE__ */ import_react25.default.createElement("td", null, /* @__PURE__ */ import_react25.default.createElement("div", null, s.phone || s.tel), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: "10px", color: "#6b7280" } }, s.fax)), /* @__PURE__ */ import_react25.default.createElement("td", { style: { fontSize: "11px" } }, s.addr), /* @__PURE__ */ import_react25.default.createElement("td", { style: { whiteSpace: "nowrap" } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", gap: "4px" } }, /* @__PURE__ */ import_react25.default.createElement(
         "button",
         {
           className: "btn btn-outline",
@@ -37901,7 +38029,177 @@ IconFile=${currentUrl}favicon.ico\r
         onClick: () => setForm({ ...form, stamp_image: "", hasStamp: false })
       },
       "🗑️ 도장 삭제"
-    )), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: "11px", color: "#64748b", lineHeight: "1.4" } }, "* 배경이 투명한 PNG 이미지 파일 권장", /* @__PURE__ */ import_react25.default.createElement("br", null), "* 거래명세서, 견적서, 청구서 출력 시 대표자명 뒤 ", /* @__PURE__ */ import_react25.default.createElement("b", null, "(인)"), " 자리에 자동으로 날인됩니다.")) : /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: "12px", color: "#64748b" } }, form.stamp_image ? "✓ 직인 도장이 등록되어 명세서 출력 시 대표자명에 자동 날인됩니다." : "현재 등록된 도장 파일이 없습니다."))), /* @__PURE__ */ import_react25.default.createElement("div", { className: "form-section", style: { borderBottom: "none" } }, /* @__PURE__ */ import_react25.default.createElement("div", { className: "section-title" }, "📝 메모 / 특이사항"), /* @__PURE__ */ import_react25.default.createElement("div", { className: "form-group" }, modalMode === "view" ? /* @__PURE__ */ import_react25.default.createElement("div", { className: "view-value", style: { whiteSpace: "pre-wrap", minHeight: "40px" } }, form.memo || "-") : /* @__PURE__ */ import_react25.default.createElement("textarea", { className: "form-textarea", rows: "2", value: form.memo, onChange: (e) => setForm({ ...form, memo: e.target.value }) }))), /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", gap: "0.5rem", marginTop: "1.5rem", paddingTop: "1rem", borderTop: "1px solid #e2e8f0" } }, modalMode === "view" ? /* @__PURE__ */ import_react25.default.createElement(import_react25.default.Fragment, null, /* @__PURE__ */ import_react25.default.createElement("button", { className: "btn btn-outline", style: { flex: 1 }, onClick: () => setShowModal(false) }, "닫기"), /* @__PURE__ */ import_react25.default.createElement("button", { className: "btn btn-primary", style: { flex: 1 }, onClick: () => setModalMode("edit") }, "수정"), /* @__PURE__ */ import_react25.default.createElement(
+    )), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: "11px", color: "#64748b", lineHeight: "1.4" } }, "* 배경이 투명한 PNG 이미지 파일 권장", /* @__PURE__ */ import_react25.default.createElement("br", null), "* 거래명세서, 견적서, 청구서 출력 시 대표자명 뒤 ", /* @__PURE__ */ import_react25.default.createElement("b", null, "(인)"), " 자리에 자동으로 날인됩니다.")) : /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: "12px", color: "#64748b" } }, form.stamp_image ? "✓ 직인 도장이 등록되어 명세서 출력 시 대표자명에 자동 날인됩니다." : "현재 등록된 도장 파일이 없습니다."))), /* @__PURE__ */ import_react25.default.createElement("div", { className: "form-section" }, /* @__PURE__ */ import_react25.default.createElement("div", { className: "section-title" }, "📎 공급자 첨부 서류 (사업자등록증 & 통장 사본)"), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: "11px", color: "#64748b", marginBottom: "12px" } }, "* 등록해 두시면 거래명세서 ", /* @__PURE__ */ import_react25.default.createElement("b", null, "모바일 공유, PDF 다운로드, 인쇄"), " 시 함께 묶어서 전송 및 출력할 수 있습니다."), /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { border: "1px solid #e2e8f0", borderRadius: "12px", padding: "12px", backgroundColor: "#f8fafc" } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontWeight: "800", fontSize: "12px", color: "#1e293b", marginBottom: "8px", display: "flex", alignItems: "center", justifyContent: "space-between" } }, /* @__PURE__ */ import_react25.default.createElement("span", null, "📑 사업자등록증 사본"), form.biz_cert_image && /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "10px", color: "#16a34a", fontWeight: "700" } }, "✓ 등록됨")), /* @__PURE__ */ import_react25.default.createElement(
+      "div",
+      {
+        style: {
+          height: "110px",
+          border: "1.5px dashed #cbd5e1",
+          borderRadius: "8px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#ffffff",
+          marginBottom: "8px",
+          overflow: "hidden",
+          cursor: form.biz_cert_image ? "pointer" : "default"
+        },
+        onClick: () => {
+          if (form.biz_cert_image) {
+            setPreviewAttachment({ title: `${form.name || "공급자"} - 사업자등록증`, url: form.biz_cert_image });
+          }
+        },
+        title: form.biz_cert_image ? "클릭 시 원본 크게보기" : ""
+      },
+      form.biz_cert_image ? /* @__PURE__ */ import_react25.default.createElement(
+        "img",
+        {
+          src: form.biz_cert_image,
+          alt: "사업자등록증",
+          style: { width: "100%", height: "100%", objectFit: "contain" }
+        }
+      ) : /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: "11px", color: "#94a3b8", textAlign: "center" } }, "등록된 등록증 없음")
+    ), /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", gap: "6px", flexWrap: "wrap" } }, form.biz_cert_image && /* @__PURE__ */ import_react25.default.createElement(
+      "button",
+      {
+        type: "button",
+        className: "btn btn-outline",
+        style: { fontSize: "11px", padding: "4px 8px", flex: 1 },
+        onClick: () => setPreviewAttachment({ title: `${form.name || "공급자"} - 사업자등록증`, url: form.biz_cert_image })
+      },
+      "🔍 크게보기"
+    ), modalMode !== "view" && /* @__PURE__ */ import_react25.default.createElement(import_react25.default.Fragment, null, /* @__PURE__ */ import_react25.default.createElement(
+      "label",
+      {
+        className: "btn btn-outline",
+        style: {
+          cursor: "pointer",
+          fontSize: "11px",
+          fontWeight: "700",
+          color: "#1d4ed8",
+          borderColor: "#bfdbfe",
+          backgroundColor: "#eff6ff",
+          padding: "4px 8px",
+          flex: 1,
+          textAlign: "center"
+        }
+      },
+      "📁 ",
+      form.biz_cert_image ? "변경" : "파일 등록",
+      /* @__PURE__ */ import_react25.default.createElement(
+        "input",
+        {
+          type: "file",
+          accept: "image/*",
+          style: { display: "none" },
+          onChange: async (e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              try {
+                const dataUrl = await compressImageFile(file, 1200, 0.85);
+                setForm({ ...form, biz_cert_image: dataUrl });
+              } catch (err) {
+                alert("사업자등록증 이미지 처리 실패: " + err.message);
+              }
+            }
+          }
+        }
+      )
+    ), form.biz_cert_image && /* @__PURE__ */ import_react25.default.createElement(
+      "button",
+      {
+        type: "button",
+        className: "btn btn-outline",
+        style: { fontSize: "11px", color: "#dc2626", borderColor: "#fca5a5", padding: "4px 6px" },
+        onClick: () => setForm({ ...form, biz_cert_image: "" })
+      },
+      "🗑️"
+    )))), /* @__PURE__ */ import_react25.default.createElement("div", { style: { border: "1px solid #e2e8f0", borderRadius: "12px", padding: "12px", backgroundColor: "#f8fafc" } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontWeight: "800", fontSize: "12px", color: "#1e293b", marginBottom: "8px", display: "flex", alignItems: "center", justifyContent: "space-between" } }, /* @__PURE__ */ import_react25.default.createElement("span", null, "🏦 통장 사본"), form.bank_book_image && /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: "10px", color: "#16a34a", fontWeight: "700" } }, "✓ 등록됨")), /* @__PURE__ */ import_react25.default.createElement(
+      "div",
+      {
+        style: {
+          height: "110px",
+          border: "1.5px dashed #cbd5e1",
+          borderRadius: "8px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#ffffff",
+          marginBottom: "8px",
+          overflow: "hidden",
+          cursor: form.bank_book_image ? "pointer" : "default"
+        },
+        onClick: () => {
+          if (form.bank_book_image) {
+            setPreviewAttachment({ title: `${form.name || "공급자"} - 통장사본`, url: form.bank_book_image });
+          }
+        },
+        title: form.bank_book_image ? "클릭 시 원본 크게보기" : ""
+      },
+      form.bank_book_image ? /* @__PURE__ */ import_react25.default.createElement(
+        "img",
+        {
+          src: form.bank_book_image,
+          alt: "통장사본",
+          style: { width: "100%", height: "100%", objectFit: "contain" }
+        }
+      ) : /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: "11px", color: "#94a3b8", textAlign: "center" } }, "등록된 통장사본 없음")
+    ), /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", gap: "6px", flexWrap: "wrap" } }, form.bank_book_image && /* @__PURE__ */ import_react25.default.createElement(
+      "button",
+      {
+        type: "button",
+        className: "btn btn-outline",
+        style: { fontSize: "11px", padding: "4px 8px", flex: 1 },
+        onClick: () => setPreviewAttachment({ title: `${form.name || "공급자"} - 통장사본`, url: form.bank_book_image })
+      },
+      "🔍 크게보기"
+    ), modalMode !== "view" && /* @__PURE__ */ import_react25.default.createElement(import_react25.default.Fragment, null, /* @__PURE__ */ import_react25.default.createElement(
+      "label",
+      {
+        className: "btn btn-outline",
+        style: {
+          cursor: "pointer",
+          fontSize: "11px",
+          fontWeight: "700",
+          color: "#16a34a",
+          borderColor: "#bbf7d0",
+          backgroundColor: "#f0fdf4",
+          padding: "4px 8px",
+          flex: 1,
+          textAlign: "center"
+        }
+      },
+      "📁 ",
+      form.bank_book_image ? "변경" : "파일 등록",
+      /* @__PURE__ */ import_react25.default.createElement(
+        "input",
+        {
+          type: "file",
+          accept: "image/*",
+          style: { display: "none" },
+          onChange: async (e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              try {
+                const dataUrl = await compressImageFile(file, 1200, 0.85);
+                setForm({ ...form, bank_book_image: dataUrl });
+              } catch (err) {
+                alert("통장사본 이미지 처리 실패: " + err.message);
+              }
+            }
+          }
+        }
+      )
+    ), form.bank_book_image && /* @__PURE__ */ import_react25.default.createElement(
+      "button",
+      {
+        type: "button",
+        className: "btn btn-outline",
+        style: { fontSize: "11px", color: "#dc2626", borderColor: "#fca5a5", padding: "4px 6px" },
+        onClick: () => setForm({ ...form, bank_book_image: "" })
+      },
+      "🗑️"
+    )))))), /* @__PURE__ */ import_react25.default.createElement("div", { className: "form-section", style: { borderBottom: "none" } }, /* @__PURE__ */ import_react25.default.createElement("div", { className: "section-title" }, "📝 메모 / 특이사항"), /* @__PURE__ */ import_react25.default.createElement("div", { className: "form-group" }, modalMode === "view" ? /* @__PURE__ */ import_react25.default.createElement("div", { className: "view-value", style: { whiteSpace: "pre-wrap", minHeight: "40px" } }, form.memo || "-") : /* @__PURE__ */ import_react25.default.createElement("textarea", { className: "form-textarea", rows: "2", value: form.memo, onChange: (e) => setForm({ ...form, memo: e.target.value }) }))), /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", gap: "0.5rem", marginTop: "1.5rem", paddingTop: "1rem", borderTop: "1px solid #e2e8f0" } }, modalMode === "view" ? /* @__PURE__ */ import_react25.default.createElement(import_react25.default.Fragment, null, /* @__PURE__ */ import_react25.default.createElement("button", { className: "btn btn-outline", style: { flex: 1 }, onClick: () => setShowModal(false) }, "닫기"), /* @__PURE__ */ import_react25.default.createElement("button", { className: "btn btn-primary", style: { flex: 1 }, onClick: () => setModalMode("edit") }, "수정"), /* @__PURE__ */ import_react25.default.createElement(
       "button",
       {
         className: "btn btn-red-outline",
@@ -37930,7 +38228,41 @@ IconFile=${currentUrl}favicon.ico\r
         }
       },
       "취소"
-    ))))));
+    ))))), previewAttachment && /* @__PURE__ */ import_react25.default.createElement(
+      "div",
+      {
+        className: "modal-overlay",
+        style: { zIndex: 10070, backgroundColor: "rgba(0,0,0,0.85)", padding: "1rem", display: "flex", alignItems: "center", justifyContent: "center" },
+        onClick: () => setPreviewAttachment(null)
+      },
+      /* @__PURE__ */ import_react25.default.createElement(
+        "div",
+        {
+          className: "modal-content",
+          style: { maxWidth: "800px", width: "100%", maxHeight: "90vh", display: "flex", flexDirection: "column", backgroundColor: "#fff", borderRadius: "16px", overflow: "hidden" },
+          onClick: (e) => e.stopPropagation()
+        },
+        /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1.25rem", borderBottom: "1px solid #e2e8f0" } }, /* @__PURE__ */ import_react25.default.createElement("h4", { style: { fontWeight: "800", fontSize: "1rem", margin: 0 } }, previewAttachment.title), /* @__PURE__ */ import_react25.default.createElement("button", { className: "btn btn-outline", style: { padding: "4px 10px", fontSize: "12px" }, onClick: () => setPreviewAttachment(null) }, "✕ 닫기")),
+        /* @__PURE__ */ import_react25.default.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "1rem", textAlign: "center", backgroundColor: "#0f172a" } }, /* @__PURE__ */ import_react25.default.createElement(
+          "img",
+          {
+            src: previewAttachment.url,
+            alt: previewAttachment.title,
+            style: { maxWidth: "100%", maxHeight: "70vh", objectFit: "contain", borderRadius: "8px" }
+          }
+        )),
+        /* @__PURE__ */ import_react25.default.createElement("div", { style: { padding: "0.75rem 1.25rem", display: "flex", justifyContent: "flex-end", borderTop: "1px solid #e2e8f0" } }, /* @__PURE__ */ import_react25.default.createElement(
+          "a",
+          {
+            href: previewAttachment.url,
+            download: `${previewAttachment.title}.png`,
+            className: "btn btn-primary",
+            style: { fontSize: "12px" }
+          },
+          "💾 원본 다운로드"
+        ))
+      )
+    ));
   }
 
   // src/pages/PartsTab.jsx
@@ -38580,6 +38912,7 @@ IconFile=${currentUrl}favicon.ico\r
     const [geminiSaved, setGeminiSaved] = (0, import_react28.useState)(false);
     const targetId = currentSupplier.id || selectedSupplierKey;
     const initialPwd = currentSupplier.pwd || (targetId ? localStorage.getItem("dd_pwd_" + targetId) : "") || "0000";
+    const [previewAttachment, setPreviewAttachment] = (0, import_react28.useState)(null);
     const [form, setForm] = (0, import_react28.useState)({
       id: targetId,
       name: currentSupplier.name || currentSupplier.company || "",
@@ -38592,6 +38925,8 @@ IconFile=${currentUrl}favicon.ico\r
       bank: currentSupplier.bank || "",
       stamp_image: currentSupplier.stamp_image || currentSupplier.stampUrl || currentSupplier.stamp || "",
       hasStamp: !!(currentSupplier.stamp_image || currentSupplier.stampUrl || currentSupplier.stamp || currentSupplier.hasStamp),
+      biz_cert_image: currentSupplier.biz_cert_image || currentSupplier.bizCertImage || currentSupplier.bizCert || "",
+      bank_book_image: currentSupplier.bank_book_image || currentSupplier.bankBookImage || currentSupplier.bankBook || "",
       pwd: initialPwd,
       defaultShared: false
     });
@@ -38610,6 +38945,8 @@ IconFile=${currentUrl}favicon.ico\r
         bank: currentSupplier.bank || "",
         stamp_image: currentSupplier.stamp_image || currentSupplier.stampUrl || currentSupplier.stamp || "",
         hasStamp: !!(currentSupplier.stamp_image || currentSupplier.stampUrl || currentSupplier.stamp || currentSupplier.hasStamp),
+        biz_cert_image: currentSupplier.biz_cert_image || currentSupplier.bizCertImage || currentSupplier.bizCert || "",
+        bank_book_image: currentSupplier.bank_book_image || currentSupplier.bankBookImage || currentSupplier.bankBook || "",
         pwd: sPwd,
         defaultShared: false
       });
@@ -38804,7 +39141,177 @@ IconFile=${currentUrl}favicon.ico\r
         onClick: () => setForm({ ...form, stamp_image: "", hasStamp: false })
       },
       "🗑️ 도장 삭제"
-    )), /* @__PURE__ */ import_react28.default.createElement("div", { style: { fontSize: "11px", color: "#64748b", lineHeight: "1.4" } }, "* 배경이 투명한 PNG 이미지 권장", /* @__PURE__ */ import_react28.default.createElement("br", null), "* 거래명세서, 견적서, 청구서 작성 및 출력 시 대표자 이름 뒤 ", /* @__PURE__ */ import_react28.default.createElement("b", null, "(인)"), " 자리에 자동으로 날인됩니다.")))), /* @__PURE__ */ import_react28.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", borderTop: "1px dashed var(--border-color)", paddingTop: "0.75rem", marginTop: "0.5rem" } }, /* @__PURE__ */ import_react28.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react28.default.createElement("label", { className: "form-label", style: { fontWeight: "800", color: "#1d4ed8" } }, "🔑 내 로그인 접속 비밀번호 (4자리 숫자)"), /* @__PURE__ */ import_react28.default.createElement(
+    )), /* @__PURE__ */ import_react28.default.createElement("div", { style: { fontSize: "11px", color: "#64748b", lineHeight: "1.4" } }, "* 배경이 투명한 PNG 이미지 권장", /* @__PURE__ */ import_react28.default.createElement("br", null), "* 거래명세서, 견적서, 청구서 작성 및 출력 시 대표자 이름 뒤 ", /* @__PURE__ */ import_react28.default.createElement("b", null, "(인)"), " 자리에 자동으로 날인됩니다.")))), /* @__PURE__ */ import_react28.default.createElement("div", { style: { borderTop: "1px dashed var(--border-color)", paddingTop: "0.875rem", marginTop: "0.5rem" } }, /* @__PURE__ */ import_react28.default.createElement("label", { className: "form-label", style: { fontWeight: "800", color: "#1e40af", marginBottom: "0.25rem" } }, "📎 사업자 첨부 서류 (사업자등록증 & 통장 사본)"), /* @__PURE__ */ import_react28.default.createElement("div", { style: { fontSize: "11px", color: "#64748b", marginBottom: "12px" } }, "* 등록해 두시면 거래명세서 ", /* @__PURE__ */ import_react28.default.createElement("b", null, "모바일 공유, PDF 다운로드, 인쇄"), " 시 함께 묶어서 전송 및 출력할 수 있습니다."), /* @__PURE__ */ import_react28.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" } }, /* @__PURE__ */ import_react28.default.createElement("div", { style: { border: "1px solid #e2e8f0", borderRadius: "12px", padding: "12px", backgroundColor: "#f8fafc" } }, /* @__PURE__ */ import_react28.default.createElement("div", { style: { fontWeight: "800", fontSize: "12px", color: "#1e293b", marginBottom: "8px", display: "flex", alignItems: "center", justifyContent: "space-between" } }, /* @__PURE__ */ import_react28.default.createElement("span", null, "📑 사업자등록증 사본"), form.biz_cert_image && /* @__PURE__ */ import_react28.default.createElement("span", { style: { fontSize: "10px", color: "#16a34a", fontWeight: "700" } }, "✓ 등록됨")), /* @__PURE__ */ import_react28.default.createElement(
+      "div",
+      {
+        style: {
+          height: "110px",
+          border: "1.5px dashed #cbd5e1",
+          borderRadius: "8px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#ffffff",
+          marginBottom: "8px",
+          overflow: "hidden",
+          cursor: form.biz_cert_image ? "pointer" : "default"
+        },
+        onClick: () => {
+          if (form.biz_cert_image) {
+            setPreviewAttachment({ title: `${form.name || "공급자"} - 사업자등록증`, url: form.biz_cert_image });
+          }
+        },
+        title: form.biz_cert_image ? "클릭 시 원본 크게보기" : ""
+      },
+      form.biz_cert_image ? /* @__PURE__ */ import_react28.default.createElement(
+        "img",
+        {
+          src: form.biz_cert_image,
+          alt: "사업자등록증",
+          style: { width: "100%", height: "100%", objectFit: "contain" }
+        }
+      ) : /* @__PURE__ */ import_react28.default.createElement("div", { style: { fontSize: "11px", color: "#94a3b8", textAlign: "center" } }, "등록된 등록증 없음")
+    ), /* @__PURE__ */ import_react28.default.createElement("div", { style: { display: "flex", gap: "6px", flexWrap: "wrap" } }, form.biz_cert_image && /* @__PURE__ */ import_react28.default.createElement(
+      "button",
+      {
+        type: "button",
+        className: "btn btn-outline",
+        style: { fontSize: "11px", padding: "4px 8px", flex: 1 },
+        onClick: () => setPreviewAttachment({ title: `${form.name || "공급자"} - 사업자등록증`, url: form.biz_cert_image })
+      },
+      "🔍 크게보기"
+    ), /* @__PURE__ */ import_react28.default.createElement(
+      "label",
+      {
+        className: "btn btn-outline",
+        style: {
+          cursor: "pointer",
+          fontSize: "11px",
+          fontWeight: "700",
+          color: "#1d4ed8",
+          borderColor: "#bfdbfe",
+          backgroundColor: "#eff6ff",
+          padding: "4px 8px",
+          flex: 1,
+          textAlign: "center"
+        }
+      },
+      "📁 ",
+      form.biz_cert_image ? "변경" : "파일 등록",
+      /* @__PURE__ */ import_react28.default.createElement(
+        "input",
+        {
+          type: "file",
+          accept: "image/*",
+          style: { display: "none" },
+          onChange: async (e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              try {
+                const dataUrl = await compressImageFile(file, 1200, 0.85);
+                setForm({ ...form, biz_cert_image: dataUrl });
+              } catch (err) {
+                alert("사업자등록증 이미지 처리 실패: " + err.message);
+              }
+            }
+          }
+        }
+      )
+    ), form.biz_cert_image && /* @__PURE__ */ import_react28.default.createElement(
+      "button",
+      {
+        type: "button",
+        className: "btn btn-outline",
+        style: { fontSize: "11px", color: "#dc2626", borderColor: "#fca5a5", padding: "4px 6px" },
+        onClick: () => setForm({ ...form, biz_cert_image: "" })
+      },
+      "🗑️"
+    ))), /* @__PURE__ */ import_react28.default.createElement("div", { style: { border: "1px solid #e2e8f0", borderRadius: "12px", padding: "12px", backgroundColor: "#f8fafc" } }, /* @__PURE__ */ import_react28.default.createElement("div", { style: { fontWeight: "800", fontSize: "12px", color: "#1e293b", marginBottom: "8px", display: "flex", alignItems: "center", justifyContent: "space-between" } }, /* @__PURE__ */ import_react28.default.createElement("span", null, "🏦 통장 사본"), form.bank_book_image && /* @__PURE__ */ import_react28.default.createElement("span", { style: { fontSize: "10px", color: "#16a34a", fontWeight: "700" } }, "✓ 등록됨")), /* @__PURE__ */ import_react28.default.createElement(
+      "div",
+      {
+        style: {
+          height: "110px",
+          border: "1.5px dashed #cbd5e1",
+          borderRadius: "8px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#ffffff",
+          marginBottom: "8px",
+          overflow: "hidden",
+          cursor: form.bank_book_image ? "pointer" : "default"
+        },
+        onClick: () => {
+          if (form.bank_book_image) {
+            setPreviewAttachment({ title: `${form.name || "공급자"} - 통장사본`, url: form.bank_book_image });
+          }
+        },
+        title: form.bank_book_image ? "클릭 시 원본 크게보기" : ""
+      },
+      form.bank_book_image ? /* @__PURE__ */ import_react28.default.createElement(
+        "img",
+        {
+          src: form.bank_book_image,
+          alt: "통장사본",
+          style: { width: "100%", height: "100%", objectFit: "contain" }
+        }
+      ) : /* @__PURE__ */ import_react28.default.createElement("div", { style: { fontSize: "11px", color: "#94a3b8", textAlign: "center" } }, "등록된 통장사본 없음")
+    ), /* @__PURE__ */ import_react28.default.createElement("div", { style: { display: "flex", gap: "6px", flexWrap: "wrap" } }, form.bank_book_image && /* @__PURE__ */ import_react28.default.createElement(
+      "button",
+      {
+        type: "button",
+        className: "btn btn-outline",
+        style: { fontSize: "11px", padding: "4px 8px", flex: 1 },
+        onClick: () => setPreviewAttachment({ title: `${form.name || "공급자"} - 통장사본`, url: form.bank_book_image })
+      },
+      "🔍 크게보기"
+    ), /* @__PURE__ */ import_react28.default.createElement(
+      "label",
+      {
+        className: "btn btn-outline",
+        style: {
+          cursor: "pointer",
+          fontSize: "11px",
+          fontWeight: "700",
+          color: "#16a34a",
+          borderColor: "#bbf7d0",
+          backgroundColor: "#f0fdf4",
+          padding: "4px 8px",
+          flex: 1,
+          textAlign: "center"
+        }
+      },
+      "📁 ",
+      form.bank_book_image ? "변경" : "파일 등록",
+      /* @__PURE__ */ import_react28.default.createElement(
+        "input",
+        {
+          type: "file",
+          accept: "image/*",
+          style: { display: "none" },
+          onChange: async (e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              try {
+                const dataUrl = await compressImageFile(file, 1200, 0.85);
+                setForm({ ...form, bank_book_image: dataUrl });
+              } catch (err) {
+                alert("통장사본 이미지 처리 실패: " + err.message);
+              }
+            }
+          }
+        }
+      )
+    ), form.bank_book_image && /* @__PURE__ */ import_react28.default.createElement(
+      "button",
+      {
+        type: "button",
+        className: "btn btn-outline",
+        style: { fontSize: "11px", color: "#dc2626", borderColor: "#fca5a5", padding: "4px 6px" },
+        onClick: () => setForm({ ...form, bank_book_image: "" })
+      },
+      "🗑️"
+    ))))), /* @__PURE__ */ import_react28.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", borderTop: "1px dashed var(--border-color)", paddingTop: "0.75rem", marginTop: "0.5rem" } }, /* @__PURE__ */ import_react28.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react28.default.createElement("label", { className: "form-label", style: { fontWeight: "800", color: "#1d4ed8" } }, "🔑 내 로그인 접속 비밀번호 (4자리 숫자)"), /* @__PURE__ */ import_react28.default.createElement(
       "input",
       {
         type: "text",
@@ -38899,7 +39406,41 @@ IconFile=${currentUrl}favicon.ico\r
         style: { whiteSpace: "nowrap" }
       },
       "AI 키 저장"
-    )), geminiSaved && /* @__PURE__ */ import_react28.default.createElement("div", { style: { fontSize: "0.75rem", color: "var(--accent-green)", fontWeight: "700", marginTop: "4px" } }, "✓ Gemini API 키가 성공적으로 저장되었습니다!")))) : /* @__PURE__ */ import_react28.default.createElement("div", { className: "card-box" }, /* @__PURE__ */ import_react28.default.createElement("div", { className: "card-box-header" }, /* @__PURE__ */ import_react28.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "0.5rem" } }, /* @__PURE__ */ import_react28.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900" } }, "☁️ 클라우드 DB 연동 상태"), /* @__PURE__ */ import_react28.default.createElement("span", { className: `status-badge ${isConnected ? "connected" : "disconnected"}` }, isConnected ? "🟢 클라우드 정상 연동 중" : "🔴 로컬 모드 (오프라인)"))), /* @__PURE__ */ import_react28.default.createElement("div", { style: { padding: "1.25rem", color: "var(--text-muted)", fontSize: "0.8125rem", display: "flex", alignItems: "center", gap: "8px" } }, /* @__PURE__ */ import_react28.default.createElement("span", null, "🔒"), /* @__PURE__ */ import_react28.default.createElement("span", null, "데이터베이스 접속 주소, 보안 키 및 AI API 설정은 ", /* @__PURE__ */ import_react28.default.createElement("strong", null, "시스템 관리자(Admin)"), " 전용 제어 항목입니다.")))));
+    )), geminiSaved && /* @__PURE__ */ import_react28.default.createElement("div", { style: { fontSize: "0.75rem", color: "var(--accent-green)", fontWeight: "700", marginTop: "4px" } }, "✓ Gemini API 키가 성공적으로 저장되었습니다!")))) : /* @__PURE__ */ import_react28.default.createElement("div", { className: "card-box" }, /* @__PURE__ */ import_react28.default.createElement("div", { className: "card-box-header" }, /* @__PURE__ */ import_react28.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "0.5rem" } }, /* @__PURE__ */ import_react28.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900" } }, "☁️ 클라우드 DB 연동 상태"), /* @__PURE__ */ import_react28.default.createElement("span", { className: `status-badge ${isConnected ? "connected" : "disconnected"}` }, isConnected ? "🟢 클라우드 정상 연동 중" : "🔴 로컬 모드 (오프라인)"))), /* @__PURE__ */ import_react28.default.createElement("div", { style: { padding: "1.25rem", color: "var(--text-muted)", fontSize: "0.8125rem", display: "flex", alignItems: "center", gap: "8px" } }, /* @__PURE__ */ import_react28.default.createElement("span", null, "🔒"), /* @__PURE__ */ import_react28.default.createElement("span", null, "데이터베이스 접속 주소, 보안 키 및 AI API 설정은 ", /* @__PURE__ */ import_react28.default.createElement("strong", null, "시스템 관리자(Admin)"), " 전용 제어 항목입니다.")))), previewAttachment && /* @__PURE__ */ import_react28.default.createElement(
+      "div",
+      {
+        className: "modal-overlay",
+        style: { zIndex: 10070, backgroundColor: "rgba(0,0,0,0.85)", padding: "1rem", display: "flex", alignItems: "center", justifyContent: "center" },
+        onClick: () => setPreviewAttachment(null)
+      },
+      /* @__PURE__ */ import_react28.default.createElement(
+        "div",
+        {
+          className: "modal-content",
+          style: { maxWidth: "800px", width: "100%", maxHeight: "90vh", display: "flex", flexDirection: "column", backgroundColor: "#fff", borderRadius: "16px", overflow: "hidden" },
+          onClick: (e) => e.stopPropagation()
+        },
+        /* @__PURE__ */ import_react28.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1.25rem", borderBottom: "1px solid #e2e8f0" } }, /* @__PURE__ */ import_react28.default.createElement("h4", { style: { fontWeight: "800", fontSize: "1rem", margin: 0 } }, previewAttachment.title), /* @__PURE__ */ import_react28.default.createElement("button", { className: "btn btn-outline", style: { padding: "4px 10px", fontSize: "12px" }, onClick: () => setPreviewAttachment(null) }, "✕ 닫기")),
+        /* @__PURE__ */ import_react28.default.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "1rem", textAlign: "center", backgroundColor: "#0f172a" } }, /* @__PURE__ */ import_react28.default.createElement(
+          "img",
+          {
+            src: previewAttachment.url,
+            alt: previewAttachment.title,
+            style: { maxWidth: "100%", maxHeight: "70vh", objectFit: "contain", borderRadius: "8px" }
+          }
+        )),
+        /* @__PURE__ */ import_react28.default.createElement("div", { style: { padding: "0.75rem 1.25rem", display: "flex", justifyContent: "flex-end", borderTop: "1px solid #e2e8f0" } }, /* @__PURE__ */ import_react28.default.createElement(
+          "a",
+          {
+            href: previewAttachment.url,
+            download: `${previewAttachment.title}.png`,
+            className: "btn btn-primary",
+            style: { fontSize: "12px" }
+          },
+          "💾 원본 다운로드"
+        ))
+      )
+    ));
   }
 
   // src/App.jsx
@@ -39353,7 +39894,9 @@ IconFile=${currentUrl}favicon.ico\r
           tel: found.phone || found.tel,
           email: found.email || "",
           stamp_image: found.stamp_image || found.stampUrl || found.stamp || "",
-          hasStamp: found.hasStamp !== void 0 ? found.hasStamp : !!(found.stamp_image || found.stampUrl || found.stamp) || areSupplierKeysEquivalent(selectedSupplierKey, "sejin")
+          hasStamp: found.hasStamp !== void 0 ? found.hasStamp : !!(found.stamp_image || found.stampUrl || found.stamp) || areSupplierKeysEquivalent(selectedSupplierKey, "sejin"),
+          biz_cert_image: found.biz_cert_image || found.bizCertImage || found.bizCert || "",
+          bank_book_image: found.bank_book_image || found.bankBookImage || found.bankBook || ""
         });
       } else if (DEFAULT_SUPPLIERS[selectedSupplierKey]) {
         const def = DEFAULT_SUPPLIERS[selectedSupplierKey];
@@ -39739,7 +40282,9 @@ IconFile=${currentUrl}favicon.ico\r
           email: matchedSupplier.email || "",
           bank: matchedSupplier.bank || "",
           stamp_image: matchedSupplier.stamp_image || matchedSupplier.stampUrl || matchedSupplier.stamp || "",
-          hasStamp: matchedSupplier.hasStamp !== void 0 ? matchedSupplier.hasStamp : !!(matchedSupplier.stamp_image || matchedSupplier.stampUrl || matchedSupplier.stamp) || areSupplierKeysEquivalent(matchedSupplier.id, "sejin")
+          hasStamp: matchedSupplier.hasStamp !== void 0 ? matchedSupplier.hasStamp : !!(matchedSupplier.stamp_image || matchedSupplier.stampUrl || matchedSupplier.stamp) || areSupplierKeysEquivalent(matchedSupplier.id, "sejin"),
+          biz_cert_image: matchedSupplier.biz_cert_image || matchedSupplier.bizCertImage || matchedSupplier.bizCert || "",
+          bank_book_image: matchedSupplier.bank_book_image || matchedSupplier.bankBookImage || matchedSupplier.bankBook || ""
         });
       } else if (DEFAULT_SUPPLIERS[finalSupplierKey]) {
         setCurrentSupplier(DEFAULT_SUPPLIERS[finalSupplierKey]);
@@ -39787,7 +40332,9 @@ IconFile=${currentUrl}favicon.ico\r
           email: foundSupplier.email || "",
           bank: foundSupplier.bank || "",
           stamp_image: foundSupplier.stamp_image || foundSupplier.stampUrl || foundSupplier.stamp || "",
-          hasStamp: foundSupplier.hasStamp !== void 0 ? foundSupplier.hasStamp : !!(foundSupplier.stamp_image || foundSupplier.stampUrl || foundSupplier.stamp) || areSupplierKeysEquivalent(foundSupplier.id, "sejin")
+          hasStamp: foundSupplier.hasStamp !== void 0 ? foundSupplier.hasStamp : !!(foundSupplier.stamp_image || foundSupplier.stampUrl || foundSupplier.stamp) || areSupplierKeysEquivalent(foundSupplier.id, "sejin"),
+          biz_cert_image: foundSupplier.biz_cert_image || foundSupplier.bizCertImage || foundSupplier.bizCert || "",
+          bank_book_image: foundSupplier.bank_book_image || foundSupplier.bankBookImage || foundSupplier.bankBook || ""
         });
       } else if (DEFAULT_SUPPLIERS[sessionSupplierKey]) {
         setSelectedSupplierKey(sessionSupplierKey);

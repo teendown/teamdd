@@ -13,11 +13,21 @@ export default function SupplierTab({
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState('add');
 
+  const [previewAttachment, setPreviewAttachment] = useState(null); // { title, url }
+
   // Auto close modal on mobile back button
   useEffect(() => {
-    if (!showModal) return;
-    return registerBackHandler(() => { setShowModal(false); return true; }, 'SupplierTabModal');
-  }, [showModal]);
+    if (!showModal && !previewAttachment) return;
+    return registerBackHandler(() => {
+      if (previewAttachment) {
+        setPreviewAttachment(null);
+        return true;
+      }
+      setShowModal(false);
+      return true;
+    }, 'SupplierTabModal');
+  }, [showModal, previewAttachment]);
+
   const [form, setForm] = useState({
     id: null,
     code: '',
@@ -34,6 +44,8 @@ export default function SupplierTab({
     memo: '',
     stamp_image: '',
     hasStamp: false,
+    biz_cert_image: '',
+    bank_book_image: '',
     pwd: '0000'
   });
   
@@ -61,6 +73,8 @@ export default function SupplierTab({
       memo: '',
       stamp_image: '',
       hasStamp: false,
+      biz_cert_image: '',
+      bank_book_image: '',
       pwd: '0000'
     });
   };
@@ -102,6 +116,8 @@ export default function SupplierTab({
       memo: s.memo || '',
       stamp_image: s.stamp_image || s.stampUrl || s.stamp || '',
       hasStamp: !!(s.stamp_image || s.stampUrl || s.stamp || s.hasStamp),
+      biz_cert_image: s.biz_cert_image || s.bizCertImage || s.bizCert || '',
+      bank_book_image: s.bank_book_image || s.bankBookImage || s.bankBook || '',
       pwd: s.pwd || localStorage.getItem('dd_pwd_' + s.id) || '0000'
     });
     setShowModal(true);
@@ -149,18 +165,27 @@ export default function SupplierTab({
         <div className="mobile-cards-view">
           {filtered.map(s => {
             const hasStampImg = !!(s.stamp_image || s.stampUrl || s.stamp);
+            const hasBizCertImg = !!(s.biz_cert_image || s.bizCertImage || s.bizCert);
+            const hasBankBookImg = !!(s.bank_book_image || s.bankBookImage || s.bankBook);
+
             return (
               <div key={s.id} className="mobile-data-card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                     <span style={{ fontWeight: '900', fontSize: '0.9375rem' }}>{s.name || s.company}</span>
-                    {hasStampImg ? (
+                    {hasStampImg && (
                       <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '4px', backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', fontWeight: '800' }}>
-                        🔴 직인등록됨
+                        🔴 직인
                       </span>
-                    ) : (
-                      <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '4px', backgroundColor: '#f8fafc', color: '#94a3b8', border: '1px solid #e2e8f0' }}>
-                        ⚪ 직인미등록
+                    )}
+                    {hasBizCertImg && (
+                      <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '4px', backgroundColor: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', fontWeight: '700' }}>
+                        📑 사업자등록증
+                      </span>
+                    )}
+                    {hasBankBookImg && (
+                      <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '4px', backgroundColor: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', fontWeight: '700' }}>
+                        🏦 통장사본
                       </span>
                     )}
                   </div>
@@ -197,6 +222,7 @@ export default function SupplierTab({
               <tr>
                 <th>상호명 / 대표자</th>
                 <th>직인(도장)</th>
+                <th>첨부 서류</th>
                 <th>사업자번호</th>
                 <th>연락처 / 팩스</th>
                 <th>주소</th>
@@ -206,6 +232,9 @@ export default function SupplierTab({
             <tbody>
               {filtered.map(s => {
                 const stampSrc = s.stamp_image || s.stampUrl || s.stamp;
+                const hasBizCertImg = !!(s.biz_cert_image || s.bizCertImage || s.bizCert);
+                const hasBankBookImg = !!(s.bank_book_image || s.bankBookImage || s.bankBook);
+
                 return (
                   <tr key={s.id}>
                     <td>
@@ -225,6 +254,24 @@ export default function SupplierTab({
                       ) : (
                         <span style={{ fontSize: '10px', color: '#94a3b8' }}>미등록</span>
                       )}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                        {hasBizCertImg ? (
+                          <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '4px', backgroundColor: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', fontWeight: '700' }}>
+                            📑 사업자증
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '10px', color: '#cbd5e1' }}>등록증-</span>
+                        )}
+                        {hasBankBookImg ? (
+                          <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '4px', backgroundColor: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', fontWeight: '700' }}>
+                            🏦 통장사본
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '10px', color: '#cbd5e1' }}>통장-</span>
+                        )}
+                      </div>
                     </td>
                     <td style={{ fontFamily: 'monospace' }}>{s.bizno}</td>
                     <td>
@@ -468,6 +515,220 @@ export default function SupplierTab({
               </div>
             </div>
 
+            {/* 📎 사업자등록증 & 통장 사본 첨부 서류 섹션 */}
+            <div className="form-section">
+              <div className="section-title">📎 공급자 첨부 서류 (사업자등록증 & 통장 사본)</div>
+              <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '12px' }}>
+                * 등록해 두시면 거래명세서 <b>모바일 공유, PDF 다운로드, 인쇄</b> 시 함께 묶어서 전송 및 출력할 수 있습니다.
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+                {/* 1. 사업자등록증 사본 */}
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px', backgroundColor: '#f8fafc' }}>
+                  <div style={{ fontWeight: '800', fontSize: '12px', color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>📑 사업자등록증 사본</span>
+                    {form.biz_cert_image && (
+                      <span style={{ fontSize: '10px', color: '#16a34a', fontWeight: '700' }}>✓ 등록됨</span>
+                    )}
+                  </div>
+
+                  <div
+                    style={{
+                      height: '110px',
+                      border: '1.5px dashed #cbd5e1',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: '#ffffff',
+                      marginBottom: '8px',
+                      overflow: 'hidden',
+                      cursor: form.biz_cert_image ? 'pointer' : 'default'
+                    }}
+                    onClick={() => {
+                      if (form.biz_cert_image) {
+                        setPreviewAttachment({ title: `${form.name || '공급자'} - 사업자등록증`, url: form.biz_cert_image });
+                      }
+                    }}
+                    title={form.biz_cert_image ? '클릭 시 원본 크게보기' : ''}
+                  >
+                    {form.biz_cert_image ? (
+                      <img
+                        src={form.biz_cert_image}
+                        alt="사업자등록증"
+                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                      />
+                    ) : (
+                      <div style={{ fontSize: '11px', color: '#94a3b8', textAlign: 'center' }}>
+                        등록된 등록증 없음
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {form.biz_cert_image && (
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        style={{ fontSize: '11px', padding: '4px 8px', flex: 1 }}
+                        onClick={() => setPreviewAttachment({ title: `${form.name || '공급자'} - 사업자등록증`, url: form.biz_cert_image })}
+                      >
+                        🔍 크게보기
+                      </button>
+                    )}
+                    {modalMode !== 'view' && (
+                      <>
+                        <label
+                          className="btn btn-outline"
+                          style={{
+                            cursor: 'pointer',
+                            fontSize: '11px',
+                            fontWeight: '700',
+                            color: '#1d4ed8',
+                            borderColor: '#bfdbfe',
+                            backgroundColor: '#eff6ff',
+                            padding: '4px 8px',
+                            flex: 1,
+                            textAlign: 'center'
+                          }}
+                        >
+                          📁 {form.biz_cert_image ? '변경' : '파일 등록'}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            style={{ display: 'none' }}
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                try {
+                                  const dataUrl = await compressImageFile(file, 1200, 0.85);
+                                  setForm({ ...form, biz_cert_image: dataUrl });
+                                } catch (err) {
+                                  alert('사업자등록증 이미지 처리 실패: ' + err.message);
+                                }
+                              }
+                            }}
+                          />
+                        </label>
+                        {form.biz_cert_image && (
+                          <button
+                            type="button"
+                            className="btn btn-outline"
+                            style={{ fontSize: '11px', color: '#dc2626', borderColor: '#fca5a5', padding: '4px 6px' }}
+                            onClick={() => setForm({ ...form, biz_cert_image: '' })}
+                          >
+                            🗑️
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* 2. 통장 사본 */}
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px', backgroundColor: '#f8fafc' }}>
+                  <div style={{ fontWeight: '800', fontSize: '12px', color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>🏦 통장 사본</span>
+                    {form.bank_book_image && (
+                      <span style={{ fontSize: '10px', color: '#16a34a', fontWeight: '700' }}>✓ 등록됨</span>
+                    )}
+                  </div>
+
+                  <div
+                    style={{
+                      height: '110px',
+                      border: '1.5px dashed #cbd5e1',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: '#ffffff',
+                      marginBottom: '8px',
+                      overflow: 'hidden',
+                      cursor: form.bank_book_image ? 'pointer' : 'default'
+                    }}
+                    onClick={() => {
+                      if (form.bank_book_image) {
+                        setPreviewAttachment({ title: `${form.name || '공급자'} - 통장사본`, url: form.bank_book_image });
+                      }
+                    }}
+                    title={form.bank_book_image ? '클릭 시 원본 크게보기' : ''}
+                  >
+                    {form.bank_book_image ? (
+                      <img
+                        src={form.bank_book_image}
+                        alt="통장사본"
+                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                      />
+                    ) : (
+                      <div style={{ fontSize: '11px', color: '#94a3b8', textAlign: 'center' }}>
+                        등록된 통장사본 없음
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {form.bank_book_image && (
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        style={{ fontSize: '11px', padding: '4px 8px', flex: 1 }}
+                        onClick={() => setPreviewAttachment({ title: `${form.name || '공급자'} - 통장사본`, url: form.bank_book_image })}
+                      >
+                        🔍 크게보기
+                      </button>
+                    )}
+                    {modalMode !== 'view' && (
+                      <>
+                        <label
+                          className="btn btn-outline"
+                          style={{
+                            cursor: 'pointer',
+                            fontSize: '11px',
+                            fontWeight: '700',
+                            color: '#16a34a',
+                            borderColor: '#bbf7d0',
+                            backgroundColor: '#f0fdf4',
+                            padding: '4px 8px',
+                            flex: 1,
+                            textAlign: 'center'
+                          }}
+                        >
+                          📁 {form.bank_book_image ? '변경' : '파일 등록'}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            style={{ display: 'none' }}
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                try {
+                                  const dataUrl = await compressImageFile(file, 1200, 0.85);
+                                  setForm({ ...form, bank_book_image: dataUrl });
+                                } catch (err) {
+                                  alert('통장사본 이미지 처리 실패: ' + err.message);
+                                }
+                              }
+                            }}
+                          />
+                        </label>
+                        {form.bank_book_image && (
+                          <button
+                            type="button"
+                            className="btn btn-outline"
+                            style={{ fontSize: '11px', color: '#dc2626', borderColor: '#fca5a5', padding: '4px 6px' }}
+                            onClick={() => setForm({ ...form, bank_book_image: '' })}
+                          >
+                            🗑️
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="form-section" style={{ borderBottom: 'none' }}>
               <div className="section-title">📝 메모 / 특이사항</div>
               <div className="form-group">
@@ -523,6 +784,45 @@ export default function SupplierTab({
                   </button>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 첨부 서류 이미지 원본 확대 모달 */}
+      {previewAttachment && (
+        <div
+          className="modal-overlay"
+          style={{ zIndex: 10070, backgroundColor: 'rgba(0,0,0,0.85)', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setPreviewAttachment(null)}
+        >
+          <div
+            className="modal-content"
+            style={{ maxWidth: '800px', width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', backgroundColor: '#fff', borderRadius: '16px', overflow: 'hidden' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: '1px solid #e2e8f0' }}>
+              <h4 style={{ fontWeight: '800', fontSize: '1rem', margin: 0 }}>{previewAttachment.title}</h4>
+              <button className="btn btn-outline" style={{ padding: '4px 10px', fontSize: '12px' }} onClick={() => setPreviewAttachment(null)}>
+                ✕ 닫기
+              </button>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', textAlign: 'center', backgroundColor: '#0f172a' }}>
+              <img
+                src={previewAttachment.url}
+                alt={previewAttachment.title}
+                style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: '8px' }}
+              />
+            </div>
+            <div style={{ padding: '0.75rem 1.25rem', display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0' }}>
+              <a
+                href={previewAttachment.url}
+                download={`${previewAttachment.title}.png`}
+                className="btn btn-primary"
+                style={{ fontSize: '12px' }}
+              >
+                💾 원본 다운로드
+              </a>
             </div>
           </div>
         </div>
