@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { DEFAULT_SUPPLIERS } from '../config/defaults.js';
 import { areSupplierKeysEquivalent, normalizePartners } from '../utils/validation.js';
-import { shareDocumentImage, exportPagesToPNG } from '../utils/exportUtils.js';
+import { shareDocumentImage, shareDocumentPDF, exportPagesToPNG } from '../utils/exportUtils.js';
+import ShareChoiceModal from './ShareChoiceModal.jsx';
 
 export default function DocumentPreviewModal({
   doc,
@@ -11,6 +12,8 @@ export default function DocumentPreviewModal({
   suppliersList = []
 }) {
   if (!doc) return null;
+
+  const [isShareChoiceOpen, setIsShareChoiceOpen] = useState(false);
 
   const docType = doc.doc_type || doc.docType || '거래명세서';
   const docNo = doc.doc_no || '미지정';
@@ -36,9 +39,18 @@ export default function DocumentPreviewModal({
     window.print();
   };
 
-  const handleShareModal = async () => {
+  const handleShareModal = () => {
+    setIsShareChoiceOpen(true);
+  };
+
+  const handleShareImageModal = async () => {
     const previewBody = document.querySelector('.doc-preview-body');
     await shareDocumentImage(previewBody, `${docType}_${docNo || '명세서'}_${customer.name || '고객'}`);
+  };
+
+  const handleSharePDFModal = async () => {
+    const previewBody = document.querySelector('.doc-preview-body');
+    await shareDocumentPDF(previewBody, `${docType}_${docNo || '명세서'}_${customer.name || '고객'}`);
   };
 
   const handleDownloadImageModal = async () => {
@@ -504,6 +516,15 @@ export default function DocumentPreviewModal({
           </button>
         </div>
       </div>
+
+      {/* 모바일 공유 방식 선택 모달 (사진 vs PDF) */}
+      <ShareChoiceModal
+        isOpen={isShareChoiceOpen}
+        title={`${docType} 공유`}
+        onClose={() => setIsShareChoiceOpen(false)}
+        onShareImage={handleShareImageModal}
+        onSharePDF={handleSharePDFModal}
+      />
     </div>
   );
 }

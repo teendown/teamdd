@@ -2,8 +2,9 @@
 import React, { useState, useMemo } from 'react';
 import DocumentCanvas from '../components/DocumentCanvas.jsx';
 import SmartItemListManager from '../components/SmartItemListManager.jsx';
-import { exportPagesToPNG, copyPageToClipboard, shareDocumentImage, exportDocumentToExcel } from '../utils/exportUtils.js';
+import { exportPagesToPNG, copyPageToClipboard, shareDocumentImage, shareDocumentPDF, exportDocumentToExcel } from '../utils/exportUtils.js';
 import { areSupplierKeysEquivalent } from '../utils/validation.js';
+import ShareChoiceModal from '../modals/ShareChoiceModal.jsx';
 
 export default function StatementTab({
   docType,
@@ -175,10 +176,21 @@ export default function StatementTab({
     }
   };
 
-  const handleShare = async () => {
+  const [isShareChoiceOpen, setIsShareChoiceOpen] = useState(false);
+
+  const handleOpenShareModal = () => {
     if (!validateBeforeAction()) return;
+    setIsShareChoiceOpen(true);
+  };
+
+  const handleShareImage = async () => {
     const page = document.querySelector('.document-page');
     await shareDocumentImage(page, `${docType}_${docNo || '명세서'}`);
+  };
+
+  const handleSharePDF = async () => {
+    const pages = document.querySelectorAll('.document-page');
+    await shareDocumentPDF(pages, `${docType}_${docNo || '명세서'}`);
   };
 
   return (
@@ -1155,7 +1167,7 @@ export default function StatementTab({
               justifyContent: 'center',
               gap: '6px'
             }}
-            onClick={handleShare}
+            onClick={handleOpenShareModal}
           >
             📱 모바일 공유하기 (카톡 / 문자)
           </button>
@@ -1180,6 +1192,15 @@ export default function StatementTab({
           setRemark={setRemark}
         />
       </div>
+
+      {/* 모바일 공유 방식 선택 모달 (사진 vs PDF) */}
+      <ShareChoiceModal
+        isOpen={isShareChoiceOpen}
+        title={`${docType} 공유`}
+        onClose={() => setIsShareChoiceOpen(false)}
+        onShareImage={handleShareImage}
+        onSharePDF={handleSharePDF}
+      />
     </div>
   );
 }

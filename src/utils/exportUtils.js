@@ -190,6 +190,96 @@ export async function shareDocumentImage(elementOrTitle, maybeTitle = 'TEAM D.D 
 }
 
 /**
+ * 📄 TEAM D.D 스마트폰/PC PDF 파일 직접 공유 (카톡, 문자, 이메일)
+ */
+export async function shareDocumentPDF(elementOrTitle, maybeTitle = 'TEAM D.D 거래명세서') {
+  let pages = [];
+  let title = 'TEAM D.D 거래명세서';
+
+  if (typeof elementOrTitle === 'string') {
+    title = elementOrTitle;
+    pages = Array.from(document.querySelectorAll('.document-page'));
+  } else if (elementOrTitle && (elementOrTitle instanceof NodeList || Array.isArray(elementOrTitle))) {
+    pages = Array.from(elementOrTitle).filter(el => el && el.nodeType === 1);
+    if (typeof maybeTitle === 'string') title = maybeTitle;
+  } else if (elementOrTitle && elementOrTitle.nodeType === 1) {
+    pages = [elementOrTitle];
+    if (typeof maybeTitle === 'string') title = maybeTitle;
+  } else {
+    pages = Array.from(document.querySelectorAll('.document-page'));
+    if (typeof maybeTitle === 'string') title = maybeTitle;
+  }
+
+  if (pages.length === 0) {
+    const fallback = document.querySelector('.doc-preview-body') || document.querySelector('.doc-preview-container') || document.querySelector('.preview-panel');
+    if (fallback) pages = [fallback];
+  }
+
+  if (pages.length === 0) {
+    alert('❌ PDF로 공유할 문서 영역을 찾을 수 없습니다.');
+    return false;
+  }
+
+  const html2canvas = window.html2canvas;
+  const jspdfObj = window.jspdf;
+  if (!html2canvas || !jspdfObj) {
+    alert('❌ PDF 변환 라이브러리가 준비되지 않았습니다. 인쇄 기능을 대신 이용해 주세요.');
+    window.print();
+    return false;
+  }
+
+  const cleanFileName = (title || '명세서').replace(/[/\\?%*:|"<>]/g, '_');
+
+  try {
+    const { jsPDF } = jspdfObj;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+
+    for (let i = 0; i < pages.length; i++) {
+      if (i > 0) pdf.addPage();
+      const canvas = await html2canvas(pages[i], {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        logging: false
+      });
+      const imgData = canvas.toDataURL('image/png');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    }
+
+    const pdfBlob = pdf.output('blob');
+    const pdfFile = new File([pdfBlob], `${cleanFileName}.pdf`, { type: 'application/pdf' });
+
+    // 모바일 카톡/문자/메일 Web Share
+    if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+      try {
+        await navigator.share({
+          files: [pdfFile],
+          title: title,
+          text: `[TEAM D.D] ${title}`
+        });
+        return true;
+      } catch (e) {
+        if (e.name === 'AbortError') {
+          return false;
+        }
+        console.warn('Navigator PDF share failed, falling back to download:', e);
+      }
+    }
+
+    // fallback: PC 브라우저 다운로드
+    pdf.save(`${cleanFileName}.pdf`);
+    alert('✓ PDF 문서 파일이 다운로드되었습니다. 카카오톡이나 이메일로 전송해 보세요!');
+    return true;
+  } catch (err) {
+    console.error('shareDocumentPDF Error:', err);
+    alert('PDF 공유 생성 중 오류가 발생했습니다: ' + (err.message || err));
+    return false;
+  }
+}
+
+/**
  * 📊 TEAM D.D Official Native .XLSX Exporter
  * (외부 굵은 테두리(medium) + 내부 일반 실선(thin) 대비, 우측 끝 테두리 완벽 마감)
  */
