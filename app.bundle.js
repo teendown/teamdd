@@ -37890,28 +37890,6 @@ IconFile=${currentUrl}favicon.ico\r
             }
           },
           "📥 불러오기"
-        ), currentDocType === "견적서" ? /* @__PURE__ */ import_react26.default.createElement(
-          "button",
-          {
-            className: "btn btn-primary",
-            style: { padding: "3px 7px", fontSize: "11px", backgroundColor: "#059669", borderColor: "#059669" },
-            onClick: (e) => {
-              e.stopPropagation();
-              onConvertToDoc && onConvertToDoc(doc, "거래명세서");
-            }
-          },
-          "📦 명세서로"
-        ) : /* @__PURE__ */ import_react26.default.createElement(
-          "button",
-          {
-            className: "btn btn-primary",
-            style: { padding: "3px 7px", fontSize: "11px", backgroundColor: "#4f46e5", borderColor: "#4f46e5" },
-            onClick: (e) => {
-              e.stopPropagation();
-              onConvertToDoc && onConvertToDoc(doc, "견적서");
-            }
-          },
-          "📋 견적서로"
         ), /* @__PURE__ */ import_react26.default.createElement(
           "button",
           {
@@ -38056,28 +38034,6 @@ IconFile=${currentUrl}favicon.ico\r
               }
             },
             "📥 불러오기"
-          ), currentDocType === "견적서" ? /* @__PURE__ */ import_react26.default.createElement(
-            "button",
-            {
-              className: "btn btn-primary",
-              style: { flex: 1, minHeight: "34px", fontSize: "0.75rem", backgroundColor: "#059669", borderColor: "#059669" },
-              onClick: (e) => {
-                e.stopPropagation();
-                onConvertToDoc && onConvertToDoc(doc, "거래명세서");
-              }
-            },
-            "📦 명세서로"
-          ) : /* @__PURE__ */ import_react26.default.createElement(
-            "button",
-            {
-              className: "btn btn-primary",
-              style: { flex: 1, minHeight: "34px", fontSize: "0.75rem", backgroundColor: "#4f46e5", borderColor: "#4f46e5" },
-              onClick: (e) => {
-                e.stopPropagation();
-                onConvertToDoc && onConvertToDoc(doc, "견적서");
-              }
-            },
-            "📋 견적서로"
           ), /* @__PURE__ */ import_react26.default.createElement(
             "button",
             {

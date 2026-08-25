@@ -524,23 +524,6 @@ export default function DocHistoryTab({
                               >
                                 📥 불러오기
                               </button>
-                              {currentDocType === '견적서' ? (
-                                <button
-                                  className="btn btn-primary"
-                                  style={{ padding: '3px 7px', fontSize: '11px', backgroundColor: '#059669', borderColor: '#059669' }}
-                                  onClick={(e) => { e.stopPropagation(); onConvertToDoc && onConvertToDoc(doc, '거래명세서'); }}
-                                >
-                                  📦 명세서로
-                                </button>
-                              ) : (
-                                <button
-                                  className="btn btn-primary"
-                                  style={{ padding: '3px 7px', fontSize: '11px', backgroundColor: '#4f46e5', borderColor: '#4f46e5' }}
-                                  onClick={(e) => { e.stopPropagation(); onConvertToDoc && onConvertToDoc(doc, '견적서'); }}
-                                >
-                                  📋 견적서로
-                                </button>
-                              )}
                               <button
                                 className="btn btn-primary"
                                 style={{ padding: '3px 7px', fontSize: '11px', backgroundColor: '#10b981', borderColor: '#10b981' }}
@@ -691,23 +674,6 @@ export default function DocHistoryTab({
                           >
                             📥 불러오기
                           </button>
-                          {currentDocType === '견적서' ? (
-                            <button
-                              className="btn btn-primary"
-                              style={{ flex: 1, minHeight: '34px', fontSize: '0.75rem', backgroundColor: '#059669', borderColor: '#059669' }}
-                              onClick={(e) => { e.stopPropagation(); onConvertToDoc && onConvertToDoc(doc, '거래명세서'); }}
-                            >
-                              📦 명세서로
-                            </button>
-                          ) : (
-                            <button
-                              className="btn btn-primary"
-                              style={{ flex: 1, minHeight: '34px', fontSize: '0.75rem', backgroundColor: '#4f46e5', borderColor: '#4f46e5' }}
-                              onClick={(e) => { e.stopPropagation(); onConvertToDoc && onConvertToDoc(doc, '견적서'); }}
-                            >
-                              📋 견적서로
-                            </button>
-                          )}
                           <button
                             className="btn btn-primary"
                             style={{ padding: '3px 8px', minHeight: '34px', fontSize: '11px', backgroundColor: '#10b981', borderColor: '#10b981' }}
