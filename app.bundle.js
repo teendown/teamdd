@@ -27978,7 +27978,7 @@ ${suffix}`;
   function isValidUUID(str) {
     return typeof str === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
   }
-  function areSupplierKeysEquivalent2(key1, key2) {
+  function areSupplierKeysEquivalent(key1, key2) {
     if (key1 === key2) return true;
     const k1 = (key1 || "").toLowerCase();
     const k2 = (key2 || "").toLowerCase();
@@ -28015,9 +28015,9 @@ ${suffix}`;
   }
   function isPartnerInDoc(doc, targetSupplierKey) {
     if (!doc || !targetSupplierKey) return false;
-    if (areSupplierKeysEquivalent2(doc.partner_key, targetSupplierKey)) return true;
+    if (areSupplierKeysEquivalent(doc.partner_key, targetSupplierKey)) return true;
     const partners = normalizePartners(doc);
-    return partners.some((p) => areSupplierKeysEquivalent2(p.key, targetSupplierKey));
+    return partners.some((p) => areSupplierKeysEquivalent(p.key, targetSupplierKey));
   }
   function packRow(r, table) {
     if (table !== "customers" && table !== "suppliers" && table !== "documents" && table !== "schedules" && table !== "parts") return { ...r };
@@ -28210,9 +28210,9 @@ ${JSON.stringify(extra)}`;
           setLocalItem("dd_" + table + "_list_v1", unpacked);
           if (userRole === "supplier") {
             if (table === "parts") {
-              unpacked = unpacked.filter((item) => !item.supplier_key || areSupplierKeysEquivalent2(item.supplier_key, selectedSupplierKey));
+              unpacked = unpacked.filter((item) => !item.supplier_key || areSupplierKeysEquivalent(item.supplier_key, selectedSupplierKey));
             } else if (table === "schedules") {
-              unpacked = unpacked.filter((item) => item.is_shared === true || !item.supplier_key || areSupplierKeysEquivalent2(item.supplier_key, selectedSupplierKey));
+              unpacked = unpacked.filter((item) => item.is_shared === true || !item.supplier_key || areSupplierKeysEquivalent(item.supplier_key, selectedSupplierKey));
             }
           }
           return unpacked;
@@ -28226,9 +28226,9 @@ ${JSON.stringify(extra)}`;
     let list = getLocalItem("dd_" + table + "_list_v1", fallback).map(unpackRow);
     if (userRole === "supplier") {
       if (table === "parts") {
-        list = list.filter((item) => !item.supplier_key || areSupplierKeysEquivalent2(item.supplier_key, selectedSupplierKey));
+        list = list.filter((item) => !item.supplier_key || areSupplierKeysEquivalent(item.supplier_key, selectedSupplierKey));
       } else if (table === "schedules") {
-        list = list.filter((item) => item.is_shared === true || !item.supplier_key || areSupplierKeysEquivalent2(item.supplier_key, selectedSupplierKey));
+        list = list.filter((item) => item.is_shared === true || !item.supplier_key || areSupplierKeysEquivalent(item.supplier_key, selectedSupplierKey));
       }
     }
     return list;
@@ -28239,7 +28239,7 @@ ${JSON.stringify(extra)}`;
     const selectedSupplierKey = sessionStorage.getItem(STORAGE_KEYS.SELECTED_SUPPLIER) || localStorage.getItem(STORAGE_KEYS.SELECTED_SUPPLIER) || "sejin";
     if (userRole === "supplier") {
       if (table === "suppliers") {
-        if (!areSupplierKeysEquivalent2(rowData.id, selectedSupplierKey)) {
+        if (!areSupplierKeysEquivalent(rowData.id, selectedSupplierKey)) {
           alert("본인의 공급자 정보만 수정할 수 있습니다.");
           return currentList;
         }
@@ -28247,7 +28247,7 @@ ${JSON.stringify(extra)}`;
         rowData.supplier_key = selectedSupplierKey;
         if (isEdit && rowData.id) {
           const found = currentList.find((r) => r.id === rowData.id);
-          if (found && found.supplier_key && !areSupplierKeysEquivalent2(found.supplier_key, selectedSupplierKey)) {
+          if (found && found.supplier_key && !areSupplierKeysEquivalent(found.supplier_key, selectedSupplierKey)) {
             alert("해당 데이터를 수정할 권한이 없습니다.");
             return currentList;
           }
@@ -28301,7 +28301,7 @@ ${JSON.stringify(extra)}`;
         return currentList;
       } else if (table === "parts") {
         const found = currentList.find((r) => r.id === rowId);
-        if (found && found.supplier_key && !areSupplierKeysEquivalent2(found.supplier_key, selectedSupplierKey)) {
+        if (found && found.supplier_key && !areSupplierKeysEquivalent(found.supplier_key, selectedSupplierKey)) {
           alert("해당 데이터를 삭제할 권한이 없습니다.");
           return currentList;
         }
@@ -28335,7 +28335,7 @@ ${JSON.stringify(extra)}`;
     if (cleanKey === "sejin" || cleanKey.includes("세진")) return "01";
     if (cleanKey === "ds" || cleanKey.includes("디에스")) return "02";
     if (cleanKey === "daeseong" || cleanKey.includes("대성")) return "03";
-    const idx = (suppliersList || []).findIndex((s) => areSupplierKeysEquivalent2(s.id, supplierKey) || s.code === supplierKey);
+    const idx = (suppliersList || []).findIndex((s) => areSupplierKeysEquivalent(s.id, supplierKey) || s.code === supplierKey);
     if (idx >= 0) return String(idx + 1).padStart(2, "0");
     return "01";
   }
@@ -28444,7 +28444,7 @@ ${JSON.stringify(extra)}`;
     if (docData.id) {
       const found = local.find((d) => d.id === docData.id);
       if (found) {
-        if (userRole === "supplier" && found.supplier_key && !areSupplierKeysEquivalent2(found.supplier_key, selectedSupplierKey) && !(found.is_shared && isPartnerInDoc(found, selectedSupplierKey))) {
+        if (userRole === "supplier" && found.supplier_key && !areSupplierKeysEquivalent(found.supplier_key, selectedSupplierKey) && !(found.is_shared && isPartnerInDoc(found, selectedSupplierKey))) {
           alert("해당 문서를 수정할 권한이 없습니다.");
           return local;
         }
@@ -28578,7 +28578,7 @@ ${JSON.stringify(extra)}`;
       list = getLocalItem(STORAGE_KEYS.DOCUMENTS, DEMO_DOCUMENTS).map(unpackRow);
     }
     if (userRole === "supplier") {
-      list = list.filter((d) => areSupplierKeysEquivalent2(d.supplier_key, selectedSupplierKey) || d.is_shared && isPartnerInDoc(d, selectedSupplierKey));
+      list = list.filter((d) => areSupplierKeysEquivalent(d.supplier_key, selectedSupplierKey) || d.is_shared && isPartnerInDoc(d, selectedSupplierKey));
     }
     list = await deduplicateAndResequenceDocNumbers(list);
     return list;
@@ -28590,9 +28590,9 @@ ${JSON.stringify(extra)}`;
     const local = getLocalItem(STORAGE_KEYS.DOCUMENTS, DEMO_DOCUMENTS);
     const found = local.find((d) => String(d.id) === String(docId) || d.doc_no === docId);
     if (userRole === "supplier" && found && found.supplier_key) {
-      if (!areSupplierKeysEquivalent2(found.supplier_key, selectedSupplierKey) && !(found.is_shared && isPartnerInDoc(found, selectedSupplierKey))) {
+      if (!areSupplierKeysEquivalent(found.supplier_key, selectedSupplierKey) && !(found.is_shared && isPartnerInDoc(found, selectedSupplierKey))) {
         alert("해당 문서를 삭제할 권한이 없습니다.");
-        return local.filter((d) => areSupplierKeysEquivalent2(d.supplier_key, selectedSupplierKey) || d.is_shared && isPartnerInDoc(d, selectedSupplierKey));
+        return local.filter((d) => areSupplierKeysEquivalent(d.supplier_key, selectedSupplierKey) || d.is_shared && isPartnerInDoc(d, selectedSupplierKey));
       }
     }
     const deletedAt = (/* @__PURE__ */ new Date()).toISOString();
@@ -28614,7 +28614,7 @@ ${JSON.stringify(extra)}`;
     });
     setLocalItem(STORAGE_KEYS.DOCUMENTS, updated);
     if (userRole === "supplier") {
-      return updated.filter((d) => areSupplierKeysEquivalent2(d.supplier_key, selectedSupplierKey) || d.is_shared && isPartnerInDoc(d, selectedSupplierKey));
+      return updated.filter((d) => areSupplierKeysEquivalent(d.supplier_key, selectedSupplierKey) || d.is_shared && isPartnerInDoc(d, selectedSupplierKey));
     }
     return updated;
   }
@@ -28642,7 +28642,7 @@ ${JSON.stringify(extra)}`;
     });
     setLocalItem(STORAGE_KEYS.DOCUMENTS, updated);
     if (userRole === "supplier") {
-      return updated.filter((d) => areSupplierKeysEquivalent2(d.supplier_key, selectedSupplierKey) || d.is_shared && isPartnerInDoc(d, selectedSupplierKey));
+      return updated.filter((d) => areSupplierKeysEquivalent(d.supplier_key, selectedSupplierKey) || d.is_shared && isPartnerInDoc(d, selectedSupplierKey));
     }
     return updated;
   }
@@ -28664,7 +28664,7 @@ ${JSON.stringify(extra)}`;
     const updated = local.filter((d) => String(d.id) !== String(docId) && d.doc_no !== docId);
     setLocalItem(STORAGE_KEYS.DOCUMENTS, updated);
     if (userRole === "supplier") {
-      return updated.filter((d) => areSupplierKeysEquivalent2(d.supplier_key, selectedSupplierKey) || d.is_shared && isPartnerInDoc(d, selectedSupplierKey));
+      return updated.filter((d) => areSupplierKeysEquivalent(d.supplier_key, selectedSupplierKey) || d.is_shared && isPartnerInDoc(d, selectedSupplierKey));
     }
     return updated;
   }
@@ -28676,7 +28676,7 @@ ${JSON.stringify(extra)}`;
     const local = getLocalItem(STORAGE_KEYS.DOCUMENTS, DEMO_DOCUMENTS);
     const found = local.find((d) => String(d.id) === String(docId) || d.doc_no === docId);
     if (userRole === "supplier" && found && found.supplier_key) {
-      if (!areSupplierKeysEquivalent2(found.supplier_key, selectedSupplierKey) && !(found.is_shared && isPartnerInDoc(found, selectedSupplierKey))) {
+      if (!areSupplierKeysEquivalent(found.supplier_key, selectedSupplierKey) && !(found.is_shared && isPartnerInDoc(found, selectedSupplierKey))) {
         alert("해당 문서의 수금을 변경할 권한이 없습니다.");
         return local.filter(unpackRow);
       }
@@ -28712,7 +28712,7 @@ ${JSON.stringify(extra)}`;
     } else if (targetPartnerKey) {
       const isCompleted = settlementData.settlement_status === "정산완료";
       partners = partners.map((p) => {
-        if (areSupplierKeysEquivalent2(p.key, targetPartnerKey)) {
+        if (areSupplierKeysEquivalent(p.key, targetPartnerKey)) {
           return {
             ...p,
             amount: settlementData.settlement_amount !== void 0 ? Number(settlementData.settlement_amount) : p.amount,
@@ -29149,7 +29149,7 @@ ${JSON.stringify(extra)}`;
     }, [isOpen, onClose]);
     const isAdmin = userRole === "admin";
     const displayUser = loggedInSupplier || currentSupplier;
-    const supplierDisplayName = isAdmin ? "통합 관리자" : displayUser?.company || displayUser?.name || suppliersList.find((s) => areSupplierKeysEquivalent2(s.id, selectedSupplierKey))?.name || (selectedSupplierKey === "sejin" ? "세진건설기계" : selectedSupplierKey === "ds" ? "디에스건설기계" : "대성건설기계");
+    const supplierDisplayName = isAdmin ? "통합 관리자" : displayUser?.company || displayUser?.name || suppliersList.find((s) => areSupplierKeysEquivalent(s.id, selectedSupplierKey))?.name || (selectedSupplierKey === "sejin" ? "세진건설기계" : selectedSupplierKey === "ds" ? "디에스건설기계" : "대성건설기계");
     const handleMenuClick = (item) => {
       if (item.isDoc) {
         if (onSelectDocType) {
@@ -30156,8 +30156,8 @@ ${JSON.stringify(extra)}`;
     const docTime = doc.doc_time || "";
     const customer = doc.customer_data || { name: doc.customer_name || "미지정" };
     const items = doc.items || [];
-    const supplier = doc.supplier_data || suppliersList.find((s) => areSupplierKeysEquivalent2(s.id, doc.supplier_key)) || DEFAULT_SUPPLIERS[doc.supplier_key] || DEFAULT_SUPPLIERS.sejin;
-    const hasStamp = areSupplierKeysEquivalent2(doc.supplier_key, "sejin") || supplier?.hasStamp;
+    const supplier = doc.supplier_data || suppliersList.find((s) => areSupplierKeysEquivalent(s.id, doc.supplier_key)) || DEFAULT_SUPPLIERS[doc.supplier_key] || DEFAULT_SUPPLIERS.sejin;
+    const hasStamp = areSupplierKeysEquivalent(doc.supplier_key, "sejin") || supplier?.hasStamp;
     const totalSupply = items.reduce((sum, i) => sum + (Number(i.qty) || 0) * (Number(i.price) || 0), 0);
     const vatAmount = doc.vat_included !== false ? Math.floor(totalSupply * 0.1) : Number(doc.vat) || 0;
     const grandTotal = totalSupply + vatAmount;
@@ -30734,7 +30734,7 @@ ${JSON.stringify(extra)}`;
       try {
         const docs = await fetchDocuments();
         const filtered = docs.filter(
-          (d) => (d.doc_type === "거래명세서" || d.docType === "거래명세서") && (d.customer_name === customer.name || d.customer?.name === customer.name) && areSupplierKeysEquivalent2(d.supplier_key || d.supplierKey, selectedSupplierKey) && !d.is_deleted
+          (d) => (d.doc_type === "거래명세서" || d.docType === "거래명세서") && (d.customer_name === customer.name || d.customer?.name === customer.name) && areSupplierKeysEquivalent(d.supplier_key || d.supplierKey, selectedSupplierKey) && !d.is_deleted
         );
         const inDateRange = filtered.filter((d) => {
           const dDate = d.doc_date || d.docDate || "";
@@ -30870,7 +30870,7 @@ ${JSON.stringify(extra)}`;
       try {
         const allDocs = await fetchDocuments();
         const filtered = allDocs.filter(
-          (d) => (d.doc_type === "견적서" || d.docType === "견적서") && areSupplierKeysEquivalent2(d.supplier_key || d.supplierKey, selectedSupplierKey) && !d.is_deleted
+          (d) => (d.doc_type === "견적서" || d.docType === "견적서") && areSupplierKeysEquivalent(d.supplier_key || d.supplierKey, selectedSupplierKey) && !d.is_deleted
         );
         filtered.sort((a, b) => new Date(b.doc_date || b.docDate || b.created_at) - new Date(a.doc_date || a.docDate || a.created_at));
         setEstimates(filtered);
@@ -31028,7 +31028,7 @@ ${JSON.stringify(extra)}`;
       try {
         const allDocs = await fetchDocuments();
         const filtered = allDocs.filter(
-          (d) => (d.doc_type === "거래명세서" || d.docType === "거래명세서") && areSupplierKeysEquivalent2(d.supplier_key || d.supplierKey, selectedSupplierKey) && !d.is_deleted
+          (d) => (d.doc_type === "거래명세서" || d.docType === "거래명세서") && areSupplierKeysEquivalent(d.supplier_key || d.supplierKey, selectedSupplierKey) && !d.is_deleted
         );
         filtered.sort((a, b) => new Date(b.doc_date || b.docDate || b.created_at) - new Date(a.doc_date || a.docDate || a.created_at));
         setStatements(filtered);
@@ -32510,14 +32510,14 @@ IconFile=${currentUrl}favicon.ico\r
       return documentsList.filter((doc) => {
         if (doc.is_deleted) return false;
         const suppKey = doc.supplier_key || doc.supplierKey || "";
-        return areSupplierKeysEquivalent2(suppKey, selectedSupplierKey);
+        return areSupplierKeysEquivalent(suppKey, selectedSupplierKey);
       });
     }, [documentsList, selectedSupplierKey]);
     const { mySchedules, sharedSchedules } = (0, import_react16.useMemo)(() => {
       const my = [];
       const shared = [];
       schedulesList.forEach((sch) => {
-        const isMine = areSupplierKeysEquivalent2(sch.supplier_key, selectedSupplierKey);
+        const isMine = areSupplierKeysEquivalent(sch.supplier_key, selectedSupplierKey);
         if (isMine) {
           my.push(sch);
         } else if (sch.is_shared === true) {
@@ -34509,11 +34509,11 @@ IconFile=${currentUrl}favicon.ico\r
       "select",
       {
         className: "form-select",
-        value: suppliersList.find((s) => areSupplierKeysEquivalent2(s.id, selectedSupplierKey))?.id || selectedSupplierKey,
+        value: suppliersList.find((s) => areSupplierKeysEquivalent(s.id, selectedSupplierKey))?.id || selectedSupplierKey,
         onChange: (e) => {
           const newKey = e.target.value;
           setSelectedSupplierKey(newKey);
-          const found = suppliersList.find((s) => areSupplierKeysEquivalent2(s.id, newKey));
+          const found = suppliersList.find((s) => areSupplierKeysEquivalent(s.id, newKey));
           if (found && setCurrentSupplier) {
             setCurrentSupplier({
               ...found,
@@ -34521,7 +34521,7 @@ IconFile=${currentUrl}favicon.ico\r
               person: found.person || found.owner || "",
               tel: found.phone || found.tel,
               email: found.email || "",
-              hasStamp: areSupplierKeysEquivalent2(newKey, "sejin")
+              hasStamp: areSupplierKeysEquivalent(newKey, "sejin")
             });
           }
         },
@@ -34552,7 +34552,7 @@ IconFile=${currentUrl}favicon.ico\r
             if (checked) {
               setIsPartnersExpanded(true);
               if (!partners || partners.length === 0) {
-                const avail = suppliersList.filter((s) => !areSupplierKeysEquivalent2(s.id, selectedSupplierKey));
+                const avail = suppliersList.filter((s) => !areSupplierKeysEquivalent(s.id, selectedSupplierKey));
                 if (avail.length > 0) {
                   const initialPartner = {
                     id: avail[0].id,
@@ -34712,7 +34712,7 @@ IconFile=${currentUrl}favicon.ico\r
           onChange: (e) => setSelectedPartnerToAdd(e.target.value)
         },
         /* @__PURE__ */ import_react19.default.createElement("option", { value: "" }, "-- 등록된 공급자에서 파트너 추가 --"),
-        suppliersList.filter((s) => !areSupplierKeysEquivalent2(s.id, selectedSupplierKey) && !(partners || []).some((p) => areSupplierKeysEquivalent2(p.key, s.id))).map((s) => /* @__PURE__ */ import_react19.default.createElement("option", { key: s.id, value: s.id }, s.name || s.company))
+        suppliersList.filter((s) => !areSupplierKeysEquivalent(s.id, selectedSupplierKey) && !(partners || []).some((p) => areSupplierKeysEquivalent(p.key, s.id))).map((s) => /* @__PURE__ */ import_react19.default.createElement("option", { key: s.id, value: s.id }, s.name || s.company))
       ), /* @__PURE__ */ import_react19.default.createElement(
         "button",
         {
@@ -34721,7 +34721,7 @@ IconFile=${currentUrl}favicon.ico\r
           style: { fontSize: "0.75rem", padding: "3px 10px", minHeight: "30px", borderColor: "#818cf8", color: "#4338ca", backgroundColor: "#ffffff", fontWeight: "700", whiteSpace: "nowrap" },
           onClick: () => {
             if (!selectedPartnerToAdd) return;
-            const found = suppliersList.find((s) => areSupplierKeysEquivalent2(s.id, selectedPartnerToAdd));
+            const found = suppliersList.find((s) => areSupplierKeysEquivalent(s.id, selectedPartnerToAdd));
             if (found) {
               const newP = {
                 id: found.id,
@@ -35586,7 +35586,7 @@ IconFile=${currentUrl}favicon.ico\r
         }
         if (selectedSupplier !== "all") {
           const suppKey = doc.supplier_key || doc.supplierKey || "";
-          if (!areSupplierKeysEquivalent2(suppKey, selectedSupplier)) return false;
+          if (!areSupplierKeysEquivalent(suppKey, selectedSupplier)) return false;
         }
         const dType = doc.doc_type || doc.docType;
         if (docTypeFilter !== "all" && dType !== docTypeFilter) return false;
@@ -35666,7 +35666,7 @@ IconFile=${currentUrl}favicon.ico\r
         }
         const entry = map.get(key);
         const sKey = doc.supplier_key || doc.supplierKey;
-        if (selectedSupplier !== "all" && !areSupplierKeysEquivalent2(sKey, selectedSupplier)) {
+        if (selectedSupplier !== "all" && !areSupplierKeysEquivalent(sKey, selectedSupplier)) {
           return;
         }
         const { grandTotal, paid, balance } = getDocTotals(doc);
@@ -35722,7 +35722,7 @@ IconFile=${currentUrl}favicon.ico\r
         if (doc.is_deleted) return false;
         const isShared = !!doc.is_shared || !!doc.partner_key || doc.partners && doc.partners.length > 0;
         if (!isShared) return false;
-        const isMyLead = areSupplierKeysEquivalent2(doc.supplier_key || doc.supplierKey, selectedSupplierKey);
+        const isMyLead = areSupplierKeysEquivalent(doc.supplier_key || doc.supplierKey, selectedSupplierKey);
         const isPartnerIn = isPartnerInDoc(doc, selectedSupplierKey);
         if (!isMyLead && !isPartnerIn) return false;
         const dDate = doc.doc_date || doc.docDate;
@@ -35733,7 +35733,7 @@ IconFile=${currentUrl}favicon.ico\r
         }
         if (collabPartnerFilter !== "all") {
           const partners = normalizePartners(doc);
-          const match = partners.some((p) => areSupplierKeysEquivalent2(p.key, collabPartnerFilter)) || !isMyLead && areSupplierKeysEquivalent2(doc.supplier_key || doc.supplierKey, collabPartnerFilter);
+          const match = partners.some((p) => areSupplierKeysEquivalent(p.key, collabPartnerFilter)) || !isMyLead && areSupplierKeysEquivalent(doc.supplier_key || doc.supplierKey, collabPartnerFilter);
           if (!match) return false;
         }
         if (searchQuery.trim()) {
@@ -35747,7 +35747,7 @@ IconFile=${currentUrl}favicon.ico\r
         return true;
       }).map((doc) => {
         const { totalSupply, vatAmount, grandTotal, paid, balance } = getDocTotals(doc);
-        const isMyLead = areSupplierKeysEquivalent2(doc.supplier_key || doc.supplierKey, selectedSupplierKey);
+        const isMyLead = areSupplierKeysEquivalent(doc.supplier_key || doc.supplierKey, selectedSupplierKey);
         const partners = normalizePartners(doc);
         const partnerNames = partners.map((p) => p.name).join(", ") || doc.partner_name || "협력사";
         const totalPartnerAmount = partners.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
@@ -35787,7 +35787,7 @@ IconFile=${currentUrl}favicon.ico\r
             }
           });
         } else {
-          const myP = partners.find((p) => areSupplierKeysEquivalent2(p.key, selectedSupplierKey)) || { amount: doc.settlement_amount, status: doc.settlement_status };
+          const myP = partners.find((p) => areSupplierKeysEquivalent(p.key, selectedSupplierKey)) || { amount: doc.settlement_amount, status: doc.settlement_status };
           const amt = Number(myP.amount) || 0;
           if (myP.status === "정산완료") {
             totalSettled += amt;
@@ -35861,7 +35861,7 @@ IconFile=${currentUrl}favicon.ico\r
       const partners = normalizePartners(doc);
       let nextStatus = "정산완료";
       if (targetPartnerKey) {
-        const p = partners.find((part) => areSupplierKeysEquivalent2(part.key, targetPartnerKey));
+        const p = partners.find((part) => areSupplierKeysEquivalent(part.key, targetPartnerKey));
         nextStatus = p?.status === "정산완료" ? "정산대기" : "정산완료";
       } else {
         nextStatus = doc.settlement_status === "정산완료" ? "정산대기" : "정산완료";
@@ -36475,7 +36475,7 @@ IconFile=${currentUrl}favicon.ico\r
       general: { label: "📌 일반 업무 / 기타", bg: "#F8F9FC", color: "#344054", border: "#D0D5DD" }
     };
     const catMeta = categoryLabels[category] || categoryLabels.general;
-    const supplierObj = suppliersList.find((s) => areSupplierKeysEquivalent2(s.id, schedule.supplier_key));
+    const supplierObj = suppliersList.find((s) => areSupplierKeysEquivalent(s.id, schedule.supplier_key));
     const supplierName = supplierObj ? supplierObj.name || supplierObj.company : schedule.supplier_key === "sejin" ? "세진건설기계" : schedule.supplier_key === "ds_gimje" ? "디에스건설기계" : "";
     const handleCopyPhone = () => {
       if (!customerPhone) return;
@@ -36877,7 +36877,7 @@ IconFile=${currentUrl}favicon.ico\r
     const filteredSchedules = (0, import_react23.useMemo)(() => {
       const userRole = sessionStorage.getItem("dd_user_role") || "supplier";
       return (schedules || []).filter((item) => {
-        const isMine = userRole === "admin" || areSupplierKeysEquivalent2(item.supplier_key, selectedSupplierKey);
+        const isMine = userRole === "admin" || areSupplierKeysEquivalent(item.supplier_key, selectedSupplierKey);
         const isPublic = item.is_shared === true;
         if (userRole !== "admin" && !isMine && !isPublic) return false;
         if (privacyFilter === "private" && (!isMine || isPublic)) return false;
@@ -36900,7 +36900,7 @@ IconFile=${currentUrl}favicon.ico\r
       const events = [];
       (documentsList || []).forEach((doc) => {
         if (doc.is_deleted) return;
-        const isMine = userRole === "admin" || areSupplierKeysEquivalent2(doc.supplier_key || doc.supplierKey, selectedSupplierKey);
+        const isMine = userRole === "admin" || areSupplierKeysEquivalent(doc.supplier_key || doc.supplierKey, selectedSupplierKey);
         const isDocPublic = doc.is_shared === true;
         if (userRole !== "admin" && !isMine && !isDocPublic) return;
         const custName = doc.customer_name || doc.customer_data?.name || doc.customer?.name || "고객";
@@ -38930,7 +38930,7 @@ IconFile=${currentUrl}favicon.ico\r
     const [currentSupplier, setCurrentSupplier] = (0, import_react29.useState)(DEFAULT_SUPPLIERS.sejin);
     const loggedInSupplier = (0, import_react29.useMemo)(() => {
       const key = loggedInSupplierKey || sessionStorage.getItem("selected_supplier_key") || "sejin";
-      const found = suppliersList.find((s) => areSupplierKeysEquivalent2(s.id, key));
+      const found = suppliersList.find((s) => areSupplierKeysEquivalent(s.id, key));
       if (found) {
         return {
           ...found,
@@ -38940,7 +38940,7 @@ IconFile=${currentUrl}favicon.ico\r
           tel: found.phone || found.tel || "",
           email: found.email || "",
           bank: found.bank || "",
-          hasStamp: areSupplierKeysEquivalent2(found.id, "sejin")
+          hasStamp: areSupplierKeysEquivalent(found.id, "sejin")
         };
       }
       return DEFAULT_SUPPLIERS[key] || DEFAULT_SUPPLIERS.sejin;
@@ -39344,7 +39344,7 @@ IconFile=${currentUrl}favicon.ico\r
       }
     };
     (0, import_react29.useEffect)(() => {
-      const found = suppliersList.find((s) => areSupplierKeysEquivalent2(s.id, selectedSupplierKey));
+      const found = suppliersList.find((s) => areSupplierKeysEquivalent(s.id, selectedSupplierKey));
       if (found) {
         setCurrentSupplier({
           ...found,
@@ -39353,7 +39353,7 @@ IconFile=${currentUrl}favicon.ico\r
           tel: found.phone || found.tel,
           email: found.email || "",
           stamp_image: found.stamp_image || found.stampUrl || found.stamp || "",
-          hasStamp: found.hasStamp !== void 0 ? found.hasStamp : !!(found.stamp_image || found.stampUrl || found.stamp) || areSupplierKeysEquivalent2(selectedSupplierKey, "sejin")
+          hasStamp: found.hasStamp !== void 0 ? found.hasStamp : !!(found.stamp_image || found.stampUrl || found.stamp) || areSupplierKeysEquivalent(selectedSupplierKey, "sejin")
         });
       } else if (DEFAULT_SUPPLIERS[selectedSupplierKey]) {
         const def = DEFAULT_SUPPLIERS[selectedSupplierKey];
@@ -39472,14 +39472,14 @@ IconFile=${currentUrl}favicon.ico\r
     const badgeCounts = (0, import_react29.useMemo)(() => {
       const todayStr = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
       const todayWork = schedulesList.filter((s) => {
-        const isMine = areSupplierKeysEquivalent2(s.supplier_key, selectedSupplierKey);
+        const isMine = areSupplierKeysEquivalent(s.supplier_key, selectedSupplierKey);
         const sDate = s.start_date || s.event_date;
         const eDate = s.end_date || sDate;
         return isMine && sDate <= todayStr && todayStr <= eDate && s.status !== "completed";
       }).length;
       let unpaidCount = 0;
       documentsList.forEach((doc) => {
-        const isMine = areSupplierKeysEquivalent2(doc.supplier_key || doc.supplierKey, selectedSupplierKey);
+        const isMine = areSupplierKeysEquivalent(doc.supplier_key || doc.supplierKey, selectedSupplierKey);
         if (!isMine || doc.is_deleted || (doc.doc_type || doc.docType) === "견적서") return;
         const items2 = doc.items || [];
         const totalSupply = items2.reduce((sum, i) => sum + (Number(i.qty) || 0) * (Number(i.price) || 0), 0);
@@ -39711,7 +39711,7 @@ IconFile=${currentUrl}favicon.ico\r
       const rawSupplierKey = doc.supplier_key || doc.supplierKey || doc.supplier_data?.id || doc.supplier && doc.supplier.id || "";
       const rawSupplierName = doc.supplier_name || doc.supplier_data?.name || doc.supplier_data?.company || doc.supplier && (doc.supplier.company || doc.supplier.name) || "";
       const matchedSupplier = suppliersList.find(
-        (s) => rawSupplierKey && areSupplierKeysEquivalent2(s.id, rawSupplierKey) || rawSupplierName && (areSupplierKeysEquivalent2(s.name, rawSupplierName) || areSupplierKeysEquivalent2(s.company, rawSupplierName))
+        (s) => rawSupplierKey && areSupplierKeysEquivalent(s.id, rawSupplierKey) || rawSupplierName && (areSupplierKeysEquivalent(s.name, rawSupplierName) || areSupplierKeysEquivalent(s.company, rawSupplierName))
       );
       const finalSupplierKey = matchedSupplier ? matchedSupplier.id : rawSupplierKey || selectedSupplierKey;
       setSelectedSupplierKey(finalSupplierKey);
@@ -39726,7 +39726,7 @@ IconFile=${currentUrl}favicon.ico\r
           tel: docSupplierData.tel || docSupplierData.phone || "",
           email: docSupplierData.email || "",
           bank: docSupplierData.bank || "",
-          hasStamp: docSupplierData.hasStamp !== void 0 ? docSupplierData.hasStamp : areSupplierKeysEquivalent2(finalSupplierKey, "sejin")
+          hasStamp: docSupplierData.hasStamp !== void 0 ? docSupplierData.hasStamp : areSupplierKeysEquivalent(finalSupplierKey, "sejin")
         });
       } else if (matchedSupplier) {
         setCurrentSupplier({
@@ -39739,7 +39739,7 @@ IconFile=${currentUrl}favicon.ico\r
           email: matchedSupplier.email || "",
           bank: matchedSupplier.bank || "",
           stamp_image: matchedSupplier.stamp_image || matchedSupplier.stampUrl || matchedSupplier.stamp || "",
-          hasStamp: matchedSupplier.hasStamp !== void 0 ? matchedSupplier.hasStamp : !!(matchedSupplier.stamp_image || matchedSupplier.stampUrl || matchedSupplier.stamp) || areSupplierKeysEquivalent2(matchedSupplier.id, "sejin")
+          hasStamp: matchedSupplier.hasStamp !== void 0 ? matchedSupplier.hasStamp : !!(matchedSupplier.stamp_image || matchedSupplier.stampUrl || matchedSupplier.stamp) || areSupplierKeysEquivalent(matchedSupplier.id, "sejin")
         });
       } else if (DEFAULT_SUPPLIERS[finalSupplierKey]) {
         setCurrentSupplier(DEFAULT_SUPPLIERS[finalSupplierKey]);
@@ -39776,7 +39776,7 @@ IconFile=${currentUrl}favicon.ico\r
       const todayDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
       const emptyCust = { name: "", person: "", phone: "", addr: "" };
       const sessionSupplierKey = sessionStorage.getItem("selected_supplier_key") || localStorage.getItem("selected_supplier_key") || "sejin";
-      const foundSupplier = suppliersList.find((s) => areSupplierKeysEquivalent2(s.id, sessionSupplierKey));
+      const foundSupplier = suppliersList.find((s) => areSupplierKeysEquivalent(s.id, sessionSupplierKey));
       if (foundSupplier) {
         setSelectedSupplierKey(foundSupplier.id);
         setCurrentSupplier({
@@ -39787,7 +39787,7 @@ IconFile=${currentUrl}favicon.ico\r
           email: foundSupplier.email || "",
           bank: foundSupplier.bank || "",
           stamp_image: foundSupplier.stamp_image || foundSupplier.stampUrl || foundSupplier.stamp || "",
-          hasStamp: foundSupplier.hasStamp !== void 0 ? foundSupplier.hasStamp : !!(foundSupplier.stamp_image || foundSupplier.stampUrl || foundSupplier.stamp) || areSupplierKeysEquivalent2(foundSupplier.id, "sejin")
+          hasStamp: foundSupplier.hasStamp !== void 0 ? foundSupplier.hasStamp : !!(foundSupplier.stamp_image || foundSupplier.stampUrl || foundSupplier.stamp) || areSupplierKeysEquivalent(foundSupplier.id, "sejin")
         });
       } else if (DEFAULT_SUPPLIERS[sessionSupplierKey]) {
         setSelectedSupplierKey(sessionSupplierKey);

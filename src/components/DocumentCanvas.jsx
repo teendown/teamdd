@@ -1,5 +1,6 @@
 // 🎨 TEAM D.D DOCUMENT CANVAS COMPONENT (A4 PAPER SPECIFICATION RENDERER)
 import React, { useState, useEffect, useRef } from 'react';
+import { areSupplierKeysEquivalent } from '../utils/validation.js';
 
 export default function DocumentCanvas({
   docType,
