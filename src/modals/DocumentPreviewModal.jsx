@@ -150,21 +150,40 @@ export default function DocumentPreviewModal({
                 </h4>
                 <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>{supplier.code || 'S0001'}</span>
               </div>
-              <div style={{ fontSize: '0.8125rem', display: 'flex', flexDirection: 'column', gap: '3px', color: 'var(--c-navy-dark)' }}>
+              <div style={{ fontSize: '0.8125rem', display: 'flex', flexDirection: 'column', gap: '3px', color: 'var(--c-navy-dark)', position: 'relative' }}>
                 <div><strong>상호: </strong>{supplier.name || supplier.company || '세진중기'}</div>
                 <div><strong>등록번호: </strong>{supplier.bizno || '568-23-00015'}</div>
-                <div><strong>대표자: </strong>{supplier.person || supplier.owner || '허강'}</div>
+                <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+                  <strong>대표자: </strong>
+                  <span style={{ marginLeft: '4px', fontWeight: '700' }}>{supplier.person || supplier.owner || '대표자'}</span>
+                  <span style={{ marginLeft: '4px', fontWeight: '700', color: '#64748b' }}>(인)</span>
+                </div>
                 <div><strong>연락처: </strong>{supplier.phone || supplier.tel || '010-2644-2921'}</div>
                 <div style={{ fontSize: '0.75rem', color: '#64748b' }}><strong>주소: </strong>{supplier.addr || '전북 전주시 덕진구'}</div>
               </div>
-              {hasStamp && (
+              {(supplier.stamp_image || supplier.stampUrl || supplier.stamp) ? (
+                <img
+                  src={supplier.stamp_image || supplier.stampUrl || supplier.stamp}
+                  alt="직인"
+                  style={{
+                    position: 'absolute',
+                    right: '16px',
+                    top: '48px',
+                    width: '46px',
+                    height: '46px',
+                    objectFit: 'contain',
+                    pointerEvents: 'none',
+                    mixBlendMode: 'multiply'
+                  }}
+                />
+              ) : hasStamp ? (
                 <div
                   style={{
                     position: 'absolute',
-                    right: '12px',
-                    bottom: '12px',
-                    width: '46px',
-                    height: '46px',
+                    right: '16px',
+                    top: '48px',
+                    width: '42px',
+                    height: '42px',
                     borderRadius: '50%',
                     border: '2px solid #DC2626',
                     color: '#DC2626',
@@ -174,12 +193,13 @@ export default function DocumentPreviewModal({
                     fontWeight: '900',
                     fontSize: '11px',
                     transform: 'rotate(-10deg)',
-                    backgroundColor: 'rgba(254, 226, 226, 0.4)'
+                    backgroundColor: 'rgba(254, 226, 226, 0.4)',
+                    pointerEvents: 'none'
                   }}
                 >
                   인
                 </div>
-              )}
+              ) : null}
             </div>
 
             {/* 공급받는자(거래처) 정보 박스 */}

@@ -1,6 +1,7 @@
 // 🎨 TEAM D.D SETTINGS TAB (사업자 설정, 데이터 공개 범위 & 클라우드 연동)
 import React, { useState, useEffect } from 'react';
 import { SQL_ALL, DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_KEY } from '../config/constants.js';
+import { compressImageFile } from '../utils/imageUtils.js';
 
 export default function SettingsTab({
   currentSupplier = {},
@@ -39,6 +40,8 @@ export default function SettingsTab({
     addr: currentSupplier.addr || '',
     email: currentSupplier.email || '',
     bank: currentSupplier.bank || '',
+    stamp_image: currentSupplier.stamp_image || currentSupplier.stampUrl || currentSupplier.stamp || '',
+    hasStamp: !!(currentSupplier.stamp_image || currentSupplier.stampUrl || currentSupplier.stamp || currentSupplier.hasStamp),
     pwd: initialPwd,
     defaultShared: false
   });
@@ -56,6 +59,8 @@ export default function SettingsTab({
       addr: currentSupplier.addr || '',
       email: currentSupplier.email || '',
       bank: currentSupplier.bank || '',
+      stamp_image: currentSupplier.stamp_image || currentSupplier.stampUrl || currentSupplier.stamp || '',
+      hasStamp: !!(currentSupplier.stamp_image || currentSupplier.stampUrl || currentSupplier.stamp || currentSupplier.hasStamp),
       pwd: sPwd,
       defaultShared: false
     });
@@ -217,6 +222,94 @@ export default function SettingsTab({
                   value={form.bank}
                   onChange={(e) => setForm({ ...form, bank: e.target.value })}
                 />
+              </div>
+            </div>
+
+            {/* 대표자 직인 / 도장 등록 */}
+            <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '0.875rem', marginTop: '0.5rem' }}>
+              <label className="form-label" style={{ fontWeight: '800', color: '#dc2626', marginBottom: '0.5rem' }}>
+                🔴 대표자 직인 / 도장 파일 (명세서 출력 시 대표자명 (인) 자리에 자동 날인)
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                <div
+                  style={{
+                    width: '84px',
+                    height: '84px',
+                    border: '2px dashed #cbd5e1',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#f8fafc',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    flexShrink: 0
+                  }}
+                >
+                  {form.stamp_image ? (
+                    <img
+                      src={form.stamp_image}
+                      alt="직인 미리보기"
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    />
+                  ) : (
+                    <div style={{ fontSize: '11px', color: '#94a3b8', textAlign: 'center', fontWeight: '700' }}>
+                      도장 없음<br /><span style={{ fontSize: '9px' }}>(인영 미등록)</span>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, minWidth: '220px' }}>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <label
+                      className="btn btn-outline"
+                      style={{
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        color: '#1d4ed8',
+                        borderColor: '#bfdbfe',
+                        backgroundColor: '#eff6ff',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '6px 12px'
+                      }}
+                    >
+                      📁 {form.stamp_image ? '도장 이미지 변경' : '도장 이미지 파일 선택 (PNG/JPG)'}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            try {
+                              const dataUrl = await compressImageFile(file, 300);
+                              setForm({ ...form, stamp_image: dataUrl, hasStamp: true });
+                            } catch (err) {
+                              alert('도장 이미지 처리 실패: ' + err.message);
+                            }
+                          }
+                        }}
+                      />
+                    </label>
+                    {form.stamp_image && (
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        style={{ fontSize: '11px', color: '#dc2626', borderColor: '#fca5a5', padding: '4px 8px' }}
+                        onClick={() => setForm({ ...form, stamp_image: '', hasStamp: false })}
+                      >
+                        🗑️ 도장 삭제
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#64748b', lineHeight: '1.4' }}>
+                    * 배경이 투명한 PNG 이미지 권장<br />
+                    * 거래명세서, 견적서, 청구서 작성 및 출력 시 대표자 이름 뒤 <b>(인)</b> 자리에 자동으로 날인됩니다.
+                  </div>
+                </div>
               </div>
             </div>
 

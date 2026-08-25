@@ -513,8 +513,51 @@ export default function DocumentCanvas({
                         <th style={{ padding: '5px 8px', backgroundColor: '#f8fafc', color: '#475569', fontWeight: '600', textAlign: 'center', borderRight: '1px solid #f1f5f9' }}>
                           대표자
                         </th>
-                        <td style={{ padding: '5px 8px', color: '#0f172a' }}>
-                          {supplierRep}
+                        <td style={{ padding: '5px 8px', color: '#0f172a', position: 'relative' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', position: 'relative' }}>
+                            <span style={{ fontWeight: '700' }}>{supplierRep}</span>
+                            <span style={{ marginLeft: '4px', fontWeight: '700', color: '#475569' }}>(인)</span>
+                            {(supplier.stamp_image || supplier.stampUrl || supplier.stamp) ? (
+                              <img
+                                src={supplier.stamp_image || supplier.stampUrl || supplier.stamp}
+                                alt="직인"
+                                style={{
+                                  position: 'absolute',
+                                  left: 'calc(100% - 24px)',
+                                  top: '50%',
+                                  transform: 'translateY(-50%)',
+                                  width: '42px',
+                                  height: '42px',
+                                  objectFit: 'contain',
+                                  pointerEvents: 'none',
+                                  mixBlendMode: 'multiply'
+                                }}
+                              />
+                            ) : (areSupplierKeysEquivalent(supplier.id, 'sejin') || supplier.hasStamp) ? (
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  left: 'calc(100% - 22px)',
+                                  top: '50%',
+                                  transform: 'translateY(-50%) rotate(-10deg)',
+                                  width: '38px',
+                                  height: '38px',
+                                  borderRadius: '50%',
+                                  border: '2px solid #DC2626',
+                                  color: '#DC2626',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontWeight: '900',
+                                  fontSize: '11px',
+                                  backgroundColor: 'rgba(254, 226, 226, 0.4)',
+                                  pointerEvents: 'none'
+                                }}
+                              >
+                                인
+                              </div>
+                            ) : null}
+                          </div>
                         </td>
                       </tr>
                       <tr style={{ borderBottom: '1px solid #f1f5f9' }}>

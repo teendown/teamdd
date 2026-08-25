@@ -468,7 +468,8 @@ export default function App() {
         person: found.person || found.owner || '',
         tel: found.phone || found.tel,
         email: found.email || '',
-        hasStamp: areSupplierKeysEquivalent(selectedSupplierKey, 'sejin')
+        stamp_image: found.stamp_image || found.stampUrl || found.stamp || '',
+        hasStamp: found.hasStamp !== undefined ? found.hasStamp : (!!(found.stamp_image || found.stampUrl || found.stamp) || areSupplierKeysEquivalent(selectedSupplierKey, 'sejin'))
       });
     } else if (DEFAULT_SUPPLIERS[selectedSupplierKey]) {
       const def = DEFAULT_SUPPLIERS[selectedSupplierKey];
@@ -872,7 +873,8 @@ export default function App() {
         tel: matchedSupplier.phone || matchedSupplier.tel || '',
         email: matchedSupplier.email || '',
         bank: matchedSupplier.bank || '',
-        hasStamp: areSupplierKeysEquivalent(matchedSupplier.id, 'sejin')
+        stamp_image: matchedSupplier.stamp_image || matchedSupplier.stampUrl || matchedSupplier.stamp || '',
+        hasStamp: matchedSupplier.hasStamp !== undefined ? matchedSupplier.hasStamp : (!!(matchedSupplier.stamp_image || matchedSupplier.stampUrl || matchedSupplier.stamp) || areSupplierKeysEquivalent(matchedSupplier.id, 'sejin'))
       });
     } else if (DEFAULT_SUPPLIERS[finalSupplierKey]) {
       setCurrentSupplier(DEFAULT_SUPPLIERS[finalSupplierKey]);
@@ -925,7 +927,8 @@ export default function App() {
         tel: foundSupplier.phone || foundSupplier.tel || '',
         email: foundSupplier.email || '',
         bank: foundSupplier.bank || '',
-        hasStamp: areSupplierKeysEquivalent(foundSupplier.id, 'sejin')
+        stamp_image: foundSupplier.stamp_image || foundSupplier.stampUrl || foundSupplier.stamp || '',
+        hasStamp: foundSupplier.hasStamp !== undefined ? foundSupplier.hasStamp : (!!(foundSupplier.stamp_image || foundSupplier.stampUrl || foundSupplier.stamp) || areSupplierKeysEquivalent(foundSupplier.id, 'sejin'))
       });
     } else if (DEFAULT_SUPPLIERS[sessionSupplierKey]) {
       setSelectedSupplierKey(sessionSupplierKey);

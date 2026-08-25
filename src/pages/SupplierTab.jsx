@@ -1,6 +1,7 @@
 // 🎨 TEAM D.D SUPPLIER MANAGEMENT TAB
 import React, { useState, useEffect } from 'react';
 import { registerBackHandler } from '../utils/navigationManager.js';
+import { compressImageFile } from '../utils/imageUtils.js';
 
 export default function SupplierTab({
   suppliers = [],
@@ -31,6 +32,8 @@ export default function SupplierTab({
     bizType: '',
     bizItem: '',
     memo: '',
+    stamp_image: '',
+    hasStamp: false,
     pwd: '0000'
   });
   
@@ -56,6 +59,8 @@ export default function SupplierTab({
       bizType: '',
       bizItem: '',
       memo: '',
+      stamp_image: '',
+      hasStamp: false,
       pwd: '0000'
     });
   };
@@ -95,6 +100,8 @@ export default function SupplierTab({
       bizType: s.bizType || '',
       bizItem: s.bizItem || '',
       memo: s.memo || '',
+      stamp_image: s.stamp_image || s.stampUrl || s.stamp || '',
+      hasStamp: !!(s.stamp_image || s.stampUrl || s.stamp || s.hasStamp),
       pwd: s.pwd || localStorage.getItem('dd_pwd_' + s.id) || '0000'
     });
     setShowModal(true);
@@ -140,33 +147,47 @@ export default function SupplierTab({
 
         {/* Mobile Cards View */}
         <div className="mobile-cards-view">
-          {filtered.map(s => (
-            <div key={s.id} className="mobile-data-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                <span style={{ fontWeight: '900', fontSize: '0.9375rem' }}>{s.name || s.company}</span>
-                <span style={{ fontSize: '0.6875rem', color: '#6b7280', fontFamily: 'monospace' }}>{s.bizno}</span>
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#4b5563', marginBottom: '0.5rem' }}>
-                <div>대표자: {s.person || s.owner || '-'}</div>
-                <div>연락처: {s.phone || s.tel || '-'}</div>
-                <div style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                  주소: {s.addr || '-'}
+          {filtered.map(s => {
+            const hasStampImg = !!(s.stamp_image || s.stampUrl || s.stamp);
+            return (
+              <div key={s.id} className="mobile-data-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontWeight: '900', fontSize: '0.9375rem' }}>{s.name || s.company}</span>
+                    {hasStampImg ? (
+                      <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '4px', backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', fontWeight: '800' }}>
+                        🔴 직인등록됨
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '4px', backgroundColor: '#f8fafc', color: '#94a3b8', border: '1px solid #e2e8f0' }}>
+                        ⚪ 직인미등록
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: '0.6875rem', color: '#6b7280', fontFamily: 'monospace' }}>{s.bizno}</span>
                 </div>
-                <div style={{ fontSize: '0.6875rem', color: '#9ca3af', marginTop: '2px' }}>
-                  계좌: {s.bank || '-'}
+                <div style={{ fontSize: '0.75rem', color: '#4b5563', marginBottom: '0.5rem' }}>
+                  <div>대표자: {s.person || s.owner || '-'} (인)</div>
+                  <div>연락처: {s.phone || s.tel || '-'}</div>
+                  <div style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                    주소: {s.addr || '-'}
+                  </div>
+                  <div style={{ fontSize: '0.6875rem', color: '#9ca3af', marginTop: '2px' }}>
+                    계좌: {s.bank || '-'}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.375rem', marginTop: '0.5rem' }}>
+                  <button
+                    className="btn btn-outline"
+                    style={{ flex: 1, minHeight: '36px', fontSize: '0.8125rem', fontWeight: '700' }}
+                    onClick={() => handleOpenView(s)}
+                  >
+                    🔍 상세조회 / 정보수정
+                  </button>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '0.375rem', marginTop: '0.5rem' }}>
-                <button
-                  className="btn btn-outline"
-                  style={{ flex: 1, minHeight: '36px', fontSize: '0.8125rem', fontWeight: '700' }}
-                  onClick={() => handleOpenView(s)}
-                >
-                  🔍 상세조회 / 정보수정
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Desktop Table View */}
@@ -175,6 +196,7 @@ export default function SupplierTab({
             <thead>
               <tr>
                 <th>상호명 / 대표자</th>
+                <th>직인(도장)</th>
                 <th>사업자번호</th>
                 <th>연락처 / 팩스</th>
                 <th>주소</th>
@@ -182,31 +204,48 @@ export default function SupplierTab({
               </tr>
             </thead>
             <tbody>
-              {filtered.map(s => (
-                <tr key={s.id}>
-                  <td>
-                    <div style={{ fontWeight: '700' }}>{s.name || s.company}</div>
-                    <div style={{ fontSize: '10px', color: '#6b7280' }}>{s.person || s.owner}</div>
-                  </td>
-                  <td style={{ fontFamily: 'monospace' }}>{s.bizno}</td>
-                  <td>
-                    <div>{s.phone || s.tel}</div>
-                    <div style={{ fontSize: '10px', color: '#6b7280' }}>{s.fax}</div>
-                  </td>
-                  <td style={{ fontSize: '11px' }}>{s.addr}</td>
-                  <td style={{ whiteSpace: 'nowrap' }}>
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      <button
-                        className="btn btn-outline"
-                        style={{ fontSize: '11px', padding: '4px 8px', fontWeight: '600' }}
-                        onClick={() => handleOpenView(s)}
-                      >
-                        🔍 상세조회 / 수정
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {filtered.map(s => {
+                const stampSrc = s.stamp_image || s.stampUrl || s.stamp;
+                return (
+                  <tr key={s.id}>
+                    <td>
+                      <div style={{ fontWeight: '700' }}>{s.name || s.company}</div>
+                      <div style={{ fontSize: '10px', color: '#6b7280' }}>{s.person || s.owner} (인)</div>
+                    </td>
+                    <td>
+                      {stampSrc ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <img
+                            src={stampSrc}
+                            alt="직인"
+                            style={{ width: '28px', height: '28px', objectFit: 'contain', border: '1px solid #e2e8f0', borderRadius: '4px', backgroundColor: '#fff' }}
+                          />
+                          <span style={{ fontSize: '10px', color: '#dc2626', fontWeight: '700' }}>등록</span>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '10px', color: '#94a3b8' }}>미등록</span>
+                      )}
+                    </td>
+                    <td style={{ fontFamily: 'monospace' }}>{s.bizno}</td>
+                    <td>
+                      <div>{s.phone || s.tel}</div>
+                      <div style={{ fontSize: '10px', color: '#6b7280' }}>{s.fax}</div>
+                    </td>
+                    <td style={{ fontSize: '11px' }}>{s.addr}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <button
+                          className="btn btn-outline"
+                          style={{ fontSize: '11px', padding: '4px 8px', fontWeight: '600' }}
+                          onClick={() => handleOpenView(s)}
+                        >
+                          🔍 상세조회 / 수정
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -332,6 +371,99 @@ export default function SupplierTab({
                   <div className="view-value">{form.bank || '-'}</div>
                 ) : (
                   <input type="text" className="form-input" value={form.bank} onChange={e => setForm({ ...form, bank: e.target.value })} />
+                )}
+              </div>
+            </div>
+
+            {/* 대표자 직인 / 도장 등록 섹션 */}
+            <div className="form-section">
+              <div className="section-title">🔴 대표자 직인 / 도장 파일</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                {/* 도장 미리보기 박스 */}
+                <div
+                  style={{
+                    width: '84px',
+                    height: '84px',
+                    border: '2px dashed #cbd5e1',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#f8fafc',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    flexShrink: 0
+                  }}
+                >
+                  {form.stamp_image ? (
+                    <img
+                      src={form.stamp_image}
+                      alt="직인 미리보기"
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    />
+                  ) : (
+                    <div style={{ fontSize: '11px', color: '#94a3b8', textAlign: 'center', fontWeight: '700' }}>
+                      도장 없음<br /><span style={{ fontSize: '9px' }}>(인영 미등록)</span>
+                    </div>
+                  )}
+                </div>
+
+                {modalMode !== 'view' ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, minWidth: '220px' }}>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <label
+                        className="btn btn-outline"
+                        style={{
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: '700',
+                          color: '#1d4ed8',
+                          borderColor: '#bfdbfe',
+                          backgroundColor: '#eff6ff',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '6px 12px'
+                        }}
+                      >
+                        📁 {form.stamp_image ? '도장 이미지 변경' : '도장 이미지 파일 선택 (PNG/JPG)'}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              try {
+                                const dataUrl = await compressImageFile(file, 300);
+                                setForm({ ...form, stamp_image: dataUrl, hasStamp: true });
+                              } catch (err) {
+                                alert('도장 이미지 처리 실패: ' + err.message);
+                              }
+                            }
+                          }}
+                        />
+                      </label>
+                      {form.stamp_image && (
+                        <button
+                          type="button"
+                          className="btn btn-outline"
+                          style={{ fontSize: '11px', color: '#dc2626', borderColor: '#fca5a5', padding: '4px 8px' }}
+                          onClick={() => setForm({ ...form, stamp_image: '', hasStamp: false })}
+                        >
+                          🗑️ 도장 삭제
+                        </button>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#64748b', lineHeight: '1.4' }}>
+                      * 배경이 투명한 PNG 이미지 파일 권장<br />
+                      * 거래명세서, 견적서, 청구서 출력 시 대표자명 뒤 <b>(인)</b> 자리에 자동으로 날인됩니다.
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '12px', color: '#64748b' }}>
+                    {form.stamp_image ? '✓ 직인 도장이 등록되어 명세서 출력 시 대표자명에 자동 날인됩니다.' : '현재 등록된 도장 파일이 없습니다.'}
+                  </div>
                 )}
               </div>
             </div>
