@@ -29560,21 +29560,31 @@ ${JSON.stringify(extra)}`;
               console.warn("Navigator share failed, falling back to download:", e);
             }
           }
-          const link = document.createElement("a");
-          link.download = `${cleanFileName}.png`;
-          link.href = canvas.toDataURL("image/png");
-          link.click();
-          if (Array.isArray(attachments) && attachments.length > 0) {
-            for (const att of attachments) {
-              if (!att || !att.dataUrl) continue;
-              const attLink = document.createElement("a");
-              attLink.download = `${cleanFileName}_${att.name || "첨부"}.png`;
-              attLink.href = att.dataUrl;
-              attLink.click();
+          try {
+            const imgDataUrl = canvas.toDataURL("image/png");
+            const link = document.createElement("a");
+            link.download = `${cleanFileName}.png`;
+            link.href = imgDataUrl;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            if (Array.isArray(attachments) && attachments.length > 0) {
+              for (const att of attachments) {
+                if (!att || !att.dataUrl) continue;
+                const attLink = document.createElement("a");
+                attLink.download = `${cleanFileName}_${att.name || "첨부"}.png`;
+                attLink.href = att.dataUrl;
+                document.body.appendChild(attLink);
+                attLink.click();
+                document.body.removeChild(attLink);
+              }
             }
+            alert("✓ 명세서 및 첨부 서류 이미지가 저장되었습니다.");
+            resolve(true);
+          } catch (downloadErr) {
+            console.warn("Direct download fallback error:", downloadErr);
+            resolve(true);
           }
-          alert("✓ 명세서 및 첨부 서류 이미지가 다운로드되었습니다. 카카오톡이나 문자메시지로 공유해 보세요!");
-          resolve(true);
         }, "image/png");
       });
     } catch (err) {
@@ -29610,8 +29620,7 @@ ${JSON.stringify(extra)}`;
     const html2canvas = window.html2canvas;
     const jspdfObj = window.jspdf;
     if (!html2canvas || !jspdfObj) {
-      alert("❌ PDF 변환 라이브러리가 준비되지 않았습니다. 인쇄 기능을 대신 이용해 주세요.");
-      window.print();
+      alert("❌ PDF 변환 라이브러리가 준비되지 않았습니다.");
       return false;
     }
     const cleanFileName = (title || "명세서").replace(/[/\\?%*:|"<>]/g, "_");
@@ -29677,7 +29686,7 @@ ${JSON.stringify(extra)}`;
         }
       }
       pdf.save(`${cleanFileName}.pdf`);
-      alert("✓ PDF 문서 파일(첨부서류 포함)이 다운로드되었습니다. 카카오톡이나 이메일로 전송해 보세요!");
+      alert("✓ PDF 문서 파일(첨부서류 포함)이 저장되었습니다.");
       return true;
     } catch (err) {
       console.error("shareDocumentPDF Error:", err);
