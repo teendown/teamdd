@@ -14,6 +14,22 @@
   <link rel="apple-touch-icon" href="./icon-512.jpg">
   <meta name="theme-color" content="#02457A">
 
+  <!-- 카카오톡 인앱 브라우저 PWA 충돌 방지 처리 -->
+  <script>
+    (function() {
+      var ua = navigator.userAgent || '';
+      var isKakao = /KAKAOTALK/i.test(ua);
+      if (isKakao) {
+        // 카카오톡 인앱 브라우저에서 PWA WebAPK 강제 설치 인텐트 유발 방지
+        var manifestLink = document.querySelector('link[rel="manifest"]');
+        if (manifestLink) {
+          // 카카오톡 내에서는 manifest 제거하여 Chrome 설치 유도 팝업 원천 차단
+          manifestLink.parentNode.removeChild(manifestLink);
+        }
+      }
+    })();
+  </script>
+
   <!-- Pretendard & Inter Web Fonts -->
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,13 +37,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 
   <!-- Modular CSS Architecture -->
-  <link rel="stylesheet" href="./css/base.css?v=2.3.8">
-  <link rel="stylesheet" href="./css/layout.css?v=2.3.8">
-  <link rel="stylesheet" href="./css/components.css?v=2.3.8">
-  <link rel="stylesheet" href="./css/modals.css?v=2.3.8">
-  <link rel="stylesheet" href="./css/print.css?v=2.3.8">
-  <link rel="stylesheet" href="./style.css?v=2.3.8">
-  <link rel="stylesheet" href="./src/App.css?v=2.3.8">
+  <link rel="stylesheet" href="./css/base.css?v=2.3.9">
+  <link rel="stylesheet" href="./css/layout.css?v=2.3.9">
+  <link rel="stylesheet" href="./css/components.css?v=2.3.9">
+  <link rel="stylesheet" href="./css/modals.css?v=2.3.9">
+  <link rel="stylesheet" href="./css/print.css?v=2.3.9">
+  <link rel="stylesheet" href="./style.css?v=2.3.9">
+  <link rel="stylesheet" href="./src/App.css?v=2.3.9">
 
   <!-- Export Helpers & Database CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
@@ -78,6 +94,6 @@
   </script>
 
   <!-- High-Performance Bundled Application Entry -->
-  <script src="./app.bundle.js?v=2.3.8"></script>
+  <script src="./app.bundle.js?v=2.3.9"></script>
 </body>
 </html>
