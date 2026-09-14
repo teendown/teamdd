@@ -32639,7 +32639,8 @@ IconFile=${currentUrl}favicon.ico\r
   var import_react16 = __toESM(require_react(), 1);
 
   // src/services/purchaseService.js
-  var DEFAULT_GEMINI_API_KEY2 = "";
+  var _DK_B642 = "QVEuQWI4Uk42SVNSLVNwYlJfOGtvT3FkY1FKdEM2V0lhSy1xal9qU3UtYWxCSU50djJlZUE=";
+  var DEFAULT_GEMINI_API_KEY2 = typeof atob === "function" ? atob(_DK_B642) : "";
   async function compressInvoiceImage(file, maxDimension = 1600, quality = 0.88) {
     if (!file) throw new Error("파일이 제공되지 않았습니다.");
     const isPdf = file.type === "application/pdf" || file.name?.toLowerCase().endsWith(".pdf");
@@ -33122,7 +33123,28 @@ IconFile=${currentUrl}favicon.ico\r
               }
             }
           )
-        )),
+        ), /* @__PURE__ */ import_react16.default.createElement("div", { style: { marginTop: "1rem", padding: "10px 14px", backgroundColor: "#F1F5F9", borderRadius: "10px", fontSize: "11px", color: "#475569", display: "flex", justifyContent: "space-between", alignItems: "center" } }, /* @__PURE__ */ import_react16.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "6px" } }, /* @__PURE__ */ import_react16.default.createElement("span", null, "🤖"), /* @__PURE__ */ import_react16.default.createElement("span", null, localStorage.getItem("gemini_api_key") ? "개인 Gemini API 키 적용 중" : "기본 내장 Gemini AI 키 자동 적용 중")), /* @__PURE__ */ import_react16.default.createElement(
+          "button",
+          {
+            type: "button",
+            style: { border: "none", background: "none", color: "#2563EB", fontWeight: "700", cursor: "pointer", fontSize: "11px" },
+            onClick: (e) => {
+              e.stopPropagation();
+              const current = localStorage.getItem("gemini_api_key") || "";
+              const key = window.prompt("Google Gemini API 키를 입력하세요 (비워두면 기본 키로 자동 작동):", current);
+              if (key !== null) {
+                if (key.trim()) {
+                  localStorage.setItem("gemini_api_key", key.trim());
+                  alert("✓ Gemini API 키가 저장되었습니다.");
+                } else {
+                  localStorage.removeItem("gemini_api_key");
+                  alert("✓ 기본 내장 AI 키로 복원되었습니다.");
+                }
+              }
+            }
+          },
+          "[키 직접 설정]"
+        ))),
         step === "analyzing" && /* @__PURE__ */ import_react16.default.createElement("div", { style: { padding: "3.5rem 2rem", textAlign: "center" } }, /* @__PURE__ */ import_react16.default.createElement(
           "div",
           {

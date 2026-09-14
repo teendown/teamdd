@@ -1,4 +1,4 @@
-﻿// 🎨 TEAM D.D PURCHASE INVOICE OCR MODAL (AI VISION ENGINE)
+// 🎨 TEAM D.D PURCHASE INVOICE OCR MODAL (AI VISION ENGINE)
 import React, { useState, useEffect, useRef } from 'react';
 import { compressInvoiceImage, parsePurchaseInvoiceImage } from '../services/purchaseService.js';
 import { registerBackHandler } from '../utils/navigationManager.js';
@@ -315,6 +315,36 @@ export default function PurchaseOcrModal({
                   if (file) handleProcessFile(file);
                 }}
               />
+            </div>
+
+            {/* Gemini API 키 상태 안내 */}
+            <div style={{ marginTop: '1rem', padding: '10px 14px', backgroundColor: '#F1F5F9', borderRadius: '10px', fontSize: '11px', color: '#475569', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>🤖</span>
+                <span>
+                  {localStorage.getItem('gemini_api_key') ? '개인 Gemini API 키 적용 중' : '기본 내장 Gemini AI 키 자동 적용 중'}
+                </span>
+              </div>
+              <button
+                type="button"
+                style={{ border: 'none', background: 'none', color: '#2563EB', fontWeight: '700', cursor: 'pointer', fontSize: '11px' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const current = localStorage.getItem('gemini_api_key') || '';
+                  const key = window.prompt('Google Gemini API 키를 입력하세요 (비워두면 기본 키로 자동 작동):', current);
+                  if (key !== null) {
+                    if (key.trim()) {
+                      localStorage.setItem('gemini_api_key', key.trim());
+                      alert('✓ Gemini API 키가 저장되었습니다.');
+                    } else {
+                      localStorage.removeItem('gemini_api_key');
+                      alert('✓ 기본 내장 AI 키로 복원되었습니다.');
+                    }
+                  }
+                }}
+              >
+                [키 직접 설정]
+              </button>
             </div>
           </div>
         )}
