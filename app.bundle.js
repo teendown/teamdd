@@ -32796,16 +32796,36 @@ IconFile=${currentUrl}favicon.ico\r
         temperature: 0.1
       }
     };
-    const models = [
-      "gemini-1.5-flash-latest",
-      "gemini-1.5-flash",
-      "gemini-2.0-flash-exp",
-      "gemini-1.5-pro-latest"
+    let dynamicEndpoints = [];
+    try {
+      const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${effectiveKey.trim()}`);
+      if (listRes.ok) {
+        const listData = await listRes.json();
+        const models = listData.models || [];
+        const usable = models.filter(
+          (m) => m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent") && (m.name.includes("flash") || m.name.includes("pro") || m.name.includes("gemini"))
+        );
+        usable.sort((a, b) => {
+          if (a.name.includes("flash") && !b.name.includes("flash")) return -1;
+          if (!a.name.includes("flash") && b.name.includes("flash")) return 1;
+          return 0;
+        });
+        dynamicEndpoints = usable.map((m) => `https://generativelanguage.googleapis.com/v1beta/${m.name}:generateContent?key=${effectiveKey.trim()}`);
+      }
+    } catch (e) {
+      console.warn("ModelService.ListModels 탐색 실패, 기본 엔드포인트 목록 사용:", e);
+    }
+    const defaultEndpoints = [
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${effectiveKey.trim()}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${effectiveKey.trim()}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${effectiveKey.trim()}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-latest:generateContent?key=${effectiveKey.trim()}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${effectiveKey.trim()}`
     ];
+    const allEndpoints = Array.from(/* @__PURE__ */ new Set([...dynamicEndpoints, ...defaultEndpoints]));
     let lastError = null;
-    for (const model of models) {
+    for (const url of allEndpoints) {
       try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${effectiveKey}`;
         const response = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -32814,7 +32834,7 @@ IconFile=${currentUrl}favicon.ico\r
         if (!response.ok) {
           const errJson = await response.json().catch(() => ({}));
           const errMsg = errJson?.error?.message || `HTTP ${response.status}`;
-          lastError = new Error(`[${model}] ${errMsg}`);
+          lastError = new Error(`${errMsg}`);
           continue;
         }
         const resData = await response.json();
