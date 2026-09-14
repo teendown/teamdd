@@ -29,6 +29,8 @@ import DesktopShortcutModal from './modals/DesktopShortcutModal.jsx';
 import OcrCustomerModal from './modals/OcrCustomerModal.jsx';
 import DocConvertModal from './modals/DocConvertModal.jsx';
 import ExitConfirmModal from './modals/ExitConfirmModal.jsx';
+import PurchaseOcrModal from './modals/PurchaseOcrModal.jsx';
+import PurchaseItemImportModal from './modals/PurchaseItemImportModal.jsx';
 
 // Navigation Manager
 import {
@@ -44,6 +46,7 @@ import {
 // Pages
 import DashboardTab from './pages/DashboardTab.jsx';
 import StatementTab from './pages/StatementTab.jsx';
+import PurchaseTab from './pages/PurchaseTab.jsx';
 import AccountingTab from './pages/AccountingTab.jsx';
 import ScheduleTab from './pages/ScheduleTab.jsx';
 import CustomerTab from './pages/CustomerTab.jsx';
@@ -106,6 +109,7 @@ export default function App() {
   const [documentsList, setDocumentsList] = useState(() => getLocalItem('dd_documents_history_v1', []));
   const [schedulesList, setSchedulesList] = useState(() => getLocalItem('dd_schedules_list_v1', DEMO_SCHEDULES));
   const [partsList, setPartsList] = useState(() => getLocalItem('dd_parts_list_v1', DEMO_PARTS));
+  const [purchasesList, setPurchasesList] = useState(() => getLocalItem('dd_purchases_list_v1', []));
   const hasSyncedCustRef = useRef(false);
 
   // Form Fields State
@@ -159,6 +163,8 @@ export default function App() {
   const [quickCustomerInitialName, setQuickCustomerInitialName] = useState('');
   const [isPastStatementModalOpen, setIsPastStatementModalOpen] = useState(false);
   const [isOcrModalOpen, setIsOcrModalOpen] = useState(false);
+  const [isPurchaseOcrModalOpen, setIsPurchaseOcrModalOpen] = useState(false);
+  const [isPurchaseImportModalOpen, setIsPurchaseImportModalOpen] = useState(false);
   const [isDesktopShortcutModalOpen, setIsDesktopShortcutModalOpen] = useState(false);
   const [isDocConvertModalOpen, setIsDocConvertModalOpen] = useState(false);
   const [isExitConfirmModalOpen, setIsExitConfirmModalOpen] = useState(false);
@@ -172,9 +178,97 @@ export default function App() {
     });
   }, [selectedSupplierKey]);
 
+  const handleReloadPurchases = useCallback(() => {
+    dbFetch('purchase_invoices', []).then(data => {
+      setPurchasesList(data);
+    });
+  }, []);
+
   useEffect(() => {
     handleReloadDocuments();
-  }, [handleReloadDocuments]);
+    handleReloadPurchases();
+  }, [handleReloadDocuments, handleReloadPurchases]);
+
+  // 매입전표 저장 핸들러 (품목 자동 부품함 등록 포함)
+  const handleSavePurchase = async (purchaseData, autoRegisterParts = true) => {
+    try {
+      const saved = await dbSave('purchase_invoices', purchaseData);
+      setPurchasesList(prev => [saved, ...prev.filter(p => p.id !== saved.id)]);
+
+      // 품목들을 부품/재고 목록(parts)에 자동 등록 또는 단가 갱신
+      if (autoRegisterParts && Array.isArray(purchaseData.items)) {
+        let updatedParts = [...partsList];
+        for (const item of purchaseData.items) {
+          if (!item.name || !item.name.trim()) continue;
+          const existingIdx = updatedParts.findIndex(p => p.name.trim().toLowerCase() === item.name.trim().toLowerCase());
+          if (existingIdx !== -1) {
+            // 기존 부품 매입단가 갱신
+            const existing = updatedParts[existingIdx];
+            const updated = {
+              ...existing,
+              price: item.unit_price || existing.price,
+              spec: item.spec || existing.spec
+            };
+            await dbSave('parts', updated);
+            updatedParts[existingIdx] = updated;
+          } else {
+            // 신규 부품 등록
+            const newCode = `PART-${Date.now().toString().slice(-4)}${Math.floor(Math.random() * 100)}`;
+            const newPart = {
+              code: newCode,
+              name: item.name,
+              spec: item.spec || '',
+              unit: 'EA',
+              price: item.unit_price || 0,
+              stock: item.qty || 0,
+              supplier_key: purchaseData.supplier_key
+            };
+            const savedPart = await dbSave('parts', newPart);
+            updatedParts.push(savedPart);
+          }
+        }
+        setPartsList(updatedParts);
+      }
+
+      alert('✓ 매입전표가 성공적으로 저장되었습니다.');
+      setIsPurchaseOcrModalOpen(false);
+    } catch (err) {
+      console.error('Save purchase error:', err);
+      alert('매입전표 저장 중 오류가 발생했습니다: ' + (err.message || err));
+    }
+  };
+
+  // 매입전표 삭제 핸들러
+  const handleDeletePurchase = async (id) => {
+    try {
+      await dbDelete('purchase_invoices', id);
+      setPurchasesList(prev => prev.filter(p => p.id !== id));
+      alert('✓ 매입전표가 삭제되었습니다.');
+    } catch (err) {
+      console.error('Delete purchase error:', err);
+      alert('매입전표 삭제 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 과거 매입 품목 명세서 캔버스 추가 핸들러
+  const handleImportPurchaseItems = (importedItems) => {
+    const cleanExisting = items.filter(it => it.name && it.name.trim() !== '');
+    const formatted = importedItems.map(it => ({
+      id: (Date.now() + Math.random()).toString(),
+      code: '',
+      name: it.name,
+      spec: it.spec || '',
+      unit: 'EA',
+      qty: it.qty || 1,
+      price: it.price || 0,
+      amount: (it.qty || 1) * (it.price || 0),
+      memo: it.memo || ''
+    }));
+
+    setItems([...cleanExisting, ...formatted]);
+    setIsSavedThisSession(false);
+    setActiveTab('doc');
+  };
 
   const [scheduleSubView, setScheduleSubView] = useState('calendar');
 
@@ -1185,6 +1279,24 @@ export default function App() {
           onConfirmConvert={handleExecuteDocConvert}
         />
 
+        {/* 매입전표 AI 등록 모달 */}
+        <PurchaseOcrModal
+          isOpen={isPurchaseOcrModalOpen}
+          onClose={() => setIsPurchaseOcrModalOpen(false)}
+          suppliersList={suppliersList}
+          selectedSupplierKey={selectedSupplierKey}
+          onSavePurchase={handleSavePurchase}
+        />
+
+        {/* 매입품목 견적서/명세서 불러오기 모달 */}
+        <PurchaseItemImportModal
+          isOpen={isPurchaseImportModalOpen}
+          onClose={() => setIsPurchaseImportModalOpen(false)}
+          purchasesList={purchasesList}
+          selectedSupplierKey={selectedSupplierKey}
+          onImportItems={handleImportPurchaseItems}
+        />
+
         <main className="main-content">
           {/* 1. 홈 (대시보드 탭) */}
           {activeTab === 'dashboard' && (
@@ -1287,10 +1399,22 @@ export default function App() {
               documentsList={documentsList}
               onLoadDocument={handleLoadDocument}
               onCopyDocument={handleCopyDocument}
+              onOpenPurchaseImportModal={() => setIsPurchaseImportModalOpen(true)}
             />
           )}
 
-          {/* 3. 문서조회 탭 */}
+          {/* 3. 매입 관리 탭 (외부 구매 전표/영수증 및 부품원가 관리) */}
+          {activeTab === 'purchase' && (
+            <PurchaseTab
+              purchasesList={purchasesList}
+              suppliersList={suppliersList}
+              selectedSupplierKey={selectedSupplierKey}
+              onOpenOcrModal={() => setIsPurchaseOcrModalOpen(true)}
+              onDeletePurchase={handleDeletePurchase}
+            />
+          )}
+
+          {/* 4. 문서조회 탭 */}
           {activeTab === 'history' && (
             <DocHistoryTab
               onLoadDocument={handleLoadDocument}

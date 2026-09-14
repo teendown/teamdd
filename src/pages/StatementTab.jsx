@@ -71,7 +71,8 @@ export default function StatementTab({
   onOpenDraftsModal,
   draftsCount = 0,
   onUpdateScheduleStatus,
-  onNavigateToDoc
+  onNavigateToDoc,
+  onOpenPurchaseImportModal
 }) {
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [selectedPartnerToAdd, setSelectedPartnerToAdd] = useState('');
@@ -691,6 +692,32 @@ export default function StatementTab({
             </button>
           )}
         </div>
+
+        {/* 과거 매입 품목 불러오기 버튼 */}
+        {onOpenPurchaseImportModal && (
+          <div style={{ marginBottom: '1rem' }}>
+            <button
+              type="button"
+              className="btn btn-outline"
+              style={{
+                width: '100%',
+                minHeight: '36px',
+                fontSize: '0.8125rem',
+                fontWeight: '800',
+                color: '#1e40af',
+                backgroundColor: '#eff6ff',
+                borderColor: '#93c5fd',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+              onClick={onOpenPurchaseImportModal}
+            >
+              📦 과거 매입 품목 불러오기 (원가 확인 및 마진 적용)
+            </button>
+          </div>
+        )}
 
         {/* 공급받는자 (거래처) 섹션 */}
         <div className="form-section">

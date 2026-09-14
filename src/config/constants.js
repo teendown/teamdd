@@ -18,7 +18,8 @@ export const STORAGE_KEYS = {
   DRAFTS: 'dd_drafts_store_v1',
   SELECTED_SUPPLIER: 'selected_supplier_key',
   LOGGED_IN: 'dd_logged_in',
-  USER_ROLE: 'dd_user_role'
+  USER_ROLE: 'dd_user_role',
+  PURCHASES: 'dd_purchases_list_v1'
 };
 
 export const SQL_ALL = `-- TEAM D.D 전체 스키마 (한번에 실행)
@@ -84,4 +85,20 @@ create table if not exists schedules (
   supplier_key text,
   created_at timestamptz default now()
 );
-alter table schedules disable row level security;`;
+alter table schedules disable row level security;
+
+create table if not exists purchase_invoices (
+  id uuid primary key default gen_random_uuid(),
+  supplier_key text not null default 'sejin',
+  vendor_name text not null,
+  vendor_bizno text,
+  invoice_date text not null,
+  total_amount integer default 0,
+  supply_amount integer default 0,
+  vat_amount integer default 0,
+  items jsonb default '[]'::jsonb,
+  receipt_image text,
+  memo text,
+  created_at timestamptz default now()
+);
+alter table purchase_invoices disable row level security;`;

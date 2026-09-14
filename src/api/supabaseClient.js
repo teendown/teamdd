@@ -109,15 +109,24 @@ export async function dbFetch(table, fallback = [], customOrderCol = null) {
   const selectedSupplierKey = sessionStorage.getItem(STORAGE_KEYS.SELECTED_SUPPLIER) || localStorage.getItem(STORAGE_KEYS.SELECTED_SUPPLIER) || 'sejin';
 
   let orderCol = customOrderCol;
+  let isAscending = true;
   if (!orderCol) {
-    if (table === 'schedules') orderCol = 'start_date';
-    else if (table === 'documents') orderCol = 'doc_date';
-    else orderCol = 'code';
+    if (table === 'schedules') {
+      orderCol = 'start_date';
+    } else if (table === 'documents') {
+      orderCol = 'doc_date';
+      isAscending = false;
+    } else if (table === 'purchase_invoices') {
+      orderCol = 'invoice_date';
+      isAscending = false;
+    } else {
+      orderCol = 'code';
+    }
   }
 
   if (sb) {
     try {
-      const { data, error } = await sb.from(table).select('*').order(orderCol, { ascending: true });
+      const { data, error } = await sb.from(table).select('*').order(orderCol, { ascending: isAscending });
       if (!error && Array.isArray(data)) {
         let unpacked = data.map(unpackRow);
         setLocalItem('dd_' + table + '_list_v1', unpacked);
