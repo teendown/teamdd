@@ -22,6 +22,7 @@ export default function DocumentCanvas({
   dueDate,
   receiverName,
   receiveDate,
+  showPartNoColumn = true,
   setItems,
   setCustomer,
   setRemark
@@ -587,16 +588,19 @@ export default function DocumentCanvas({
                 <table className="items-table-modern" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                   <thead>
                     <tr style={{ backgroundColor: '#1d6bf3', color: '#ffffff', fontSize: '12px', height: '30px' }}>
-                      <th style={{ width: '40px', textAlign: 'center', fontWeight: '700', borderRight: '1px solid rgba(255,255,255,0.2)' }}>No</th>
+                      <th style={{ width: showPartNoColumn ? '35px' : '40px', textAlign: 'center', fontWeight: '600', borderRight: '1px solid rgba(255,255,255,0.2)' }}>No</th>
                       {docType === '청구서' && (
-                        <th style={{ width: '45px', textAlign: 'center', fontWeight: '700', borderRight: '1px solid rgba(255,255,255,0.2)' }}>일자</th>
+                        <th style={{ width: '45px', textAlign: 'center', fontWeight: '600', borderRight: '1px solid rgba(255,255,255,0.2)' }}>일자</th>
                       )}
-                      <th style={{ textAlign: 'center', fontWeight: '700', borderRight: '1px solid rgba(255,255,255,0.2)' }}>품명 및 규격</th>
-                      <th style={{ width: '55px', textAlign: 'center', fontWeight: '700', borderRight: '1px solid rgba(255,255,255,0.2)' }}>단위</th>
-                      <th style={{ width: '45px', textAlign: 'center', fontWeight: '700', borderRight: '1px solid rgba(255,255,255,0.2)' }}>수량</th>
-                      <th style={{ width: '110px', textAlign: 'center', fontWeight: '700', borderRight: '1px solid rgba(255,255,255,0.2)' }}>단가</th>
-                      <th style={{ width: '120px', textAlign: 'center', fontWeight: '700', borderRight: '1px solid rgba(255,255,255,0.2)' }}>공급가액</th>
-                      <th style={{ width: '80px', textAlign: 'center', fontWeight: '700' }}>비고</th>
+                      {showPartNoColumn && (
+                        <th style={{ width: '85px', textAlign: 'center', fontWeight: '600', borderRight: '1px solid rgba(255,255,255,0.2)' }}>부품번호</th>
+                      )}
+                      <th style={{ textAlign: 'center', fontWeight: '600', borderRight: '1px solid rgba(255,255,255,0.2)' }}>품명 및 규격</th>
+                      <th style={{ width: showPartNoColumn ? '45px' : '55px', textAlign: 'center', fontWeight: '600', borderRight: '1px solid rgba(255,255,255,0.2)' }}>단위</th>
+                      <th style={{ width: '45px', textAlign: 'center', fontWeight: '600', borderRight: '1px solid rgba(255,255,255,0.2)' }}>수량</th>
+                      <th style={{ width: showPartNoColumn ? '105px' : '110px', textAlign: 'center', fontWeight: '600', borderRight: '1px solid rgba(255,255,255,0.2)' }}>단가</th>
+                      <th style={{ width: showPartNoColumn ? '115px' : '120px', textAlign: 'center', fontWeight: '600', borderRight: '1px solid rgba(255,255,255,0.2)' }}>공급가액</th>
+                      <th style={{ width: showPartNoColumn ? '75px' : '80px', textAlign: 'center', fontWeight: '600' }}>비고</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -621,18 +625,35 @@ export default function DocumentCanvas({
                               {item && item.date ? item.date.substring(5).replace('-', '/') : ''}
                             </td>
                           )}
-                          <td style={{ padding: '0 2px', fontWeight: item ? '700' : 'normal', fontSize: '12px', color: '#0f172a', borderRight: '1px solid #e2e8f0' }}>
-                            {setItems ? (
-                              <input
-                                className="canvas-input"
-                                style={{ fontWeight: item ? '700' : 'normal', fontSize: '12px' }}
-                                value={(item && item.name) || ''}
-                                onChange={(e) => updateItem(realIdx, 'name', e.target.value)}
-                                placeholder={realIdx === 0 && !(item && item.name) ? '품명 입력...' : ''}
-                              />
-                            ) : (
-                              (item && item.name) || ''
-                            )}
+                          {showPartNoColumn && (
+                            <td style={{ textAlign: 'center', fontFamily: 'monospace', fontSize: '11px', color: '#1E293B', fontWeight: '700', borderRight: '1px solid #e2e8f0', padding: '0 4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {setItems ? (
+                                <input
+                                  className="canvas-input"
+                                  style={{ textAlign: 'center', fontFamily: 'monospace', fontSize: '11px', fontWeight: '700', width: '100%' }}
+                                  value={(item && item.code) ? String(item.code).replace(/^PART[-_]?/i, '') : ''}
+                                  onChange={(e) => updateItem(realIdx, 'code', e.target.value)}
+                                  placeholder=""
+                                />
+                              ) : (
+                                (item && item.code) ? String(item.code).replace(/^PART[-_]?/i, '') : ''
+                              )}
+                            </td>
+                          )}
+                          <td style={{ padding: '0 4px', fontWeight: item ? '600' : 'normal', fontSize: '12px', color: '#0f172a', borderRight: '1px solid #e2e8f0' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', minWidth: 0, width: '100%' }}>
+                              {setItems ? (
+                                <input
+                                  className="canvas-input"
+                                  style={{ fontWeight: item ? '600' : 'normal', fontSize: '12px', flex: 1, minWidth: 0, width: '100%' }}
+                                  value={(item && item.name) || ''}
+                                  onChange={(e) => updateItem(realIdx, 'name', e.target.value)}
+                                  placeholder={realIdx === 0 && !(item && item.name) ? '품명 입력...' : ''}
+                                />
+                              ) : (
+                                <span style={{ wordBreak: 'break-all' }}>{(item && item.name) || ''}</span>
+                              )}
+                            </div>
                           </td>
                           <td style={{ textAlign: 'center', fontSize: '11px', color: '#475569', borderRight: '1px solid #e2e8f0' }}>
                             {setItems ? (
@@ -887,7 +908,7 @@ export default function DocumentCanvas({
               >
                 <span>※ 품목 내역이 다음 페이지로 계속 이어집니다. ({pageIdx + 1} / {pages.length} 페이지)</span>
                 <span style={{ color: '#1d6bf3', fontWeight: '800' }}>
-                  (다음 {pageIdx + 2}페이지에 계속 ➡️)
+                  (다음 {pageIdx + 2}페이지에 계속 →)
                 </span>
               </div>
             )}

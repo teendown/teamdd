@@ -1,4 +1,4 @@
-﻿// 🎨 TEAM D.D PURCHASE MANAGEMENT TAB (매입전표 / 영수증 / 매입원장 관리)
+// 🎨 TEAM D.D PURCHASE MANAGEMENT TAB (매입전표 / 영수증 / 매입원장 관리)
 import React, { useState, useMemo, useEffect } from 'react';
 import { areSupplierKeysEquivalent } from '../utils/validation.js';
 import { registerBackHandler } from '../utils/navigationManager.js';
@@ -28,9 +28,15 @@ export default function PurchaseTab({
     }, 'PurchaseTabDetailModal');
   }, [selectedInvoice, viewReceiptImage]);
 
-  // 필터링된 매입전표 목록
+  // 필터링된 매입전표 목록 (타 사업자 매입전표 엄격 차단)
   const filteredPurchases = useMemo(() => {
     return purchasesList.filter(p => {
+      // 일반 사업자(supplier)는 본인 사업자 매입전표만 열람 가능
+      const userRole = sessionStorage.getItem('dd_user_role') || 'supplier';
+      if (userRole === 'supplier' && !areSupplierKeysEquivalent(p.supplier_key, selectedSupplierKey)) {
+        return false;
+      }
+
       // 내 사업자 필터
       if (supplierFilter !== 'all') {
         if (!areSupplierKeysEquivalent(p.supplier_key, supplierFilter)) return false;
@@ -41,12 +47,14 @@ export default function PurchaseTab({
         const vendorMatch = (p.vendor_name || '').toLowerCase().includes(q);
         const biznoMatch = (p.vendor_bizno || '').includes(q);
         const memoMatch = (p.memo || '').toLowerCase().includes(q);
-        const itemMatch = Array.isArray(p.items) && p.items.some(it => (it.name || '').toLowerCase().includes(q));
+        const itemMatch = Array.isArray(p.items) && p.items.some(it => 
+          (it.name || '').toLowerCase().includes(q) || (it.part_no || '').toLowerCase().includes(q)
+        );
         return vendorMatch || biznoMatch || memoMatch || itemMatch;
       }
       return true;
     });
-  }, [purchasesList, supplierFilter, search]);
+  }, [purchasesList, supplierFilter, search, selectedSupplierKey]);
 
   // 통계 계산
   const stats = useMemo(() => {
@@ -403,6 +411,7 @@ export default function PurchaseTab({
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
                     <thead>
                       <tr style={{ backgroundColor: '#F1F5F9', borderBottom: '1px solid #E2E8F0', color: '#475569' }}>
+                        <th style={{ padding: '6px 8px', textAlign: 'left' }}>부품번호</th>
                         <th style={{ padding: '6px 8px', textAlign: 'left' }}>품목명</th>
                         <th style={{ padding: '6px 8px', textAlign: 'left' }}>규격</th>
                         <th style={{ padding: '6px 8px', textAlign: 'right' }}>수량</th>
@@ -413,6 +422,9 @@ export default function PurchaseTab({
                     <tbody>
                       {Array.isArray(selectedInvoice.items) && selectedInvoice.items.map((it, idx) => (
                         <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                          <td style={{ padding: '6px 8px', fontFamily: 'monospace', fontWeight: '800', color: '#1D4ED8' }}>
+                            {it.part_no || it.code || '-'}
+                          </td>
                           <td style={{ padding: '6px 8px', fontWeight: '700' }}>{it.name}</td>
                           <td style={{ padding: '6px 8px', color: '#64748B' }}>{it.spec || '-'}</td>
                           <td style={{ padding: '6px 8px', textAlign: 'right' }}>{it.qty}</td>

@@ -37,13 +37,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 
   <!-- Modular CSS Architecture -->
-  <link rel="stylesheet" href="./css/base.css?v=2.3.9">
-  <link rel="stylesheet" href="./css/layout.css?v=2.3.9">
-  <link rel="stylesheet" href="./css/components.css?v=2.3.9">
-  <link rel="stylesheet" href="./css/modals.css?v=2.3.9">
-  <link rel="stylesheet" href="./css/print.css?v=2.3.9">
-  <link rel="stylesheet" href="./style.css?v=2.3.9">
-  <link rel="stylesheet" href="./src/App.css?v=2.3.9">
+  <link rel="stylesheet" href="./css/base.css?v=2.4.4">
+  <link rel="stylesheet" href="./css/layout.css?v=2.4.4">
+  <link rel="stylesheet" href="./css/components.css?v=2.4.4">
+  <link rel="stylesheet" href="./css/modals.css?v=2.4.4">
+  <link rel="stylesheet" href="./css/print.css?v=2.4.4">
+  <link rel="stylesheet" href="./style.css?v=2.4.4">
+  <link rel="stylesheet" href="./src/App.css?v=2.4.4">
 
   <!-- Export Helpers & Database CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
@@ -60,7 +60,7 @@
 </head>
 <body>
   <div id="loading-indicator" style="padding:2rem;text-align:center;font-family:sans-serif;color:#6b7280;font-size:0.9rem;">
-    ⏳ 앱 로딩 중...
+    앱 로딩 중...
   </div>
   <div id="root"></div>
 
@@ -75,13 +75,12 @@
       var root = document.getElementById('root');
       if (!root) return;
       var btn = document.createElement('button');
-      btn.textContent = '🔄 새로고침';
+      btn.textContent = '새로고침';
       btn.style.cssText = 'padding:0.6rem 1.25rem;background:#1d4ed8;color:white;border:none;border-radius:8px;font-weight:700;font-size:0.875rem;cursor:pointer;margin-top:1rem;';
       btn.onclick = function() { location.href = location.pathname + '?v=' + Date.now(); };
       var wrap = document.createElement('div');
       wrap.style.cssText = 'padding:1.5rem;text-align:center;font-family:sans-serif;max-width:520px;margin:0 auto;';
-      wrap.innerHTML = '<div style="font-size:2rem;margin-bottom:0.5rem;">⚠️</div>' +
-        '<h2 style="color:#dc2626;font-size:1.1rem;font-weight:800;margin-bottom:0.5rem;">앱 로딩 오류</h2>' +
+      wrap.innerHTML = '<h2 style="color:#dc2626;font-size:1.1rem;font-weight:800;margin-bottom:0.5rem;">앱 로딩 오류</h2>' +
         '<p style="color:#374151;font-size:0.85rem;margin-bottom:0.75rem;">' + msg + '</p>' +
         '<div style="font-size:0.7rem;color:#6b7280;background:#f9fafb;border:1px solid #e5e7eb;padding:8px 10px;border-radius:6px;text-align:left;word-break:break-all;margin-bottom:1rem;">' + (detail || '') + '</div>';
       wrap.appendChild(btn);
@@ -100,6 +99,6 @@
   </script>
 
   <!-- High-Performance Bundled Application Entry -->
-  <script src="./app.bundle.js?v=2.3.9"></script>
+  <script src="./app.bundle.js?v=2.4.4"></script>
 </body>
 </html>

@@ -188,24 +188,26 @@ export default function EstimateImportModal({
                       <button
                         type="button"
                         className="btn btn-primary"
-                        style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem', backgroundColor: '#059669', borderColor: '#059669' }}
+                        style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem', backgroundColor: '#059669', borderColor: '#059669', fontWeight: '700' }}
+                        title="견적서 품목/거래처를 가져와 신규 거래명세서로 작성합니다"
                         onClick={() => {
                           onApplyEstimate(doc, 'convert_to_statement');
                           onClose();
                         }}
                       >
-                        📋 거래명세서로 작성
+                        📋 신규 명세서로 변환
                       </button>
                       <button
                         type="button"
                         className="btn btn-outline"
-                        style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem', color: '#4338ca', borderColor: '#c7d2fe' }}
+                        style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem', color: '#1d4ed8', borderColor: '#93c5fd', backgroundColor: '#eff6ff', fontWeight: '700' }}
+                        title="이 견적서 원본을 불러와 수정/덮어씁니다"
                         onClick={() => {
                           onApplyEstimate(doc, 'load_as_estimate');
                           onClose();
                         }}
                       >
-                        📂 견적서 불러오기
+                        ✏️ 기존 견적서 수정
                       </button>
                     </div>
                   </div>

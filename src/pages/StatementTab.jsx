@@ -72,8 +72,21 @@ export default function StatementTab({
   draftsCount = 0,
   onUpdateScheduleStatus,
   onNavigateToDoc,
-  onOpenPurchaseImportModal
+  onOpenPurchaseImportModal,
+  partsList = [],
+  onConvertToNewDocument
 }) {
+  // 부품번호 독립 컬럼 표시 여부 (모든 전표 유형 공유, localStorage 영구 기억)
+  const [showPartNoColumn, setShowPartNoColumn] = useState(() => {
+    const saved = localStorage.getItem('dd_show_part_no_col_v1');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  const handleTogglePartNoColumn = (val) => {
+    setShowPartNoColumn(val);
+    localStorage.setItem('dd_show_part_no_col_v1', String(val));
+  };
+
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [selectedPartnerToAdd, setSelectedPartnerToAdd] = useState('');
   const [isPartnersExpanded, setIsPartnersExpanded] = useState(false);
@@ -169,7 +182,8 @@ export default function StatementTab({
         vat,
         vatIncluded,
         paid,
-        remark
+        remark,
+        showPartNoColumn
       });
     } catch (err) {
       console.error('엑셀 내보내기 오류:', err);
@@ -213,7 +227,7 @@ export default function StatementTab({
               alignItems: 'center'
             }}
           >
-            <span>✏️ 저장된 문서 [{docNo}] 수정 중입니다.</span>
+            <span>저장된 문서 [{docNo}] 수정 중입니다.</span>
             <button
               style={{
                 border: 'none',
@@ -232,29 +246,39 @@ export default function StatementTab({
 
         {/* 문서 기본 설정 */}
         <div className="form-section">
-          <div className="section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-            <span style={{ fontSize: '0.9375rem', fontWeight: '900' }}>📄 {docType} 기본 설정</span>
-            {onOpenConvertModal && (
-              <button
-                type="button"
-                className="btn btn-outline"
-                style={{
-                  fontSize: '0.75rem',
-                  padding: '3px 8px',
-                  borderColor: '#93c5fd',
-                  color: '#1d4ed8',
-                  backgroundColor: '#eff6ff',
-                  fontWeight: '700',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-                onClick={onOpenConvertModal}
-                title="현재 문서를 다른 양식으로 복사 변환"
-              >
-                🔄 다른 양식으로 변환
-              </button>
-            )}
+          <div className="section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '6px' }}>
+            <span style={{ fontSize: '13px', fontWeight: '700', color: '#0F172A' }}>{docType} 설정</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: '600', color: '#1E293B', cursor: 'pointer', padding: '2px 7px', backgroundColor: showPartNoColumn ? '#EFF6FF' : '#F8FAFC', border: `1px solid ${showPartNoColumn ? '#93C5FD' : '#CBD5E1'}`, borderRadius: '5px', userSelect: 'none' }} title="명세서/견적서/청구서 본문 표에 부품번호 독립 열을 표시합니다">
+                <input
+                  type="checkbox"
+                  checked={showPartNoColumn}
+                  onChange={e => handleTogglePartNoColumn(e.target.checked)}
+                  style={{ width: '12px', height: '12px', accentColor: '#1D4ED8', cursor: 'pointer' }}
+                />
+                <span>부품번호 열 사용</span>
+              </label>
+              {onOpenConvertModal && (
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  style={{
+                    fontSize: '11px',
+                    padding: '2px 7px',
+                    borderColor: '#93c5fd',
+                    color: '#1d4ed8',
+                    backgroundColor: '#eff6ff',
+                    fontWeight: '600',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                  onClick={onOpenConvertModal}
+                  title="현재 문서를 다른 양식으로 복사 변환"
+                >
+                  양식 변환
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="grid-2">
@@ -332,14 +356,14 @@ export default function StatementTab({
                   }}
                   style={{ width: '16px', height: '16px', accentColor: '#4f46e5', cursor: 'pointer' }}
                 />
-                <span style={{ fontSize: '0.8125rem', fontWeight: '800', color: isDocShared ? '#3730a3' : '#334155' }}>
-                  🤝 공동작업 (협력 파트너 1인 / 2인 이상 다수 정산)
+                <span style={{ fontSize: '12px', fontWeight: '700', color: isDocShared ? '#3730a3' : '#334155' }}>
+                  공동작업 (협력 파트너 정산)
                 </span>
               </label>
 
               {isDocShared && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: '800', backgroundColor: '#4f46e5', color: '#ffffff', padding: '2px 8px', borderRadius: '9999px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: '700', backgroundColor: '#4f46e5', color: '#ffffff', padding: '2px 8px', borderRadius: '9999px' }}>
                     {`공동작업 (${(partners || []).length}명 참여)`}
                   </span>
                   <button
@@ -350,7 +374,7 @@ export default function StatementTab({
                       backgroundColor: isPartnersExpanded ? '#e0e7ff' : '#ffffff',
                       color: '#4338ca',
                       fontSize: '11px',
-                      fontWeight: '800',
+                      fontWeight: '700',
                       padding: '2px 8px',
                       borderRadius: '6px',
                       cursor: 'pointer',
@@ -360,7 +384,7 @@ export default function StatementTab({
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    {isPartnersExpanded ? '▲ 접기' : '▼ 상세 확인/수정'}
+                    {isPartnersExpanded ? '접기 ▲' : '상세 설정 ▼'}
                   </button>
                 </div>
               )}
@@ -389,14 +413,14 @@ export default function StatementTab({
                 title="클릭하여 파트너 및 정산금 상세 설정 펼치기"
               >
                 {(partners || []).length === 0 ? (
-                  <div style={{ fontSize: '0.75rem', color: '#d97706', fontWeight: '700' }}>
-                    ⚠️ 등록된 파트너가 없습니다. (클릭하여 파트너 추가)
+                  <div style={{ fontSize: '11px', color: '#d97706', fontWeight: '600' }}>
+                    등록된 파트너가 없습니다. (클릭하여 파트너 추가)
                   </div>
                 ) : (
                   <>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '11px', fontWeight: '800', color: '#4338ca' }}>
-                        👥 참여 파트너:
+                      <span style={{ fontSize: '11px', fontWeight: '700', color: '#4338ca' }}>
+                        참여 파트너:
                       </span>
                       {(partners || []).map((p, idx) => (
                         <span
@@ -445,7 +469,7 @@ export default function StatementTab({
 
                   {(partners || []).length === 0 ? (
                     <div style={{ fontSize: '0.75rem', color: '#64748b', backgroundColor: '#ffffff', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                      ⚠️ 등록된 협력 파트너가 없습니다. 아래에서 파트너를 추가해 주세요.
+                      등록된 협력 파트너가 없습니다. 아래에서 파트너를 추가해 주세요.
                     </div>
                   ) : (
                     (partners || []).map((p, pIdx) => (
@@ -576,7 +600,7 @@ export default function StatementTab({
                 </div>
 
                 <div style={{ fontSize: '0.6875rem', color: '#6366f1', lineHeight: '1.4' }}>
-                  ℹ️ 고객용 출력 문서에는 대표 공급자({currentSupplier.company || currentSupplier.name || '본사'}) 정보만 깔끔하게 단일 표기되며, 지정된 모든 협력사({(partners || []).length}개사)에 실시간 자동 공유 및 개별 정산 관리됩니다.
+                  ※ 고객용 출력 문서에는 대표 공급자({currentSupplier.company || currentSupplier.name || '본사'}) 정보만 깔끔하게 단일 표기되며, 지정된 모든 협력사({(partners || []).length}개사)에 실시간 자동 공유 및 개별 정산 관리됩니다.
                 </div>
 
                 {/* 설정 완료 및 접기 버튼 */}
@@ -624,6 +648,55 @@ export default function StatementTab({
           </div>
         </div>
 
+        {/* 기존 문서 수정 중 알림 배지 */}
+        {editingDocId && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '10px 14px',
+              marginBottom: '0.75rem',
+              backgroundColor: '#eff6ff',
+              border: '1.5px solid #60a5fa',
+              borderRadius: '8px',
+              boxShadow: '0 1px 3px rgba(37,99,235,0.08)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '1.1rem' }}>✏️</span>
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: '800', color: '#1e3a8a' }}>
+                  기존 {docType} 수정 모드
+                </div>
+                <div style={{ fontSize: '11px', color: '#3b82f6', fontFamily: 'monospace' }}>
+                  문서번호: {docNo || '(미정)'} | 저장 시 원본에 덮어씌워집니다.
+                </div>
+              </div>
+            </div>
+            {onConvertToNewDocument && (
+              <button
+                type="button"
+                className="btn btn-outline"
+                style={{
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  padding: '4px 10px',
+                  backgroundColor: '#ffffff',
+                  borderColor: '#10b981',
+                  color: '#059669',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+                onClick={onConvertToNewDocument}
+                title="현재 입력된 내용을 유지한 채 새 문서 번호로 전환합니다"
+              >
+                ✨ 새 문서로 전환
+              </button>
+            )}
+          </div>
+        )}
+
         {/* 상단 문서 제어 버튼 바 */}
         <div
           style={{
@@ -636,20 +709,20 @@ export default function StatementTab({
           <button
             type="button"
             className="btn btn-primary"
-            style={{ fontSize: '0.8125rem', padding: '0 6px', fontWeight: '800' }}
+            style={{ fontSize: '12px', padding: '0 6px', fontWeight: '700' }}
             onClick={onResetForm}
           >
-            ✨ 신규 작성
+            신규 작성
           </button>
 
           {docType === '거래명세서' && (
             <button
               type="button"
               className="btn btn-blue"
-              style={{ fontSize: '0.8125rem', padding: '0 6px', fontWeight: '700' }}
+              style={{ fontSize: '12px', padding: '0 6px', fontWeight: '600' }}
               onClick={() => onOpenPastStatementModal && onOpenPastStatementModal()}
             >
-              📂 지난 명세서
+              지난 명세서
             </button>
           )}
 
@@ -657,10 +730,10 @@ export default function StatementTab({
             <button
               type="button"
               className="btn btn-outline"
-              style={{ fontSize: '0.8125rem', padding: '0 6px', fontWeight: '700' }}
+              style={{ fontSize: '12px', padding: '0 6px', fontWeight: '600' }}
               onClick={() => onOpenEstimateModal && onOpenEstimateModal('convert_to_statement')}
             >
-              📑 견적서 가져오기
+              견적서 가져오기
             </button>
           )}
 
@@ -668,10 +741,10 @@ export default function StatementTab({
             <button
               type="button"
               className="btn btn-outline"
-              style={{ fontSize: '0.8125rem', padding: '0 6px', fontWeight: '700' }}
+              style={{ fontSize: '12px', padding: '0 6px', fontWeight: '600' }}
               onClick={() => onOpenEstimateModal && onOpenEstimateModal('import_estimate')}
             >
-              📂 견적서 목록
+              견적서 목록
             </button>
           )}
 
@@ -679,7 +752,7 @@ export default function StatementTab({
             <button
               type="button"
               className="btn btn-blue"
-              style={{ fontSize: '0.8125rem', padding: '0 6px', fontWeight: '700' }}
+              style={{ fontSize: '12px', padding: '0 6px', fontWeight: '600' }}
               onClick={() => {
                 if (!customer || !customer.name) {
                   alert('먼저 거래처를 검색하거나 입력해주세요.');
@@ -688,33 +761,32 @@ export default function StatementTab({
                 onAggregateOpen();
               }}
             >
-              🧾 명세서 취합
+              명세서 취합
             </button>
           )}
         </div>
 
         {/* 과거 매입 품목 불러오기 버튼 */}
         {onOpenPurchaseImportModal && (
-          <div style={{ marginBottom: '1rem' }}>
+          <div style={{ marginBottom: '0.875rem' }}>
             <button
               type="button"
               className="btn btn-outline"
               style={{
                 width: '100%',
-                minHeight: '36px',
-                fontSize: '0.8125rem',
-                fontWeight: '800',
+                minHeight: '34px',
+                fontSize: '12px',
+                fontWeight: '700',
                 color: '#1e40af',
                 backgroundColor: '#eff6ff',
                 borderColor: '#93c5fd',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px'
+                justifyContent: 'center'
               }}
               onClick={onOpenPurchaseImportModal}
             >
-              📦 과거 매입 품목 불러오기 (원가 확인 및 마진 적용)
+              과거 매입 품목 불러오기 (원가 확인 및 마진 적용)
             </button>
           </div>
         )}
@@ -722,8 +794,8 @@ export default function StatementTab({
         {/* 공급받는자 (거래처) 섹션 */}
         <div className="form-section">
           <div className="section-title" style={{ marginBottom: '0.5rem' }}>
-            <span style={{ fontWeight: '800', fontSize: '0.875rem', color: 'var(--c-navy-dark)' }}>
-              🏢 공급받는자 (거래처)
+            <span style={{ fontWeight: '700', fontSize: '13px', color: '#0F172A' }}>
+              공급받는자 (거래처)
             </span>
           </div>
           <div
@@ -737,7 +809,7 @@ export default function StatementTab({
             <button
               type="button"
               className="btn btn-outline"
-              style={{ fontSize: '0.8125rem', fontWeight: '700' }}
+              style={{ fontSize: '12px', fontWeight: '600' }}
               onClick={() => onAddNewCustomer(customer.name || '')}
             >
               + 신규 거래처
@@ -745,10 +817,10 @@ export default function StatementTab({
             <button
               type="button"
               className="btn btn-light"
-              style={{ fontSize: '0.8125rem', fontWeight: '700' }}
+              style={{ fontSize: '12px', fontWeight: '600' }}
               onClick={() => onOpenOcrModal && onOpenOcrModal()}
             >
-              📷 명함/등록증 AI
+              명함/등록증 AI 인식
             </button>
           </div>
 
@@ -896,12 +968,15 @@ export default function StatementTab({
           </div>
         )}
 
-        {/* 📦 스마트 품목 관리자 (1줄 스택 리스트 + 단일 스마트 입력창 + 팝업 미리보기) */}
+        {/* 스마트 품목 관리자 */}
         <SmartItemListManager
           items={items}
           setItems={setItems}
           docType={docType}
           vatIncluded={vatIncluded}
+          parts={partsList}
+          showPartNoColumn={showPartNoColumn}
+          onTogglePartNoColumn={handleTogglePartNoColumn}
         />
 
         {/* 부가세 토글 */}
@@ -946,10 +1021,10 @@ export default function StatementTab({
         {/* 입금 관리 (견적서 제외) */}
         {docType !== '견적서' && (
           <div className="form-section">
-            <div className="section-title">💳 입금 · 수금 관리</div>
+            <div className="section-title" style={{ fontSize: '13px', fontWeight: '700', color: '#0F172A', marginBottom: '8px' }}>입금 및 수금 관리</div>
             <div style={{ marginBottom: '10px' }}>
               <div className="form-group" style={{ marginTop: '8px' }}>
-                <label className="form-label">입금금액 (미수금은 0)</label>
+                <label className="form-label" style={{ fontSize: '12px', fontWeight: '600', color: '#475569' }}>입금금액 (미수금은 0)</label>
                 <input
                   type="number"
                   className="form-input"
@@ -977,12 +1052,13 @@ export default function StatementTab({
                       setPaymentStatus('미수금');
                     }
                   }}
+                  style={{ fontSize: '12px' }}
                 />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' }}>
                 <div className="form-group">
-                  <label className="form-label">입금방법</label>
+                  <label className="form-label" style={{ fontSize: '12px', fontWeight: '600', color: '#475569' }}>입금방법</label>
                   <select
                     className="form-select"
                     value={paymentMethod}
@@ -993,6 +1069,7 @@ export default function StatementTab({
                         setVatIncluded(true);
                       }
                     }}
+                    style={{ fontSize: '12px' }}
                   >
                     {['계좌이체', '현금', '카드', '어음', '기타'].map(m => (
                       <option key={m} value={m}>{m}</option>
@@ -1000,12 +1077,13 @@ export default function StatementTab({
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">입금일자</label>
+                  <label className="form-label" style={{ fontSize: '12px', fontWeight: '600', color: '#475569' }}>입금일자</label>
                   <input
                     type="date"
                     className="form-input"
                     value={paymentDate}
                     onChange={e => setPaymentDate(e.target.value)}
+                    style={{ fontSize: '12px' }}
                   />
                 </div>
               </div>
@@ -1015,11 +1093,11 @@ export default function StatementTab({
 
         {/* 비고란 */}
         <div className="form-section">
-          <div className="section-title">📝 비고 / 특이사항</div>
+          <div className="section-title" style={{ fontSize: '13px', fontWeight: '700', color: '#0F172A', marginBottom: '8px' }}>비고 및 특이사항</div>
           <div className="form-group">
             <textarea
               className="form-input"
-              style={{ minHeight: '60px', resize: 'vertical' }}
+              style={{ minHeight: '60px', resize: 'vertical', fontSize: '12px' }}
               value={remark}
               onChange={e => setRemark(e.target.value)}
               placeholder="명세서 하단에 인쇄될 비고를 입력하세요"
@@ -1038,53 +1116,104 @@ export default function StatementTab({
             marginBottom: '0.25rem'
           }}
         >
-          <div style={{ fontSize: '0.75rem', fontWeight: '800', color: '#1e293b', marginBottom: '4px' }}>
-            🛡️ 문서 공개 설정 (타 공급자 달력 노출 여부)
+          <div style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b', marginBottom: '4px' }}>
+            문서 공개 설정 (타 공급자 달력 공유 여부)
           </div>
           <div style={{ display: 'flex', gap: '12px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700', color: '#c2410c' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: '600', color: '#c2410c' }}>
               <input
                 type="radio"
                 name="doc_is_shared"
                 checked={!isDocShared}
                 onChange={() => setIsDocShared && setIsDocShared(false)}
               />
-              <span>🔒 비공개 (기본값)</span>
+              <span>비공개 (기본)</span>
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700', color: '#15803d' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: '600', color: '#15803d' }}>
               <input
                 type="radio"
                 name="doc_is_shared"
                 checked={!!isDocShared}
                 onChange={() => setIsDocShared && setIsDocShared(true)}
               />
-              <span>🔓 공개 (공유)</span>
+              <span>공개 (공유)</span>
             </label>
           </div>
         </div>
 
         {/* 하단 실행 버튼 영역 */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.75rem' }}>
-          {/* 1. 메인 저장 버튼 (통일된 로열 블루) */}
-          <button
-            type="button"
-            className="btn btn-primary"
-            style={{
-              width: '100%',
-              minHeight: '44px',
-              fontSize: '0.9375rem',
-              fontWeight: '800',
-              backgroundColor: '#2563eb',
-              borderColor: '#2563eb',
-              boxShadow: '0 2px 4px rgba(37,99,235,0.2)'
-            }}
-            onClick={() => {
-              setIsPartnersExpanded(false);
-              if (onSaveDocument) onSaveDocument();
-            }}
-          >
-            💾 문서 저장
-          </button>
+          {/* 1. 메인 저장 버튼 (수정 모드일 때 원본 덮어쓰기 vs 새 문서 저장 분리) */}
+          {editingDocId ? (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{
+                  width: '100%',
+                  minHeight: '44px',
+                  fontSize: '13px',
+                  fontWeight: '800',
+                  backgroundColor: '#2563eb',
+                  borderColor: '#2563eb',
+                  boxShadow: '0 2px 4px rgba(37,99,235,0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px'
+                }}
+                onClick={() => {
+                  setIsPartnersExpanded(false);
+                  if (onSaveDocument) onSaveDocument(false);
+                }}
+              >
+                <span>✏️ 원본 수정 저장</span>
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{
+                  width: '100%',
+                  minHeight: '44px',
+                  fontSize: '13px',
+                  fontWeight: '800',
+                  backgroundColor: '#059669',
+                  borderColor: '#059669',
+                  boxShadow: '0 2px 4px rgba(5,150,105,0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px'
+                }}
+                onClick={() => {
+                  setIsPartnersExpanded(false);
+                  if (onSaveDocument) onSaveDocument(true);
+                }}
+              >
+                <span>✨ 새 문서로 저장</span>
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{
+                width: '100%',
+                minHeight: '42px',
+                fontSize: '14px',
+                fontWeight: '700',
+                backgroundColor: '#2563eb',
+                borderColor: '#2563eb',
+                boxShadow: '0 2px 4px rgba(37,99,235,0.2)'
+              }}
+              onClick={() => {
+                setIsPartnersExpanded(false);
+                if (onSaveDocument) onSaveDocument(false);
+              }}
+            >
+              문서 저장
+            </button>
+          )}
 
           {/* 2. 다른 양식으로 변환 발행 (소프트 블루 아웃라인) */}
           {onOpenConvertModal && (
@@ -1093,20 +1222,19 @@ export default function StatementTab({
               className="btn btn-outline"
               style={{
                 width: '100%',
-                minHeight: '36px',
-                fontSize: '0.8125rem',
-                fontWeight: '700',
+                minHeight: '34px',
+                fontSize: '12px',
+                fontWeight: '600',
                 color: '#1d4ed8',
                 borderColor: '#bfdbfe',
                 backgroundColor: '#eff6ff',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px'
+                justifyContent: 'center'
               }}
               onClick={onOpenConvertModal}
             >
-              🔄 다른 양식으로 변환 발행 (견적서 / 청구서)...
+              다른 양식으로 변환 발행 (견적서 / 청구서)
             </button>
           )}
 
@@ -1116,9 +1244,9 @@ export default function StatementTab({
               type="button"
               className="btn btn-outline"
               style={{
-                padding: '0.5rem 0.25rem',
-                fontSize: '0.75rem',
-                fontWeight: '700',
+                padding: '0.45rem 0.25rem',
+                fontSize: '12px',
+                fontWeight: '600',
                 color: '#1e293b',
                 borderColor: '#cbd5e1',
                 backgroundColor: '#ffffff'
@@ -1126,15 +1254,15 @@ export default function StatementTab({
               onClick={handleExportPNG}
               title="이미지(PNG) 다운로드"
             >
-              📸 이미지
+              이미지
             </button>
             <button
               type="button"
               className="btn btn-outline"
               style={{
-                padding: '0.5rem 0.25rem',
-                fontSize: '0.75rem',
-                fontWeight: '700',
+                padding: '0.45rem 0.25rem',
+                fontSize: '12px',
+                fontWeight: '600',
                 color: '#1e293b',
                 borderColor: '#cbd5e1',
                 backgroundColor: '#ffffff'
@@ -1142,15 +1270,15 @@ export default function StatementTab({
               onClick={handleExportPDF}
               title="PDF 문서 다운로드"
             >
-              📄 PDF
+              PDF
             </button>
             <button
               type="button"
               className="btn btn-outline"
               style={{
-                padding: '0.5rem 0.25rem',
-                fontSize: '0.75rem',
-                fontWeight: '700',
+                padding: '0.45rem 0.25rem',
+                fontSize: '12px',
+                fontWeight: '600',
                 color: '#047857',
                 borderColor: '#a7f3d0',
                 backgroundColor: '#ecfdf5'
@@ -1158,15 +1286,15 @@ export default function StatementTab({
               onClick={handleExportExcel}
               title="엑셀(.xlsx) 파일 다운로드"
             >
-              📊 엑셀
+              엑셀
             </button>
             <button
               type="button"
               className="btn btn-outline"
               style={{
-                padding: '0.5rem 0.25rem',
-                fontSize: '0.75rem',
-                fontWeight: '700',
+                padding: '0.45rem 0.25rem',
+                fontSize: '12px',
+                fontWeight: '600',
                 color: '#1e293b',
                 borderColor: '#cbd5e1',
                 backgroundColor: '#ffffff'
@@ -1174,7 +1302,7 @@ export default function StatementTab({
               onClick={() => { if (validateBeforeAction()) window.print(); }}
               title="인쇄"
             >
-              🖨️ 인쇄
+              인쇄
             </button>
           </div>
 
@@ -1196,12 +1324,50 @@ export default function StatementTab({
             }}
             onClick={handleOpenShareModal}
           >
-            📱 모바일 공유하기 (카톡 / 문자)
+            모바일 공유 (카톡 / 문자)
           </button>
         </div>
       </div>
 
       <div className="preview-panel">
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '8px',
+          padding: '6px 12px',
+          backgroundColor: '#FFFFFF',
+          border: '1px solid #E2E8F0',
+          borderRadius: '8px',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+        }}>
+          <span style={{ fontSize: '12px', fontWeight: '700', color: '#1E293B' }}>
+            {docType} 미리보기 (A4 정식 양식)
+          </span>
+          <label style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
+            fontSize: '11px',
+            fontWeight: '600',
+            color: '#334155',
+            cursor: 'pointer',
+            padding: '3px 8px',
+            backgroundColor: showPartNoColumn ? '#EFF6FF' : '#F8FAFC',
+            border: `1px solid ${showPartNoColumn ? '#93C5FD' : '#CBD5E1'}`,
+            borderRadius: '5px',
+            userSelect: 'none'
+          }} title="명세서/견적서/청구서 본문 표에 부품번호 독립 열을 표시합니다">
+            <input
+              type="checkbox"
+              checked={showPartNoColumn}
+              onChange={e => handleTogglePartNoColumn(e.target.checked)}
+              style={{ width: '13px', height: '13px', accentColor: '#1D4ED8', cursor: 'pointer' }}
+            />
+            <span>부품번호 열 표시</span>
+          </label>
+        </div>
+
         <DocumentCanvas
           docType={docType}
           docNo={docNo}
@@ -1214,6 +1380,7 @@ export default function StatementTab({
           vatIncluded={vatIncluded}
           paid={paid}
           remark={remark}
+          showPartNoColumn={showPartNoColumn}
           setItems={setItems}
           setCustomer={setCustomer}
           setRemark={setRemark}

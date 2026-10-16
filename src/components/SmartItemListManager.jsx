@@ -1,22 +1,31 @@
 // 🎨 TEAM D.D SMART ITEM LIST MANAGER COMPONENT
 import React, { useState } from 'react';
+import { normalizePartNo } from '../utils/partSecurity.js';
 
 export default function SmartItemListManager({
   items = [],
   setItems,
   docType = '거래명세서',
-  vatIncluded = true
+  vatIncluded = true,
+  parts = [],
+  showPartNoColumn = true,
+  onTogglePartNoColumn = () => {}
 }) {
   // Input form state
   const [formMode, setFormMode] = useState('add'); // 'add' | 'edit' | 'insert_above'
   const [targetItemId, setTargetItemId] = useState(null);
 
+  const [inputCode, setInputCode] = useState('');
   const [inputDate, setInputDate] = useState(new Date().toISOString().split('T')[0]);
   const [inputName, setInputName] = useState('');
   const [inputUnit, setInputUnit] = useState('EA');
   const [inputQty, setInputQty] = useState(1);
   const [inputPrice, setInputPrice] = useState('');
   const [inputMemo, setInputMemo] = useState('');
+
+  // Parts autocomplete state
+  const [matchedParts, setMatchedParts] = useState([]);
+  const [showPartDropdown, setShowPartDropdown] = useState(false);
 
   // UI state
   const [expandedItemId, setExpandedItemId] = useState(null);
@@ -36,18 +45,22 @@ export default function SmartItemListManager({
   const resetForm = () => {
     setFormMode('add');
     setTargetItemId(null);
+    setInputCode('');
     setInputName('');
     setInputUnit('EA');
     setInputQty(1);
     setInputPrice('');
     setInputMemo('');
     setInputDate(new Date().toISOString().split('T')[0]);
+    setMatchedParts([]);
+    setShowPartDropdown(false);
   };
 
   // Start editing an item
   const startEdit = (item) => {
     setFormMode('edit');
     setTargetItemId(item.id);
+    setInputCode(item.code || '');
     setInputName(item.name || '');
     setInputUnit(item.unit || 'EA');
     setInputQty(item.qty || 1);
@@ -55,6 +68,7 @@ export default function SmartItemListManager({
     setInputMemo(item.memo || item.remark || '');
     setInputDate(item.date || new Date().toISOString().split('T')[0]);
     setExpandedItemId(null);
+    setShowPartDropdown(false);
 
     // Scroll to input box
     const el = document.getElementById('smart-item-input-box');
@@ -65,6 +79,7 @@ export default function SmartItemListManager({
   const startInsertAbove = (item) => {
     setFormMode('insert_above');
     setTargetItemId(item.id);
+    setInputCode('');
     setInputName('');
     setInputUnit('EA');
     setInputQty(1);
@@ -72,9 +87,49 @@ export default function SmartItemListManager({
     setInputMemo('');
     setInputDate(new Date().toISOString().split('T')[0]);
     setExpandedItemId(null);
+    setShowPartDropdown(false);
 
     const el = document.getElementById('smart-item-input-box');
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  // 부품번호 또는 품명 입력 시 자동완성 제안
+  const handleCodeOrNameChange = (val, field = 'code') => {
+    if (field === 'code') {
+      setInputCode(val);
+    } else {
+      setInputName(val);
+    }
+
+    if (!val || val.trim().length < 1) {
+      setMatchedParts([]);
+      setShowPartDropdown(false);
+      return;
+    }
+
+    const q = val.toLowerCase().trim();
+    const cleanQ = val.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+
+    const matches = (parts || []).filter(p => {
+      const codeMatch = (p.code || '').toLowerCase().includes(q);
+      const cleanMatch = cleanQ && (p.cleanKey || p.code || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase().includes(cleanQ);
+      const nameMatch = (p.name || '').toLowerCase().includes(q);
+      const specMatch = (p.spec || '').toLowerCase().includes(q);
+      return codeMatch || cleanMatch || nameMatch || specMatch;
+    }).slice(0, 6);
+
+    setMatchedParts(matches);
+    setShowPartDropdown(matches.length > 0);
+  };
+
+  // 자동완성에서 부품 선택
+  const handleSelectAutocompletePart = (part) => {
+    setInputCode(part.code || '');
+    setInputName(part.name || '');
+    if (part.unit) setInputUnit(part.unit);
+    if (part.price) setInputPrice(String(part.price));
+    if (part.spec) setInputMemo(prev => prev ? `${prev} / ${part.spec}` : part.spec);
+    setShowPartDropdown(false);
   };
 
   // Delete item handler with confirmation
@@ -112,16 +167,21 @@ export default function SmartItemListManager({
 
   // Submit item from input form
   const handleSubmitItem = () => {
-    if (!inputName.trim()) {
-      alert('품명 및 규격을 입력해 주세요.');
+    let effectiveName = inputName.trim();
+    if (!effectiveName && inputCode.trim()) {
+      effectiveName = inputCode.trim();
+    }
+
+    if (!effectiveName) {
+      alert('품명 또는 부품번호를 입력해 주세요.');
       return;
     }
 
     const newItemData = {
       id: formMode === 'edit' ? targetItemId : Date.now().toString(),
-      code: '',
+      code: normalizePartNo(inputCode),
       date: inputDate,
-      name: inputName.trim(),
+      name: effectiveName,
       unit: inputUnit.trim() || 'EA',
       qty: Number(inputQty) || 1,
       price: Number(inputPrice) || 0,
@@ -174,14 +234,14 @@ export default function SmartItemListManager({
       {/* ── 1. 등록된 품목 상단 요약 리스트 (1줄 누적 스택) ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.625rem', paddingBottom: '0.5rem', borderBottom: '1.5px solid #F1F5F9' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ fontSize: '0.9375rem', fontWeight: '900', color: '#0F172A' }}>
-            📦 등록된 품목 목록
+          <span style={{ fontSize: '13px', fontWeight: '700', color: '#0F172A' }}>
+            품목 목록
           </span>
-          <span style={{ fontSize: '0.75rem', fontWeight: '800', backgroundColor: '#EFF6FF', color: '#1D4ED8', padding: '2px 8px', borderRadius: '12px', border: '1px solid #BFDBFE' }}>
+          <span style={{ fontSize: '11px', fontWeight: '600', backgroundColor: '#EFF6FF', color: '#1D4ED8', padding: '1px 7px', borderRadius: '10px', border: '1px solid #BFDBFE' }}>
             총 {displayItems.length}건
           </span>
         </div>
-        <div style={{ fontSize: '0.8125rem', fontWeight: '800', color: '#028A3E' }}>
+        <div style={{ fontSize: '12px', fontWeight: '700', color: '#028A3E' }}>
           합계: {totalSupply.toLocaleString()}원
         </div>
       </div>
@@ -216,6 +276,11 @@ export default function SmartItemListManager({
                   </span>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontSize: '0.8125rem', fontWeight: '800', color: '#1E293B', wordBreak: 'break-all', lineHeight: '1.3' }}>
+                      {item.code && (
+                        <span style={{ fontFamily: 'monospace', fontWeight: '900', color: '#1D4ED8', backgroundColor: '#EFF6FF', padding: '1px 5px', borderRadius: '4px', marginRight: '6px', fontSize: '0.75rem' }}>
+                          {item.code}
+                        </span>
+                      )}
                       {item.name || '(품명 미입력)'}
                       {item.spec && <span style={{ fontSize: '0.6875rem', fontWeight: 'normal', color: '#64748B', marginLeft: '4px' }}>({item.spec})</span>}
                     </div>
@@ -236,14 +301,14 @@ export default function SmartItemListManager({
                         wordBreak: 'break-all',
                         lineHeight: '1.35'
                       }}>
-                        📝 {item.memo}
+                        메모: {item.memo}
                       </div>
                     )}
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0, marginLeft: '4px' }}>
-                  <span style={{ fontSize: '0.875rem', fontWeight: '900', color: '#1D4ED8', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: '12px', fontWeight: '700', color: '#1D4ED8', whiteSpace: 'nowrap' }}>
                     {itemTotal.toLocaleString()}원
                   </span>
                   <button
@@ -253,8 +318,8 @@ export default function SmartItemListManager({
                       border: '1px solid #CBD5E1',
                       borderRadius: '4px',
                       padding: '2px 6px',
-                      fontSize: '0.6875rem',
-                      fontWeight: '700',
+                      fontSize: '11px',
+                      fontWeight: '600',
                       color: isExpanded ? '#1D4ED8' : '#475569',
                       cursor: 'pointer',
                       whiteSpace: 'nowrap'
@@ -284,58 +349,55 @@ export default function SmartItemListManager({
                       type="button"
                       onClick={(e) => { e.stopPropagation(); startEdit(item); }}
                       style={{
-                        padding: '4px 10px',
+                        padding: '4px 8px',
                         backgroundColor: '#EFF6FF',
                         border: '1px solid #BFDBFE',
                         color: '#1D4ED8',
-                        borderRadius: '6px',
-                        fontSize: '0.75rem',
-                        fontWeight: '800',
+                        borderRadius: '5px',
+                        fontSize: '11px',
+                        fontWeight: '700',
                         cursor: 'pointer',
                         display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '3px'
+                        alignItems: 'center'
                       }}
                     >
-                      ✏️ 수정
+                      수정
                     </button>
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); startInsertAbove(item); }}
                       style={{
-                        padding: '4px 10px',
+                        padding: '4px 8px',
                         backgroundColor: '#FAF5FF',
                         border: '1px solid #E9D5FF',
                         color: '#7E22CE',
-                        borderRadius: '6px',
-                        fontSize: '0.75rem',
-                        fontWeight: '800',
+                        borderRadius: '5px',
+                        fontSize: '11px',
+                        fontWeight: '700',
                         cursor: 'pointer',
                         display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '3px'
+                        alignItems: 'center'
                       }}
                     >
-                      ➕ 위에 추가
+                      위에 삽입
                     </button>
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleDeleteItem(item, idx); }}
                       style={{
-                        padding: '4px 10px',
+                        padding: '4px 8px',
                         backgroundColor: '#FEF2F2',
                         border: '1px solid #FECACA',
                         color: '#DC2626',
-                        borderRadius: '6px',
-                        fontSize: '0.75rem',
-                        fontWeight: '800',
+                        borderRadius: '5px',
+                        fontSize: '11px',
+                        fontWeight: '700',
                         cursor: 'pointer',
                         display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '3px'
+                        alignItems: 'center'
                       }}
                     >
-                      🗑️ 삭제
+                      삭제
                     </button>
                   </div>
 
@@ -396,28 +458,121 @@ export default function SmartItemListManager({
           marginBottom: '0.75rem'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-          <span style={{ fontSize: '0.8125rem', fontWeight: '800', color: formMode === 'edit' ? '#B45309' : (formMode === 'insert_above' ? '#7E22CE' : '#0F172A') }}>
-            {formMode === 'edit' ? `✏️ #${getTargetItemIndex()}번 품목 수정 중` : (formMode === 'insert_above' ? `➕ #${getTargetItemIndex()}번 품목 위에 끼워넣기` : `📝 새 품목 입력 (#${displayItems.length + 1})`)}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <span style={{ fontSize: '13px', fontWeight: '700', color: formMode === 'edit' ? '#B45309' : (formMode === 'insert_above' ? '#7E22CE' : '#0F172A') }}>
+            {formMode === 'edit' ? `품목 수정 중 (#${getTargetItemIndex()})` : (formMode === 'insert_above' ? `상단 행 삽입 (#${getTargetItemIndex()})` : `새 품목 입력 (#${displayItems.length + 1})`)}
           </span>
-          {formMode !== 'add' && (
-            <button
-              type="button"
-              onClick={resetForm}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#64748B',
-                fontSize: '0.75rem',
-                fontWeight: '700',
-                cursor: 'pointer',
-                padding: '2px 6px'
-              }}
-            >
-              ✕ 취소 (새 품목 모드로)
-            </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: '600', color: '#475569', cursor: 'pointer', userSelect: 'none' }} title="명세서/견적서/청구서 본문 표에 부품번호 독립 열을 표시합니다">
+              <input
+                type="checkbox"
+                checked={showPartNoColumn}
+                onChange={e => onTogglePartNoColumn(e.target.checked)}
+                style={{ width: '13px', height: '13px', accentColor: '#1D4ED8', cursor: 'pointer' }}
+              />
+              <span>부품번호 열 사용</span>
+            </label>
+            {formMode !== 'add' && (
+              <button
+                type="button"
+                onClick={resetForm}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#64748B',
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  padding: '2px 6px'
+                }}
+              >
+                취소 (신규 입력)
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* 1. Optional Part Number Row with Autocomplete (부품번호 열 사용 켜짐 시만 표시) */}
+        {showPartNoColumn && (
+          <div style={{ position: 'relative', marginBottom: '6px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: '6px' }}>
+              <div style={{ position: 'relative', display: 'flex' }}>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="부품번호 (선택)"
+                  value={inputCode}
+                  onChange={e => handleCodeOrNameChange(e.target.value, 'code')}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      if (matchedParts.length > 0) {
+                        e.preventDefault();
+                        handleSelectAutocompletePart(matchedParts[0]);
+                      } else {
+                        document.getElementById('smart-item-name-input')?.focus();
+                      }
+                    }
+                  }}
+                  style={{ fontFamily: 'monospace', fontWeight: '700', fontSize: '12px', backgroundColor: '#F8FAFC', width: '100%', borderRadius: '6px' }}
+                />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', fontSize: '11px', color: '#64748B' }}>
+                부품번호 입력 시 자동완성 (Enter 선택)
+              </div>
+            </div>
+
+          {/* Autocomplete Dropdown */}
+          {showPartDropdown && matchedParts.length > 0 && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              backgroundColor: '#FFFFFF',
+              border: '1.5px solid #3B82F6',
+              borderRadius: '8px',
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+              zIndex: 100,
+              marginTop: '2px',
+              overflow: 'hidden'
+            }}>
+              {matchedParts.map(p => (
+                <div
+                  key={p.id || p.code}
+                  onClick={() => handleSelectAutocompletePart(p)}
+                  style={{
+                    padding: '8px 12px',
+                    borderBottom: '1px solid #F1F5F9',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: '0.8125rem'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.backgroundColor = '#EFF6FF'}
+                  onMouseLeave={e => e.currentTarget.style.backgroundColor = '#FFFFFF'}
+                >
+                  <div>
+                    <span style={{ fontFamily: 'monospace', fontWeight: '900', color: '#1D4ED8', marginRight: '8px' }}>
+                      {p.code}
+                    </span>
+                    <strong style={{ color: '#0F172A' }}>{p.name}</strong>
+                    {p.spec && <span style={{ color: '#64748B', fontSize: '0.75rem', marginLeft: '6px' }}>({p.spec})</span>}
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ fontWeight: '700', color: '#334155' }}>₩ {Number(p.price || 0).toLocaleString()}</span>
+                    {p.purchase_price ? (
+                      <span style={{ fontSize: '0.6875rem', color: '#0284C7', marginLeft: '6px', fontWeight: '800' }}>
+                        (내원가: {Number(p.purchase_price).toLocaleString()})
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
+        )}
 
         {/* Date Row (for 청구서) + Item Name */}
         <div style={{ display: 'grid', gridTemplateColumns: docType === '청구서' ? '110px 1fr' : '1fr', gap: '6px', marginBottom: '6px' }}>
@@ -427,17 +582,18 @@ export default function SmartItemListManager({
               className="form-input"
               value={inputDate}
               onChange={e => setInputDate(e.target.value)}
-              style={{ fontSize: '0.75rem', padding: '0.4rem', borderRadius: '6px' }}
+              style={{ fontSize: '12px', padding: '0.4rem', borderRadius: '6px' }}
             />
           )}
           <input
+            id="smart-item-name-input"
             type="text"
             className="form-input"
             placeholder="품명 및 규격 (예: EC140EL 유압펌프 교환)"
             value={inputName}
-            onChange={e => setInputName(e.target.value)}
+            onChange={e => handleCodeOrNameChange(e.target.value, 'name')}
             onKeyDown={e => { if (e.key === 'Enter') handleSubmitItem(); }}
-            style={{ fontWeight: '700', borderRadius: '6px', fontSize: '0.875rem' }}
+            style={{ fontWeight: '600', borderRadius: '6px', fontSize: '12px' }}
           />
         </div>
 
@@ -449,7 +605,7 @@ export default function SmartItemListManager({
             placeholder="단위"
             value={inputUnit}
             onChange={e => setInputUnit(e.target.value)}
-            style={{ textAlign: 'center', borderRadius: '6px', fontSize: '0.8125rem' }}
+            style={{ textAlign: 'center', borderRadius: '6px', fontSize: '12px' }}
           />
           <input
             type="number"
@@ -457,7 +613,7 @@ export default function SmartItemListManager({
             placeholder="수량"
             value={inputQty === 0 ? '' : inputQty}
             onChange={e => setInputQty(e.target.value === '' ? '' : Number(e.target.value))}
-            style={{ textAlign: 'center', fontWeight: '700', borderRadius: '6px', fontSize: '0.875rem' }}
+            style={{ textAlign: 'center', fontWeight: '600', borderRadius: '6px', fontSize: '12px' }}
           />
           <input
             type="number"
@@ -466,7 +622,7 @@ export default function SmartItemListManager({
             value={inputPrice}
             onChange={e => setInputPrice(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') handleSubmitItem(); }}
-            style={{ textAlign: 'right', fontWeight: '800', color: '#1D4ED8', borderRadius: '6px', fontSize: '0.875rem' }}
+            style={{ textAlign: 'right', fontWeight: '700', color: '#1D4ED8', borderRadius: '6px', fontSize: '12px' }}
           />
         </div>
 
@@ -478,11 +634,11 @@ export default function SmartItemListManager({
           value={inputMemo}
           onChange={e => setInputMemo(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') handleSubmitItem(); }}
-          style={{ fontSize: '0.75rem', borderRadius: '6px' }}
+          style={{ fontSize: '12px', borderRadius: '6px' }}
         />
       </div>
 
-      {/* ── 3. 액션 버튼 바 (공간 분할 2버튼: 등록 60% + 전체 리스트 팝업 40%) ── */}
+      {/* ── 3. 액션 버튼 바 (등록 60% + 전체 리스트 팝업 40%) ── */}
       <div style={{ display: 'flex', gap: '6px' }}>
         {/* Left Action Button (60%) */}
         <button
@@ -490,49 +646,47 @@ export default function SmartItemListManager({
           onClick={handleSubmitItem}
           style={{
             flex: '3',
-            height: '40px',
-            borderRadius: '8px',
+            height: '38px',
+            borderRadius: '7px',
             backgroundColor: formMode === 'edit' ? '#10B981' : (formMode === 'insert_above' ? '#7E22CE' : '#1D4ED8'),
             color: '#FFFFFF',
             border: 'none',
-            fontSize: '0.875rem',
-            fontWeight: '900',
+            fontSize: '13px',
+            fontWeight: '700',
             cursor: 'pointer',
-            boxShadow: '0 2px 5px rgba(0,0,0,0.12)',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '5px',
             transition: 'all 0.15s ease'
           }}
         >
-          <span>{formMode === 'edit' ? '✓ 수정 완료 (확인)' : (formMode === 'insert_above' ? '➕ 위에 삽입 완료' : '➕ 품목 추가하기')}</span>
+          <span>{formMode === 'edit' ? '수정 완료' : (formMode === 'insert_above' ? '위에 삽입 완료' : '품목 추가')}</span>
         </button>
 
-        {/* Right Action Button (40%): [ 👁️ 전체 리스트 미리보기 ] */}
+        {/* Right Action Button (40%): [ 목록 미리보기 ] */}
         <button
           type="button"
           onClick={() => setShowPreviewModal(true)}
           style={{
             flex: '2',
-            height: '40px',
-            borderRadius: '8px',
+            height: '38px',
+            borderRadius: '7px',
             backgroundColor: '#0F172A',
             color: '#FFFFFF',
             border: 'none',
-            fontSize: '0.8125rem',
-            fontWeight: '800',
+            fontSize: '12px',
+            fontWeight: '700',
             cursor: 'pointer',
-            boxShadow: '0 2px 5px rgba(15,23,42,0.15)',
+            boxShadow: '0 1px 3px rgba(15,23,42,0.12)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '4px',
             whiteSpace: 'nowrap'
           }}
           title="전체 품목 리스트를 팝업창으로 한눈에 확인"
         >
-          <span>👁️ 리스트 미리보기</span>
+          <span>목록 미리보기</span>
         </button>
       </div>
 
@@ -581,12 +735,11 @@ export default function SmartItemListManager({
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '1.25rem' }}>📦</span>
                 <div>
-                  <div style={{ fontSize: '1.0625rem', fontWeight: '900' }}>
-                    작성 중인 전체 품목 목록
+                  <div style={{ fontSize: '15px', fontWeight: '700' }}>
+                    전체 품목 목록
                   </div>
-                  <div style={{ fontSize: '0.6875rem', color: '#D6E8EE', opacity: 0.85 }}>
+                  <div style={{ fontSize: '11px', color: '#D6E8EE', opacity: 0.9, marginTop: '2px' }}>
                     {docType} 품목 리스트 · 총 {displayItems.length}건
                   </div>
                 </div>

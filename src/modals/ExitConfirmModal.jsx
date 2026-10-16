@@ -48,7 +48,7 @@ export default function ExitConfirmModal({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* App Icon Badge */}
+        {/* App Badge */}
         <div
           style={{
             width: '68px',
@@ -58,13 +58,15 @@ export default function ExitConfirmModal({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '2rem',
+            fontSize: '1.25rem',
+            fontWeight: '900',
+            color: '#FFFFFF',
             margin: '0 auto 1.25rem',
             boxShadow: '0 8px 16px rgba(2, 69, 122, 0.25)',
             border: '2px solid rgba(255, 255, 255, 0.2)'
           }}
         >
-          🚜
+          D.D
         </div>
 
         {/* Title & Brand */}
@@ -103,25 +105,22 @@ export default function ExitConfirmModal({
             className="btn btn-primary"
             style={{
               width: '100%',
-              minHeight: '48px',
-              fontSize: '0.9375rem',
-              fontWeight: '800',
+              minHeight: '44px',
+              fontSize: '13px',
+              fontWeight: '700',
               backgroundColor: '#dc2626',
               borderColor: '#dc2626',
               color: '#ffffff',
-              borderRadius: '10px',
-              boxShadow: '0 4px 12px rgba(220, 38, 38, 0.3)',
+              borderRadius: '8px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px'
+              justifyContent: 'center'
             }}
             onClick={() => {
               onClose();
               if (onExit) onExit();
             }}
           >
-            <span>🚪</span>
             <span>앱 종료 (창 닫기)</span>
           </button>
 
@@ -132,23 +131,21 @@ export default function ExitConfirmModal({
               className="btn btn-outline"
               style={{
                 width: '100%',
-                minHeight: '42px',
-                fontSize: '0.875rem',
-                fontWeight: '700',
+                minHeight: '40px',
+                fontSize: '12px',
+                fontWeight: '600',
                 borderColor: '#cbd5e1',
                 color: '#475569',
-                borderRadius: '10px',
+                borderRadius: '8px',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
+                justifyContent: 'center'
               }}
               onClick={() => {
                 onClose();
                 onLogout();
               }}
             >
-              <span>🔒</span>
               <span>로그아웃 (시작 화면으로 이동)</span>
             </button>
           )}
@@ -159,21 +156,19 @@ export default function ExitConfirmModal({
             className="btn btn-outline"
             style={{
               width: '100%',
-              minHeight: '42px',
-              fontSize: '0.875rem',
-              fontWeight: '700',
+              minHeight: '40px',
+              fontSize: '12px',
+              fontWeight: '600',
               borderColor: '#0284c7',
               color: '#0284c7',
               backgroundColor: 'rgba(2, 132, 199, 0.06)',
-              borderRadius: '10px',
+              borderRadius: '8px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px'
+              justifyContent: 'center'
             }}
             onClick={onClose}
           >
-            <span>↩️</span>
             <span>계속 사용하기 (취소)</span>
           </button>
         </div>

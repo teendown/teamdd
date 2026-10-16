@@ -270,7 +270,14 @@ export default function DocumentPreviewModal({
                           style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: idx % 2 === 1 ? '#FAFAFA' : '#FFFFFF' }}
                         >
                           <td style={{ padding: '6px 4px', textAlign: 'center', color: 'var(--text-muted)' }}>{idx + 1}</td>
-                          <td style={{ padding: '6px 8px', fontWeight: '700' }}>{item.name || '-'}</td>
+                          <td style={{ padding: '6px 8px', fontWeight: '700' }}>
+                            {item.code && (
+                              <span style={{ fontFamily: 'monospace', fontWeight: '900', color: '#1D4ED8', backgroundColor: '#EFF6FF', padding: '1px 5px', borderRadius: '4px', marginRight: '6px', fontSize: '0.75rem' }}>
+                                {item.code}
+                              </span>
+                            )}
+                            {item.name || '-'}
+                          </td>
                           <td style={{ padding: '6px 4px', textAlign: 'center' }}>{item.unit || 'EA'}</td>
                           <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: '700' }}>{itemQty.toLocaleString()}</td>
                           <td style={{ padding: '6px 8px', textAlign: 'right' }}>{itemPrice.toLocaleString()}</td>
@@ -310,6 +317,11 @@ export default function DocumentPreviewModal({
                           #{idx + 1}
                         </span>
                         <span style={{ fontWeight: '800', fontSize: '0.875rem', color: '#0f172a', lineHeight: 1.3 }}>
+                          {item.code && (
+                            <span style={{ fontFamily: 'monospace', fontWeight: '900', color: '#1D4ED8', backgroundColor: '#EFF6FF', padding: '1px 5px', borderRadius: '4px', marginRight: '6px', fontSize: '0.75rem' }}>
+                              {item.code}
+                            </span>
+                          )}
                           {item.name || '품목명 없음'}
                         </span>
                       </div>

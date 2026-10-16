@@ -28054,7 +28054,7 @@ ${suffix}`;
       if (!payload.phone && payload.customer_phone) payload.phone = payload.customer_phone;
       if (!payload.machine && payload.machine_info) payload.machine = payload.machine_info;
     } else if (table === "parts") {
-      standardCols = ["id", "created_at", "code", "name", "category", "unit", "price", "stock", "min_stock", "location", "memo", "supplier_key"];
+      standardCols = ["id", "created_at", "code", "name", "spec", "category", "unit", "price", "stock", "min_stock", "location", "memo", "machine_models", "is_shared", "supplier_key"];
     }
     const extra = {};
     for (const k of Object.keys(payload)) {
@@ -28551,38 +28551,56 @@ ${JSON.stringify(extra)}`;
       deleted_at: null
     };
     const payload = packRow(rawPayload, "documents");
+    let actualDocId = docId;
     if (sb) {
       try {
         if (docData.id && !String(docData.id).startsWith("doc_")) {
           const { error } = await sb.from("documents").update(payload).eq("id", docData.id);
           if (error) console.error("Supabase update error:", error);
         } else {
-          const { error } = await sb.from("documents").insert(payload);
-          if (error) console.error("Supabase insert error:", error);
+          let matchedRecord = null;
+          if (isEditing && finalDocNo) {
+            const { data: existingRows } = await sb.from("documents").select("id").eq("doc_no", finalDocNo).limit(1);
+            if (existingRows && existingRows.length > 0) {
+              matchedRecord = existingRows[0];
+            }
+          }
+          if (matchedRecord && matchedRecord.id) {
+            actualDocId = matchedRecord.id;
+            const { error } = await sb.from("documents").update(payload).eq("id", matchedRecord.id);
+            if (error) console.error("Supabase matched update error:", error);
+          } else {
+            const { data: insertedRows, error } = await sb.from("documents").insert(payload).select("id");
+            if (error) {
+              console.error("Supabase insert error:", error);
+            } else if (insertedRows && insertedRows.length > 0 && insertedRows[0].id) {
+              actualDocId = insertedRows[0].id;
+            }
+          }
         }
       } catch (e) {
         console.error(e);
       }
     }
-    const existingIdx = local.findIndex((d) => d.id === docId);
+    const existingIdx = local.findIndex((d) => d.id === docId || actualDocId && d.id === actualDocId);
     let updated;
     const localPayload = unpackRow(payload);
     if (existingIdx >= 0) {
       updated = [...local];
       updated[existingIdx] = {
         ...localPayload,
-        id: local[existingIdx].id,
+        id: actualDocId,
         updated_at: (/* @__PURE__ */ new Date()).toISOString()
       };
     } else {
       updated = [{
         ...localPayload,
-        id: docId,
+        id: actualDocId,
         created_at: (/* @__PURE__ */ new Date()).toISOString()
       }, ...local];
     }
     setLocalItem(STORAGE_KEYS.DOCUMENTS, updated);
-    return { list: updated, docNo: finalDocNo };
+    return { list: updated, docNo: finalDocNo, docId: actualDocId };
   }
   async function fetchDocuments() {
     const sb = getSupabaseClient();
@@ -28899,6 +28917,176 @@ ${JSON.stringify(extra)}`;
     return mergedList;
   }
 
+  // src/utils/partSecurity.js
+  function normalizePartNo(rawPartNo) {
+    if (!rawPartNo || typeof rawPartNo !== "string") return "";
+    return rawPartNo.trim().replace(/^PART[-_]?/i, "").toUpperCase();
+  }
+  function getCleanPartKey(rawPartNo) {
+    if (!rawPartNo || typeof rawPartNo !== "string") return "";
+    const stripped = rawPartNo.trim().replace(/^PART[-_]?/i, "");
+    return stripped.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  }
+  function getIsolatedStorageKey(tableName, supplierKey) {
+    const safeSupp = (supplierKey || "unknown").toLowerCase().trim();
+    return `dd_${tableName}_${safeSupp}_v1`;
+  }
+
+  // src/services/partsService.js
+  var PART_CATEGORIES = [
+    "전체",
+    "유압계통",
+    "엔진계통",
+    "전기/전장",
+    "하부/주행",
+    "오일/필터",
+    "작업장치/버켓",
+    "기타소모품"
+  ];
+  async function fetchPartsWithPricing(selectedSupplierKey = "sejin", userRole = "supplier") {
+    let masterParts = [];
+    const sb = getSupabaseClient();
+    if (sb) {
+      try {
+        const { data, error } = await sb.from("parts").select("*").order("code", { ascending: true });
+        if (!error && Array.isArray(data) && data.length > 0) {
+          masterParts = data;
+          setLocalItem("dd_parts_master_v1", data);
+        }
+      } catch (e) {
+        console.warn("[partsService] Supabase 마스터 조회 실패, 캐시 사용:", e);
+      }
+    }
+    if (masterParts.length === 0) {
+      masterParts = getLocalItem("dd_parts_master_v1", DEMO_PARTS);
+    }
+    const pricingKey = getIsolatedStorageKey("part_pricing", selectedSupplierKey);
+    let myPricingMap = {};
+    if (sb) {
+      try {
+        const { data, error } = await sb.from("supplier_part_pricing").select("*").eq("supplier_key", selectedSupplierKey);
+        if (!error && Array.isArray(data)) {
+          data.forEach((p) => {
+            const key = getCleanPartKey(p.part_code || p.part_id);
+            if (key) myPricingMap[key] = p;
+          });
+          setLocalItem(pricingKey, myPricingMap);
+        }
+      } catch (e) {
+      }
+    }
+    if (Object.keys(myPricingMap).length === 0) {
+      myPricingMap = getLocalItem(pricingKey, {});
+    }
+    return masterParts.map((p) => {
+      const cleanKey = getCleanPartKey(p.code);
+      const legacyRawKey = (p.code || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+      const myPricing = myPricingMap[cleanKey] || myPricingMap[legacyRawKey] || {};
+      return {
+        id: p.id,
+        code: normalizePartNo(p.code),
+        cleanKey,
+        name: p.name || "",
+        spec: p.spec || "",
+        category: p.category || "기타소모품",
+        unit: p.unit || "EA",
+        machine_models: p.machine_models || "",
+        price: Number(p.price) || 0,
+        // 권장 판매가 (공개)
+        // 🔒 내 사업자 전용 격리 데이터 (타 사업자에게는 절대 노출 안 됨)
+        purchase_price: myPricing.purchase_price !== void 0 ? Number(myPricing.purchase_price) : null,
+        vendor_name: myPricing.vendor_name || "",
+        stock: myPricing.stock !== void 0 ? Number(myPricing.stock) : Number(p.stock) || 0,
+        min_stock: myPricing.min_stock !== void 0 ? Number(myPricing.min_stock) : Number(p.min_stock) || 0,
+        bin_location: myPricing.bin_location || "",
+        private_memo: myPricing.memo || "",
+        has_my_pricing: !!myPricing.purchase_price
+      };
+    });
+  }
+  async function savePartWithPricing({
+    partData,
+    selectedSupplierKey = "sejin",
+    isEdit = false,
+    currentList = []
+  }) {
+    const normCode = normalizePartNo(partData.code);
+    const cleanKey = getCleanPartKey(normCode);
+    if (!normCode) throw new Error("부품번호는 필수 입력 항목입니다.");
+    if (!partData.name) throw new Error("품명은 필수 입력 항목입니다.");
+    const masterPayload = {
+      id: partData.id || `part_${Date.now()}`,
+      code: normCode,
+      name: partData.name.trim(),
+      spec: (partData.spec || "").trim(),
+      category: partData.category || "기타소모품",
+      unit: (partData.unit || "EA").trim(),
+      machine_models: (partData.machine_models || "").trim(),
+      price: Number(partData.price) || 0,
+      // 기준 판매가
+      is_shared: true
+    };
+    const sb = getSupabaseClient();
+    if (sb) {
+      try {
+        const packed = packRow(masterPayload, "parts");
+        if (isEdit && partData.id) {
+          await sb.from("parts").upsert(packed);
+        } else {
+          await sb.from("parts").upsert(packed, { onConflict: "code" });
+        }
+      } catch (e) {
+        console.warn("[partsService] Supabase 마스터 저장 경고:", e);
+      }
+    }
+    const masterList = getLocalItem("dd_parts_master_v1", DEMO_PARTS);
+    const existingMasterIdx = masterList.findIndex((p) => getCleanPartKey(p.code) === cleanKey);
+    if (existingMasterIdx !== -1) {
+      masterList[existingMasterIdx] = { ...masterList[existingMasterIdx], ...masterPayload };
+    } else {
+      masterList.push(masterPayload);
+    }
+    setLocalItem("dd_parts_master_v1", masterList);
+    const pricingKey = getIsolatedStorageKey("part_pricing", selectedSupplierKey);
+    const myPricingMap = getLocalItem(pricingKey, {});
+    const myPricingData = {
+      part_code: normCode,
+      supplier_key: selectedSupplierKey,
+      purchase_price: partData.purchase_price !== null && partData.purchase_price !== void 0 ? Number(partData.purchase_price) : null,
+      vendor_name: (partData.vendor_name || "").trim(),
+      stock: Number(partData.stock) || 0,
+      min_stock: Number(partData.min_stock) || 0,
+      bin_location: (partData.bin_location || "").trim(),
+      memo: (partData.private_memo || "").trim(),
+      updated_at: (/* @__PURE__ */ new Date()).toISOString()
+    };
+    myPricingMap[cleanKey] = myPricingData;
+    setLocalItem(pricingKey, myPricingMap);
+    if (sb) {
+      try {
+        await sb.from("supplier_part_pricing").upsert(myPricingData, { onConflict: "part_code,supplier_key" });
+      } catch (e) {
+      }
+    }
+    return fetchPartsWithPricing(selectedSupplierKey);
+  }
+  async function unlinkPartFromMyPricing(partCode, selectedSupplierKey) {
+    const cleanKey = getCleanPartKey(partCode);
+    const pricingKey = getIsolatedStorageKey("part_pricing", selectedSupplierKey);
+    const myPricingMap = getLocalItem(pricingKey, {});
+    delete myPricingMap[cleanKey];
+    setLocalItem(pricingKey, myPricingMap);
+    const sb = getSupabaseClient();
+    if (sb) {
+      try {
+        await sb.from("supplier_part_pricing").delete().match({ part_code: normalizePartNo(partCode), supplier_key: selectedSupplierKey });
+      } catch (e) {
+        console.warn("[partsService] Supabase 단가 삭제 실패:", e);
+      }
+    }
+    return fetchPartsWithPricing(selectedSupplierKey);
+  }
+
   // src/components/Header.jsx
   var import_react = __toESM(require_react(), 1);
   function Header({
@@ -28966,8 +29154,8 @@ ${JSON.stringify(extra)}`;
         title: "이전 화면으로 이동",
         "aria-label": "이전 화면으로 이동"
       },
-      /* @__PURE__ */ import_react.default.createElement("span", null, "⬅️"),
-      /* @__PURE__ */ import_react.default.createElement("span", { className: "hide-on-mobile-sm", style: { fontSize: "0.75rem" } }, "뒤로")
+      /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "10px" } }, "◀"),
+      /* @__PURE__ */ import_react.default.createElement("span", { className: "hide-on-mobile-sm", style: { fontSize: "11px", fontWeight: "600" } }, "뒤로")
     ), /* @__PURE__ */ import_react.default.createElement(
       "button",
       {
@@ -28977,15 +29165,16 @@ ${JSON.stringify(extra)}`;
         "aria-label": "메뉴 열기"
       },
       "☰"
-    ), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 } }, /* @__PURE__ */ import_react.default.createElement("span", { style: { fontSize: "1.25rem", flexShrink: 0 } }, page.icon), /* @__PURE__ */ import_react.default.createElement("h1", { className: "header-page-title", style: { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, page.title))), /* @__PURE__ */ import_react.default.createElement("div", { className: "header-right", style: { display: "flex", alignItems: "center", gap: "0.5rem" } }, /* @__PURE__ */ import_react.default.createElement(
+    ), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 } }, /* @__PURE__ */ import_react.default.createElement("h1", { className: "header-page-title", style: { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "15px", fontWeight: "700", color: "#0F172A", margin: 0 } }, page.title))), /* @__PURE__ */ import_react.default.createElement("div", { className: "header-right", style: { display: "flex", alignItems: "center", gap: "0.5rem" } }, /* @__PURE__ */ import_react.default.createElement(
       "span",
       {
         className: `status-badge ${isConnected ? "connected" : "disconnected"}`,
         title: connectionMessage || (isConnected ? "클라우드 DB 정상 연결됨" : "로컬 모드"),
-        onClick: () => setActiveTab("settings")
+        onClick: () => setActiveTab("settings"),
+        style: { display: "inline-flex", alignItems: "center", gap: "5px" }
       },
-      /* @__PURE__ */ import_react.default.createElement("span", null, isConnected ? "🟢" : "🔴"),
-      /* @__PURE__ */ import_react.default.createElement("span", { className: "hide-on-mobile-xs" }, isConnected ? "동기화됨" : "오프라인")
+      /* @__PURE__ */ import_react.default.createElement("span", { style: { width: "7px", height: "7px", borderRadius: "50%", backgroundColor: isConnected ? "#10B981" : "#EF4444", display: "inline-block" } }),
+      /* @__PURE__ */ import_react.default.createElement("span", { className: "hide-on-mobile-xs", style: { fontSize: "11px", fontWeight: "600" } }, isConnected ? "동기화됨" : "오프라인")
     ), onOpenExitModal && /* @__PURE__ */ import_react.default.createElement(
       "button",
       {
@@ -28993,22 +29182,20 @@ ${JSON.stringify(extra)}`;
         className: "btn btn-outline",
         style: {
           padding: "0.35rem 0.625rem",
-          fontSize: "0.75rem",
-          fontWeight: "800",
+          fontSize: "11px",
+          fontWeight: "700",
           color: "#dc2626",
           borderColor: "#fca5a5",
           backgroundColor: "#fff5f5",
-          borderRadius: "8px",
+          borderRadius: "6px",
           display: "inline-flex",
           alignItems: "center",
-          gap: "4px",
           cursor: "pointer"
         },
         onClick: onOpenExitModal,
         title: "프로그램 나가기 / 종료",
         "aria-label": "프로그램 나가기 / 종료"
       },
-      /* @__PURE__ */ import_react.default.createElement("span", null, "🚪"),
       /* @__PURE__ */ import_react.default.createElement("span", null, "나가기")
     )));
   }
@@ -29173,9 +29360,9 @@ ${JSON.stringify(extra)}`;
       }, "MobileSidebarDrawer");
       return unregister;
     }, [isOpen, onClose]);
-    const isAdmin = userRole === "admin";
+    const isAdmin2 = userRole === "admin";
     const displayUser = loggedInSupplier || currentSupplier;
-    const supplierDisplayName = isAdmin ? "통합 관리자" : displayUser?.company || displayUser?.name || suppliersList.find((s) => areSupplierKeysEquivalent(s.id, selectedSupplierKey))?.name || (selectedSupplierKey === "sejin" ? "세진건설기계" : selectedSupplierKey === "ds" ? "디에스건설기계" : "대성건설기계");
+    const supplierDisplayName = isAdmin2 ? "통합 관리자" : displayUser?.company || displayUser?.name || suppliersList.find((s) => areSupplierKeysEquivalent(s.id, selectedSupplierKey))?.name || (selectedSupplierKey === "sejin" ? "세진건설기계" : selectedSupplierKey === "ds" ? "디에스건설기계" : "대성건설기계");
     const handleMenuClick = (item) => {
       if (item.isDoc) {
         if (onSelectDocType) {
@@ -29189,18 +29376,18 @@ ${JSON.stringify(extra)}`;
       if (onClose) onClose();
     };
     const navItems = [
-      { id: "dashboard", label: "대시보드", icon: "📊", isDoc: false, isActive: activeTab === "dashboard" },
-      { id: "doc_statement", label: "거래명세서 작성", icon: "📄", isDoc: true, docType: "거래명세서", isActive: activeTab === "doc" && docType === "거래명세서" },
-      { id: "doc_estimate", label: "견적서 작성", icon: "📑", isDoc: true, docType: "견적서", isActive: activeTab === "doc" && docType === "견적서" },
-      { id: "doc_invoice", label: "청구서 작성", icon: "🧾", isDoc: true, docType: "청구서", isActive: activeTab === "doc" && docType === "청구서" },
-      { id: "history", label: "문서조회 (발행내역)", icon: "📁", isDoc: false, isActive: activeTab === "history" },
-      { id: "schedule", label: "일정 / 예약", icon: "📅", isDoc: false, isActive: activeTab === "schedule", badge: badgeCounts.todayWork > 0 ? `${badgeCounts.todayWork}건` : null },
-      { id: "customers", label: "고객관리", icon: "👥", isDoc: false, isActive: activeTab === "customers" },
-      { id: "purchase", label: "매입관리 / 전표", icon: "🧾", isDoc: false, isActive: activeTab === "purchase" },
-      ...isAdmin ? [{ id: "suppliers", label: "공급자 관리", icon: "🏢", isDoc: false, isActive: activeTab === "suppliers" }] : [],
-      { id: "accounting", label: "미수금 / 회계", icon: "💡", isDoc: false, isActive: activeTab === "accounting", badge: badgeCounts.unpaidCount > 0 ? `${badgeCounts.unpaidCount}건` : null },
-      { id: "parts", label: "부품재고", icon: "🛠️", isDoc: false, isActive: activeTab === "parts" },
-      { id: "settings", label: "설정", icon: "⚙️", isDoc: false, isActive: activeTab === "settings" }
+      { id: "dashboard", label: "대시보드", isDoc: false, isActive: activeTab === "dashboard" },
+      { id: "doc_statement", label: "거래명세서 작성", isDoc: true, docType: "거래명세서", isActive: activeTab === "doc" && docType === "거래명세서" },
+      { id: "doc_estimate", label: "견적서 작성", isDoc: true, docType: "견적서", isActive: activeTab === "doc" && docType === "견적서" },
+      { id: "doc_invoice", label: "청구서 작성", isDoc: true, docType: "청구서", isActive: activeTab === "doc" && docType === "청구서" },
+      { id: "history", label: "문서조회 (발행내역)", isDoc: false, isActive: activeTab === "history" },
+      { id: "schedule", label: "일정 / 예약", isDoc: false, isActive: activeTab === "schedule", badge: badgeCounts.todayWork > 0 ? `${badgeCounts.todayWork}건` : null },
+      { id: "customers", label: "고객관리", isDoc: false, isActive: activeTab === "customers" },
+      { id: "purchase", label: "매입관리 / 전표", isDoc: false, isActive: activeTab === "purchase" },
+      ...isAdmin2 ? [{ id: "suppliers", label: "공급자 관리", isDoc: false, isActive: activeTab === "suppliers" }] : [],
+      { id: "accounting", label: "미수금 / 회계", isDoc: false, isActive: activeTab === "accounting", badge: badgeCounts.unpaidCount > 0 ? `${badgeCounts.unpaidCount}건` : null },
+      { id: "parts", label: "부품재고", isDoc: false, isActive: activeTab === "parts" },
+      { id: "settings", label: "설정", isDoc: false, isActive: activeTab === "settings" }
     ];
     return /* @__PURE__ */ import_react2.default.createElement(import_react2.default.Fragment, null, isOpen && /* @__PURE__ */ import_react2.default.createElement("div", { className: "sidebar-overlay", onClick: onClose }), /* @__PURE__ */ import_react2.default.createElement("aside", { className: `sidebar-container ${isOpen ? "open" : ""}` }, /* @__PURE__ */ import_react2.default.createElement("div", { className: "sidebar-header", style: { padding: "1.25rem 1.125rem" } }, /* @__PURE__ */ import_react2.default.createElement("div", { className: "sidebar-brand-text" }, /* @__PURE__ */ import_react2.default.createElement("div", { className: "sidebar-brand-name", style: { fontSize: "1.25rem", fontWeight: "900", letterSpacing: "-0.02em", color: "#ffffff" } }, "TEAM D.D"), /* @__PURE__ */ import_react2.default.createElement("div", { className: "sidebar-brand-sub", style: { fontSize: "0.6875rem", color: "#94a3b8", marginTop: "2px" } }, "중장비 관리 시스템"))), /* @__PURE__ */ import_react2.default.createElement("nav", { className: "sidebar-nav-list" }, navItems.map((item) => /* @__PURE__ */ import_react2.default.createElement(
       "button",
@@ -29210,9 +29397,9 @@ ${JSON.stringify(extra)}`;
         className: `sidebar-nav-item ${item.isActive ? "active" : ""}`,
         onClick: () => handleMenuClick(item)
       },
-      /* @__PURE__ */ import_react2.default.createElement("div", { className: "sidebar-item-left" }, /* @__PURE__ */ import_react2.default.createElement("span", { className: "sidebar-item-icon" }, item.icon), /* @__PURE__ */ import_react2.default.createElement("span", null, item.label)),
+      /* @__PURE__ */ import_react2.default.createElement("div", { className: "sidebar-item-left" }, /* @__PURE__ */ import_react2.default.createElement("span", { style: { fontSize: "13px", fontWeight: item.isActive ? "700" : "500" } }, item.label)),
       item.badge && /* @__PURE__ */ import_react2.default.createElement("span", { className: "sidebar-badge alert" }, item.badge)
-    ))), /* @__PURE__ */ import_react2.default.createElement("div", { className: "sidebar-footer" }, /* @__PURE__ */ import_react2.default.createElement("div", { className: "sidebar-user-box", style: { backgroundColor: isAdmin ? "rgba(234, 179, 8, 0.15)" : "rgba(255, 255, 255, 0.04)", border: isAdmin ? "1px solid rgba(234, 179, 8, 0.3)" : "none" } }, /* @__PURE__ */ import_react2.default.createElement("div", { className: "sidebar-user-avatar", style: { backgroundColor: isAdmin ? "#ca8a04" : "#2563eb" } }, isAdmin ? "👑" : supplierDisplayName ? supplierDisplayName.slice(0, 1) : "공"), /* @__PURE__ */ import_react2.default.createElement("div", { className: "sidebar-user-info" }, /* @__PURE__ */ import_react2.default.createElement("div", { className: "sidebar-user-name", style: { color: isAdmin ? "#fef08a" : "#ffffff" }, title: supplierDisplayName }, supplierDisplayName), /* @__PURE__ */ import_react2.default.createElement("div", { className: "sidebar-user-role", style: { color: isAdmin ? "#fde047" : "#94a3b8" } }, isAdmin ? "전체 관리자 모드" : displayUser?.person ? `${displayUser.person} 대표` : "사업자 계정"))), isAdmin && setSelectedSupplierKey && suppliersList.length > 0 && /* @__PURE__ */ import_react2.default.createElement("div", { style: { padding: "0 2px" } }, /* @__PURE__ */ import_react2.default.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginBottom: "2px", fontWeight: "700" } }, "사업자 데이터 전환:"), /* @__PURE__ */ import_react2.default.createElement(
+    ))), /* @__PURE__ */ import_react2.default.createElement("div", { className: "sidebar-footer" }, /* @__PURE__ */ import_react2.default.createElement("div", { className: "sidebar-user-box", style: { backgroundColor: isAdmin2 ? "rgba(234, 179, 8, 0.15)" : "rgba(255, 255, 255, 0.04)", border: isAdmin2 ? "1px solid rgba(234, 179, 8, 0.3)" : "none" } }, /* @__PURE__ */ import_react2.default.createElement("div", { className: "sidebar-user-avatar", style: { backgroundColor: isAdmin2 ? "#ca8a04" : "#2563eb", fontSize: "12px", fontWeight: "700" } }, isAdmin2 ? "관" : supplierDisplayName ? supplierDisplayName.slice(0, 1) : "공"), /* @__PURE__ */ import_react2.default.createElement("div", { className: "sidebar-user-info" }, /* @__PURE__ */ import_react2.default.createElement("div", { className: "sidebar-user-name", style: { color: isAdmin2 ? "#fef08a" : "#ffffff" }, title: supplierDisplayName }, supplierDisplayName), /* @__PURE__ */ import_react2.default.createElement("div", { className: "sidebar-user-role", style: { color: isAdmin2 ? "#fde047" : "#94a3b8" } }, isAdmin2 ? "전체 관리자 모드" : displayUser?.person ? `${displayUser.person} 대표` : "사업자 계정"))), isAdmin2 && setSelectedSupplierKey && suppliersList.length > 0 && /* @__PURE__ */ import_react2.default.createElement("div", { style: { padding: "0 2px" } }, /* @__PURE__ */ import_react2.default.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginBottom: "2px", fontWeight: "700" } }, "사업자 데이터 전환:"), /* @__PURE__ */ import_react2.default.createElement(
       "select",
       {
         className: "form-select",
@@ -29245,7 +29432,6 @@ ${JSON.stringify(extra)}`;
         },
         title: "프로그램 나가기 / 종료"
       },
-      /* @__PURE__ */ import_react2.default.createElement("span", null, "🚪"),
       /* @__PURE__ */ import_react2.default.createElement("span", null, "종료")
     ), onLogout && /* @__PURE__ */ import_react2.default.createElement(
       "button",
@@ -29254,21 +29440,19 @@ ${JSON.stringify(extra)}`;
         className: "btn btn-outline",
         style: {
           flex: 1,
-          fontSize: "0.75rem",
+          fontSize: "11px",
           padding: "0.4rem 0.5rem",
           color: "#94a3b8",
           borderColor: "#475569",
           backgroundColor: "#1e293b",
-          fontWeight: "700",
+          fontWeight: "600",
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
-          gap: "4px"
+          justifyContent: "center"
         },
         onClick: onLogout,
         title: "로그아웃"
       },
-      /* @__PURE__ */ import_react2.default.createElement("span", null, "🔒"),
       /* @__PURE__ */ import_react2.default.createElement("span", null, "로그아웃")
     )))));
   }
@@ -30471,7 +30655,7 @@ ${JSON.stringify(extra)}`;
                 style: { borderBottom: "1px solid var(--border-color)", backgroundColor: idx % 2 === 1 ? "#FAFAFA" : "#FFFFFF" }
               },
               /* @__PURE__ */ import_react6.default.createElement("td", { style: { padding: "6px 4px", textAlign: "center", color: "var(--text-muted)" } }, idx + 1),
-              /* @__PURE__ */ import_react6.default.createElement("td", { style: { padding: "6px 8px", fontWeight: "700" } }, item.name || "-"),
+              /* @__PURE__ */ import_react6.default.createElement("td", { style: { padding: "6px 8px", fontWeight: "700" } }, item.code && /* @__PURE__ */ import_react6.default.createElement("span", { style: { fontFamily: "monospace", fontWeight: "900", color: "#1D4ED8", backgroundColor: "#EFF6FF", padding: "1px 5px", borderRadius: "4px", marginRight: "6px", fontSize: "0.75rem" } }, item.code), item.name || "-"),
               /* @__PURE__ */ import_react6.default.createElement("td", { style: { padding: "6px 4px", textAlign: "center" } }, item.unit || "EA"),
               /* @__PURE__ */ import_react6.default.createElement("td", { style: { padding: "6px 4px", textAlign: "center", fontWeight: "700" } }, itemQty.toLocaleString()),
               /* @__PURE__ */ import_react6.default.createElement("td", { style: { padding: "6px 8px", textAlign: "right" } }, itemPrice.toLocaleString()),
@@ -30482,7 +30666,7 @@ ${JSON.stringify(extra)}`;
           const itemQty = Number(item.qty) || 0;
           const itemPrice = Number(item.price) || 0;
           const itemSupply = itemQty * itemPrice;
-          return /* @__PURE__ */ import_react6.default.createElement("div", { key: item.id || idx, className: "preview-item-mobile-card" }, /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "6px" } }, /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "6px" } }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { fontSize: "0.6875rem", fontWeight: "800", color: "#64748b", backgroundColor: "#f1f5f9", padding: "1px 5px", borderRadius: "4px" } }, "#", idx + 1), /* @__PURE__ */ import_react6.default.createElement("span", { style: { fontWeight: "800", fontSize: "0.875rem", color: "#0f172a", lineHeight: 1.3 } }, item.name || "품목명 없음")), /* @__PURE__ */ import_react6.default.createElement("span", { style: { fontSize: "0.6875rem", color: "#64748b" } }, item.unit || "EA")), /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "2px", fontSize: "0.75rem", color: "#475569" } }, /* @__PURE__ */ import_react6.default.createElement("div", null, `수량: ${itemQty.toLocaleString()} ${item.unit || "EA"}  |  단가: ${itemPrice.toLocaleString()}원`), /* @__PURE__ */ import_react6.default.createElement("div", { style: { fontWeight: "900", fontSize: "0.875rem", color: "#1d4ed8" } }, itemSupply.toLocaleString(), "원")));
+          return /* @__PURE__ */ import_react6.default.createElement("div", { key: item.id || idx, className: "preview-item-mobile-card" }, /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "6px" } }, /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "6px" } }, /* @__PURE__ */ import_react6.default.createElement("span", { style: { fontSize: "0.6875rem", fontWeight: "800", color: "#64748b", backgroundColor: "#f1f5f9", padding: "1px 5px", borderRadius: "4px" } }, "#", idx + 1), /* @__PURE__ */ import_react6.default.createElement("span", { style: { fontWeight: "800", fontSize: "0.875rem", color: "#0f172a", lineHeight: 1.3 } }, item.code && /* @__PURE__ */ import_react6.default.createElement("span", { style: { fontFamily: "monospace", fontWeight: "900", color: "#1D4ED8", backgroundColor: "#EFF6FF", padding: "1px 5px", borderRadius: "4px", marginRight: "6px", fontSize: "0.75rem" } }, item.code), item.name || "품목명 없음")), /* @__PURE__ */ import_react6.default.createElement("span", { style: { fontSize: "0.6875rem", color: "#64748b" } }, item.unit || "EA")), /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "2px", fontSize: "0.75rem", color: "#475569" } }, /* @__PURE__ */ import_react6.default.createElement("div", null, `수량: ${itemQty.toLocaleString()} ${item.unit || "EA"}  |  단가: ${itemPrice.toLocaleString()}원`), /* @__PURE__ */ import_react6.default.createElement("div", { style: { fontWeight: "900", fontSize: "0.875rem", color: "#1d4ed8" } }, itemSupply.toLocaleString(), "원")));
         })), /* @__PURE__ */ import_react6.default.createElement(
           "div",
           {
@@ -31121,25 +31305,27 @@ ${JSON.stringify(extra)}`;
           {
             type: "button",
             className: "btn btn-primary",
-            style: { fontSize: "0.75rem", padding: "0.35rem 0.75rem", backgroundColor: "#059669", borderColor: "#059669" },
+            style: { fontSize: "0.75rem", padding: "0.35rem 0.75rem", backgroundColor: "#059669", borderColor: "#059669", fontWeight: "700" },
+            title: "견적서 품목/거래처를 가져와 신규 거래명세서로 작성합니다",
             onClick: () => {
               onApplyEstimate(doc, "convert_to_statement");
               onClose();
             }
           },
-          "📋 거래명세서로 작성"
+          "📋 신규 명세서로 변환"
         ), /* @__PURE__ */ import_react9.default.createElement(
           "button",
           {
             type: "button",
             className: "btn btn-outline",
-            style: { fontSize: "0.75rem", padding: "0.35rem 0.75rem", color: "#4338ca", borderColor: "#c7d2fe" },
+            style: { fontSize: "0.75rem", padding: "0.35rem 0.75rem", color: "#1d4ed8", borderColor: "#93c5fd", backgroundColor: "#eff6ff", fontWeight: "700" },
+            title: "이 견적서 원본을 불러와 수정/덮어씁니다",
             onClick: () => {
               onApplyEstimate(doc, "load_as_estimate");
               onClose();
             }
           },
-          "📂 견적서 불러오기"
+          "✏️ 기존 견적서 수정"
         )))
       );
     })), /* @__PURE__ */ import_react9.default.createElement("div", { style: { display: "flex", justifyContent: "flex-end", marginTop: "1rem", paddingTop: "0.75rem", borderTop: "1px solid #e2e8f0" } }, /* @__PURE__ */ import_react9.default.createElement("button", { type: "button", className: "btn btn-outline", onClick: onClose }, "닫기"))));
@@ -31349,12 +31535,13 @@ ${JSON.stringify(extra)}`;
                     alignItems: "center",
                     gap: "3px"
                   },
+                  title: "거래처와 품목을 가져와 오늘 날짜의 신규 명세서로 작성합니다",
                   onClick: () => {
                     onApplyStatement(doc, "copy_to_new");
                     onClose();
                   }
                 },
-                "✨ 새 명세서로 복사"
+                "✨ 새 문서로 복사"
               )),
               /* @__PURE__ */ import_react10.default.createElement(
                 "button",
@@ -31363,17 +31550,21 @@ ${JSON.stringify(extra)}`;
                   className: "btn btn-outline",
                   style: {
                     fontSize: "0.75rem",
-                    padding: "4px 8px",
-                    color: "#475569",
+                    padding: "5px 8px",
+                    color: "#1d4ed8",
+                    borderColor: "#93c5fd",
+                    backgroundColor: "#eff6ff",
+                    fontWeight: "700",
                     width: "100%",
                     textAlign: "center"
                   },
+                  title: "이 문서 원본을 불러와 수정/덮어씁니다",
                   onClick: () => {
                     onApplyStatement(doc, "edit_original");
                     onClose();
                   }
                 },
-                "✏️ 원본 수정"
+                "✏️ 기존 원본 수정"
               )
             )
           );
@@ -31988,10 +32179,10 @@ IconFile=${currentUrl}favicon.ico\r
     customers = [],
     onSaveCustomer,
     onSelectCustomerAfterSave = null,
-    isAdmin = sessionStorage.getItem("dd_user_role") === "admin"
+    isAdmin: isAdmin2 = sessionStorage.getItem("dd_user_role") === "admin"
   }) {
     if (!isOpen) return null;
-    const isUserAdmin = isAdmin || sessionStorage.getItem("dd_user_role") === "admin";
+    const isUserAdmin = isAdmin2 || sessionStorage.getItem("dd_user_role") === "admin";
     const [apiKey, setApiKey] = (0, import_react13.useState)(() => localStorage.getItem("gemini_api_key") || DEFAULT_GEMINI_API_KEY);
     const [showApiKeyInput, setShowApiKeyInput] = (0, import_react13.useState)(false);
     const [imageFile, setImageFile] = (0, import_react13.useState)(null);
@@ -32519,13 +32710,15 @@ IconFile=${currentUrl}favicon.ico\r
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: "2rem",
+              fontSize: "1.25rem",
+              fontWeight: "900",
+              color: "#FFFFFF",
               margin: "0 auto 1.25rem",
               boxShadow: "0 8px 16px rgba(2, 69, 122, 0.25)",
               border: "2px solid rgba(255, 255, 255, 0.2)"
             }
           },
-          "🚜"
+          "D.D"
         ),
         /* @__PURE__ */ import_react15.default.createElement("div", { style: { fontSize: "0.75rem", fontWeight: "800", color: "#0284c7", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "4px" } }, "TEAM D.D 중장비 관리"),
         /* @__PURE__ */ import_react15.default.createElement(
@@ -32562,25 +32755,22 @@ IconFile=${currentUrl}favicon.ico\r
             className: "btn btn-primary",
             style: {
               width: "100%",
-              minHeight: "48px",
-              fontSize: "0.9375rem",
-              fontWeight: "800",
+              minHeight: "44px",
+              fontSize: "13px",
+              fontWeight: "700",
               backgroundColor: "#dc2626",
               borderColor: "#dc2626",
               color: "#ffffff",
-              borderRadius: "10px",
-              boxShadow: "0 4px 12px rgba(220, 38, 38, 0.3)",
+              borderRadius: "8px",
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              gap: "8px"
+              justifyContent: "center"
             },
             onClick: () => {
               onClose();
               if (onExit) onExit();
             }
           },
-          /* @__PURE__ */ import_react15.default.createElement("span", null, "🚪"),
           /* @__PURE__ */ import_react15.default.createElement("span", null, "앱 종료 (창 닫기)")
         ), onLogout && /* @__PURE__ */ import_react15.default.createElement(
           "button",
@@ -32589,23 +32779,21 @@ IconFile=${currentUrl}favicon.ico\r
             className: "btn btn-outline",
             style: {
               width: "100%",
-              minHeight: "42px",
-              fontSize: "0.875rem",
-              fontWeight: "700",
+              minHeight: "40px",
+              fontSize: "12px",
+              fontWeight: "600",
               borderColor: "#cbd5e1",
               color: "#475569",
-              borderRadius: "10px",
+              borderRadius: "8px",
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              gap: "8px"
+              justifyContent: "center"
             },
             onClick: () => {
               onClose();
               onLogout();
             }
           },
-          /* @__PURE__ */ import_react15.default.createElement("span", null, "🔒"),
           /* @__PURE__ */ import_react15.default.createElement("span", null, "로그아웃 (시작 화면으로 이동)")
         ), /* @__PURE__ */ import_react15.default.createElement(
           "button",
@@ -32614,21 +32802,19 @@ IconFile=${currentUrl}favicon.ico\r
             className: "btn btn-outline",
             style: {
               width: "100%",
-              minHeight: "42px",
-              fontSize: "0.875rem",
-              fontWeight: "700",
+              minHeight: "40px",
+              fontSize: "12px",
+              fontWeight: "600",
               borderColor: "#0284c7",
               color: "#0284c7",
               backgroundColor: "rgba(2, 132, 199, 0.06)",
-              borderRadius: "10px",
+              borderRadius: "8px",
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              gap: "6px"
+              justifyContent: "center"
             },
             onClick: onClose
           },
-          /* @__PURE__ */ import_react15.default.createElement("span", null, "↩️"),
           /* @__PURE__ */ import_react15.default.createElement("span", null, "계속 사용하기 (취소)")
         ))
       )
@@ -32746,7 +32932,10 @@ IconFile=${currentUrl}favicon.ico\r
 2. vendor_bizno: 공급자의 사업자등록번호 (000-00-00000 형태).
 3. invoice_date: 거래일자/작성일자 (YYYY-MM-DD 형식, 연도가 생략된 경우 올해 연도 적용).
 4. items: 전표 내 품목 목록 테이블의 각 행을 배열로 추출:
-   - name: 품목명 (부품명, 작업명 등)
+   - part_no: 부품번호, 품번, 부품코드, P/N, 도번 (영문/숫자 코드, 하이픈 포함).
+     * 필독: 전표 테이블에 '부품번호', '품번', 'Part No', 'P/N', 'Item Code', '도번', '코드' 열이 있다면 해당 열의 영문/숫자 코드를 절대 빠뜨리지 말고 추출하세요.
+     * 필독: 만약 별도의 부품번호 열이 없더라도 품명란에 영문/숫자 코드(예: 'VOE14532101 HUB', '1453-2101', '14532101 씰' 등)가 함께 적혀 있다면, 영문/숫자 부품코드를 분리하여 part_no에 넣고 name에는 순수 품명을 넣으세요. 없으면 ""
+   - name: 품목명 (순수 부품명, 한글/영문 품명)
    - spec: 규격/모델명 (없으면 "")
    - qty: 수량 (숫자, 기본값 1)
    - unit_price: 단가 (숫자, 콤마 제외)
@@ -32767,6 +32956,7 @@ IconFile=${currentUrl}favicon.ico\r
   "vat_amount": 10000,
   "items": [
     {
+      "part_no": "VOE14532101",
       "name": "유압호스 1/2",
       "spec": "2W-08",
       "qty": 2,
@@ -32851,6 +33041,7 @@ IconFile=${currentUrl}favicon.ico\r
           supply_amount: Number(parsed.supply_amount) || 0,
           vat_amount: Number(parsed.vat_amount) || 0,
           items: Array.isArray(parsed.items) ? parsed.items.map((it) => ({
+            part_no: (it.part_no || it.code || it.part_number || it.partNo || "").trim(),
             name: it.name || "",
             spec: it.spec || "",
             qty: Number(it.qty) || 1,
@@ -32950,8 +33141,16 @@ IconFile=${currentUrl}favicon.ico\r
           vendor_name: result.vendor_name || "",
           vendor_bizno: result.vendor_bizno || "",
           invoice_date: result.invoice_date || (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
-          items: result.items && result.items.length > 0 ? result.items : [
-            { name: "", spec: "", qty: 1, unit_price: 0, amount: 0, memo: "" }
+          items: result.items && result.items.length > 0 ? result.items.map((it) => ({
+            part_no: it.part_no || it.code || "",
+            name: it.name || "",
+            spec: it.spec || "",
+            qty: Number(it.qty) || 1,
+            unit_price: Number(it.unit_price) || 0,
+            amount: Number(it.amount) || (Number(it.qty) || 1) * (Number(it.unit_price) || 0),
+            memo: it.memo || ""
+          })) : [
+            { part_no: "", name: "", spec: "", qty: 1, unit_price: 0, amount: 0, memo: "" }
           ],
           total_amount: result.total_amount || 0,
           supply_amount: result.supply_amount || 0,
@@ -32989,7 +33188,7 @@ IconFile=${currentUrl}favicon.ico\r
         ...form,
         items: [
           ...form.items,
-          { name: "", spec: "", qty: 1, unit_price: 0, amount: 0, memo: "" }
+          { part_no: "", name: "", spec: "", qty: 1, unit_price: 0, amount: 0, memo: "" }
         ]
       });
     };
@@ -33263,7 +33462,17 @@ IconFile=${currentUrl}favicon.ico\r
             onClick: handleAddItem
           },
           "➕ 품목 행 추가"
-        )), /* @__PURE__ */ import_react16.default.createElement("div", { style: { overflowX: "auto", border: "1px solid #E2E8F0", borderRadius: "10px" } }, /* @__PURE__ */ import_react16.default.createElement("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: "11px", textAlign: "left" } }, /* @__PURE__ */ import_react16.default.createElement("thead", null, /* @__PURE__ */ import_react16.default.createElement("tr", { style: { backgroundColor: "#F8FAFC", borderBottom: "1px solid #E2E8F0", color: "#475569" } }, /* @__PURE__ */ import_react16.default.createElement("th", { style: { padding: "6px 8px", width: "35%" } }, "품목명 *"), /* @__PURE__ */ import_react16.default.createElement("th", { style: { padding: "6px 8px", width: "20%" } }, "규격/모델"), /* @__PURE__ */ import_react16.default.createElement("th", { style: { padding: "6px 8px", width: "12%", textAlign: "right" } }, "수량"), /* @__PURE__ */ import_react16.default.createElement("th", { style: { padding: "6px 8px", width: "18%", textAlign: "right" } }, "매입단가"), /* @__PURE__ */ import_react16.default.createElement("th", { style: { padding: "6px 8px", width: "15%", textAlign: "right" } }, "공급가액"), /* @__PURE__ */ import_react16.default.createElement("th", { style: { padding: "6px 4px", width: "30px", textAlign: "center" } }))), /* @__PURE__ */ import_react16.default.createElement("tbody", null, form.items.map((it, idx) => /* @__PURE__ */ import_react16.default.createElement("tr", { key: idx, style: { borderBottom: "1px solid #F1F5F9" } }, /* @__PURE__ */ import_react16.default.createElement("td", { style: { padding: "4px 6px" } }, /* @__PURE__ */ import_react16.default.createElement(
+        )), /* @__PURE__ */ import_react16.default.createElement("div", { style: { overflowX: "auto", border: "1px solid #E2E8F0", borderRadius: "10px" } }, /* @__PURE__ */ import_react16.default.createElement("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: "11px", textAlign: "left" } }, /* @__PURE__ */ import_react16.default.createElement("thead", null, /* @__PURE__ */ import_react16.default.createElement("tr", { style: { backgroundColor: "#F8FAFC", borderBottom: "1px solid #E2E8F0", color: "#475569" } }, /* @__PURE__ */ import_react16.default.createElement("th", { style: { padding: "6px 8px", width: "22%" } }, "부품번호(선택)"), /* @__PURE__ */ import_react16.default.createElement("th", { style: { padding: "6px 8px", width: "28%" } }, "품목명 *"), /* @__PURE__ */ import_react16.default.createElement("th", { style: { padding: "6px 8px", width: "16%" } }, "규격/모델"), /* @__PURE__ */ import_react16.default.createElement("th", { style: { padding: "6px 8px", width: "10%", textAlign: "right" } }, "수량"), /* @__PURE__ */ import_react16.default.createElement("th", { style: { padding: "6px 8px", width: "12%", textAlign: "right" } }, "매입단가"), /* @__PURE__ */ import_react16.default.createElement("th", { style: { padding: "6px 8px", width: "12%", textAlign: "right" } }, "공급가액"), /* @__PURE__ */ import_react16.default.createElement("th", { style: { padding: "6px 4px", width: "30px", textAlign: "center" } }))), /* @__PURE__ */ import_react16.default.createElement("tbody", null, form.items.map((it, idx) => /* @__PURE__ */ import_react16.default.createElement("tr", { key: idx, style: { borderBottom: "1px solid #F1F5F9" } }, /* @__PURE__ */ import_react16.default.createElement("td", { style: { padding: "4px 6px" } }, /* @__PURE__ */ import_react16.default.createElement(
+          "input",
+          {
+            type: "text",
+            className: "form-input",
+            style: { padding: "4px 6px", fontSize: "11px", fontFamily: "monospace", fontWeight: "700" },
+            placeholder: "예: VOE14532101",
+            value: it.part_no || "",
+            onChange: (e) => handleItemChange(idx, "part_no", e.target.value.toUpperCase())
+          }
+        )), /* @__PURE__ */ import_react16.default.createElement("td", { style: { padding: "4px 6px" } }, /* @__PURE__ */ import_react16.default.createElement(
           "input",
           {
             type: "text",
@@ -34091,6 +34300,7 @@ IconFile=${currentUrl}favicon.ico\r
     dueDate,
     receiverName,
     receiveDate,
+    showPartNoColumn = true,
     setItems,
     setCustomer,
     setRemark
@@ -34494,7 +34704,7 @@ IconFile=${currentUrl}favicon.ico\r
                 "인"
               ) : null))), /* @__PURE__ */ import_react19.default.createElement("tr", { style: { borderBottom: "1px solid #f1f5f9" } }, /* @__PURE__ */ import_react19.default.createElement("th", { style: { padding: "5px 8px", backgroundColor: "#f8fafc", color: "#475569", fontWeight: "600", textAlign: "center", borderRight: "1px solid #f1f5f9" } }, "연락처/메일"), /* @__PURE__ */ import_react19.default.createElement("td", { style: { padding: "5px 8px", color: "#0f172a" } }, supplier.tel || supplier.phone || "-", supplier.email ? ` / ${supplier.email}` : "")), /* @__PURE__ */ import_react19.default.createElement("tr", null, /* @__PURE__ */ import_react19.default.createElement("th", { style: { padding: "5px 8px", backgroundColor: "#f8fafc", color: "#475569", fontWeight: "600", textAlign: "center", borderRight: "1px solid #f1f5f9" } }, "사업장주소"), /* @__PURE__ */ import_react19.default.createElement("td", { style: { padding: "5px 8px", color: "#0f172a", fontSize: "10.5px" } }, supplier.addr || "-"))))
             )
-          ), /* @__PURE__ */ import_react19.default.createElement("div", { style: { borderRadius: "8px", overflow: "hidden", border: "1px solid #cbd5e1" } }, /* @__PURE__ */ import_react19.default.createElement("table", { className: "items-table-modern", style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" } }, /* @__PURE__ */ import_react19.default.createElement("thead", null, /* @__PURE__ */ import_react19.default.createElement("tr", { style: { backgroundColor: "#1d6bf3", color: "#ffffff", fontSize: "12px", height: "30px" } }, /* @__PURE__ */ import_react19.default.createElement("th", { style: { width: "40px", textAlign: "center", fontWeight: "700", borderRight: "1px solid rgba(255,255,255,0.2)" } }, "No"), docType === "청구서" && /* @__PURE__ */ import_react19.default.createElement("th", { style: { width: "45px", textAlign: "center", fontWeight: "700", borderRight: "1px solid rgba(255,255,255,0.2)" } }, "일자"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { textAlign: "center", fontWeight: "700", borderRight: "1px solid rgba(255,255,255,0.2)" } }, "품명 및 규격"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { width: "55px", textAlign: "center", fontWeight: "700", borderRight: "1px solid rgba(255,255,255,0.2)" } }, "단위"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { width: "45px", textAlign: "center", fontWeight: "700", borderRight: "1px solid rgba(255,255,255,0.2)" } }, "수량"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { width: "110px", textAlign: "center", fontWeight: "700", borderRight: "1px solid rgba(255,255,255,0.2)" } }, "단가"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { width: "120px", textAlign: "center", fontWeight: "700", borderRight: "1px solid rgba(255,255,255,0.2)" } }, "공급가액"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { width: "80px", textAlign: "center", fontWeight: "700" } }, "비고"))), /* @__PURE__ */ import_react19.default.createElement("tbody", null, Array.from({ length: pageInfo.maxRows }).map((_, idx) => {
+          ), /* @__PURE__ */ import_react19.default.createElement("div", { style: { borderRadius: "8px", overflow: "hidden", border: "1px solid #cbd5e1" } }, /* @__PURE__ */ import_react19.default.createElement("table", { className: "items-table-modern", style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" } }, /* @__PURE__ */ import_react19.default.createElement("thead", null, /* @__PURE__ */ import_react19.default.createElement("tr", { style: { backgroundColor: "#1d6bf3", color: "#ffffff", fontSize: "12px", height: "30px" } }, /* @__PURE__ */ import_react19.default.createElement("th", { style: { width: showPartNoColumn ? "35px" : "40px", textAlign: "center", fontWeight: "600", borderRight: "1px solid rgba(255,255,255,0.2)" } }, "No"), docType === "청구서" && /* @__PURE__ */ import_react19.default.createElement("th", { style: { width: "45px", textAlign: "center", fontWeight: "600", borderRight: "1px solid rgba(255,255,255,0.2)" } }, "일자"), showPartNoColumn && /* @__PURE__ */ import_react19.default.createElement("th", { style: { width: "85px", textAlign: "center", fontWeight: "600", borderRight: "1px solid rgba(255,255,255,0.2)" } }, "부품번호"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { textAlign: "center", fontWeight: "600", borderRight: "1px solid rgba(255,255,255,0.2)" } }, "품명 및 규격"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { width: showPartNoColumn ? "45px" : "55px", textAlign: "center", fontWeight: "600", borderRight: "1px solid rgba(255,255,255,0.2)" } }, "단위"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { width: "45px", textAlign: "center", fontWeight: "600", borderRight: "1px solid rgba(255,255,255,0.2)" } }, "수량"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { width: showPartNoColumn ? "105px" : "110px", textAlign: "center", fontWeight: "600", borderRight: "1px solid rgba(255,255,255,0.2)" } }, "단가"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { width: showPartNoColumn ? "115px" : "120px", textAlign: "center", fontWeight: "600", borderRight: "1px solid rgba(255,255,255,0.2)" } }, "공급가액"), /* @__PURE__ */ import_react19.default.createElement("th", { style: { width: showPartNoColumn ? "75px" : "80px", textAlign: "center", fontWeight: "600" } }, "비고"))), /* @__PURE__ */ import_react19.default.createElement("tbody", null, Array.from({ length: pageInfo.maxRows }).map((_, idx) => {
             const realIdx = pageInfo.startIndex + idx;
             const item = items[realIdx];
             const amount = item ? (Number(item.qty) || 0) * (Number(item.price) || 0) : 0;
@@ -34510,16 +34720,26 @@ IconFile=${currentUrl}favicon.ico\r
               },
               /* @__PURE__ */ import_react19.default.createElement("td", { style: { textAlign: "center", color: "#64748b", fontSize: "11px", borderRight: "1px solid #e2e8f0" } }, item ? realIdx + 1 : ""),
               docType === "청구서" && /* @__PURE__ */ import_react19.default.createElement("td", { style: { textAlign: "center", color: "#64748b", fontSize: "10px", borderRight: "1px solid #e2e8f0" } }, item && item.date ? item.date.substring(5).replace("-", "/") : ""),
-              /* @__PURE__ */ import_react19.default.createElement("td", { style: { padding: "0 2px", fontWeight: item ? "700" : "normal", fontSize: "12px", color: "#0f172a", borderRight: "1px solid #e2e8f0" } }, setItems ? /* @__PURE__ */ import_react19.default.createElement(
+              showPartNoColumn && /* @__PURE__ */ import_react19.default.createElement("td", { style: { textAlign: "center", fontFamily: "monospace", fontSize: "11px", color: "#1E293B", fontWeight: "700", borderRight: "1px solid #e2e8f0", padding: "0 4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, setItems ? /* @__PURE__ */ import_react19.default.createElement(
                 "input",
                 {
                   className: "canvas-input",
-                  style: { fontWeight: item ? "700" : "normal", fontSize: "12px" },
+                  style: { textAlign: "center", fontFamily: "monospace", fontSize: "11px", fontWeight: "700", width: "100%" },
+                  value: item && item.code ? String(item.code).replace(/^PART[-_]?/i, "") : "",
+                  onChange: (e) => updateItem(realIdx, "code", e.target.value),
+                  placeholder: ""
+                }
+              ) : item && item.code ? String(item.code).replace(/^PART[-_]?/i, "") : ""),
+              /* @__PURE__ */ import_react19.default.createElement("td", { style: { padding: "0 4px", fontWeight: item ? "600" : "normal", fontSize: "12px", color: "#0f172a", borderRight: "1px solid #e2e8f0" } }, /* @__PURE__ */ import_react19.default.createElement("div", { style: { display: "flex", alignItems: "center", minWidth: 0, width: "100%" } }, setItems ? /* @__PURE__ */ import_react19.default.createElement(
+                "input",
+                {
+                  className: "canvas-input",
+                  style: { fontWeight: item ? "600" : "normal", fontSize: "12px", flex: 1, minWidth: 0, width: "100%" },
                   value: item && item.name || "",
                   onChange: (e) => updateItem(realIdx, "name", e.target.value),
                   placeholder: realIdx === 0 && !(item && item.name) ? "품명 입력..." : ""
                 }
-              ) : item && item.name || ""),
+              ) : /* @__PURE__ */ import_react19.default.createElement("span", { style: { wordBreak: "break-all" } }, item && item.name || ""))),
               /* @__PURE__ */ import_react19.default.createElement("td", { style: { textAlign: "center", fontSize: "11px", color: "#475569", borderRight: "1px solid #e2e8f0" } }, setItems ? /* @__PURE__ */ import_react19.default.createElement(
                 "input",
                 {
@@ -34713,7 +34933,7 @@ IconFile=${currentUrl}favicon.ico\r
               }
             },
             /* @__PURE__ */ import_react19.default.createElement("span", null, "※ 품목 내역이 다음 페이지로 계속 이어집니다. (", pageIdx + 1, " / ", pages.length, " 페이지)"),
-            /* @__PURE__ */ import_react19.default.createElement("span", { style: { color: "#1d6bf3", fontWeight: "800" } }, "(다음 ", pageIdx + 2, "페이지에 계속 ➡️)")
+            /* @__PURE__ */ import_react19.default.createElement("span", { style: { color: "#1d6bf3", fontWeight: "800" } }, "(다음 ", pageIdx + 2, "페이지에 계속 →)")
           )
         )
       ))
@@ -34726,16 +34946,23 @@ IconFile=${currentUrl}favicon.ico\r
     items = [],
     setItems,
     docType = "거래명세서",
-    vatIncluded = true
+    vatIncluded = true,
+    parts = [],
+    showPartNoColumn = true,
+    onTogglePartNoColumn = () => {
+    }
   }) {
     const [formMode, setFormMode] = (0, import_react20.useState)("add");
     const [targetItemId, setTargetItemId] = (0, import_react20.useState)(null);
+    const [inputCode, setInputCode] = (0, import_react20.useState)("");
     const [inputDate, setInputDate] = (0, import_react20.useState)((/* @__PURE__ */ new Date()).toISOString().split("T")[0]);
     const [inputName, setInputName] = (0, import_react20.useState)("");
     const [inputUnit, setInputUnit] = (0, import_react20.useState)("EA");
     const [inputQty, setInputQty] = (0, import_react20.useState)(1);
     const [inputPrice, setInputPrice] = (0, import_react20.useState)("");
     const [inputMemo, setInputMemo] = (0, import_react20.useState)("");
+    const [matchedParts, setMatchedParts] = (0, import_react20.useState)([]);
+    const [showPartDropdown, setShowPartDropdown] = (0, import_react20.useState)(false);
     const [expandedItemId, setExpandedItemId] = (0, import_react20.useState)(null);
     const [showPreviewModal, setShowPreviewModal] = (0, import_react20.useState)(false);
     const [confirmDialog, setConfirmDialog] = (0, import_react20.useState)({ isOpen: false, title: "", message: "", onConfirm: null, confirmColor: "#1d4ed8" });
@@ -34747,16 +34974,20 @@ IconFile=${currentUrl}favicon.ico\r
     const resetForm = () => {
       setFormMode("add");
       setTargetItemId(null);
+      setInputCode("");
       setInputName("");
       setInputUnit("EA");
       setInputQty(1);
       setInputPrice("");
       setInputMemo("");
       setInputDate((/* @__PURE__ */ new Date()).toISOString().split("T")[0]);
+      setMatchedParts([]);
+      setShowPartDropdown(false);
     };
     const startEdit = (item) => {
       setFormMode("edit");
       setTargetItemId(item.id);
+      setInputCode(item.code || "");
       setInputName(item.name || "");
       setInputUnit(item.unit || "EA");
       setInputQty(item.qty || 1);
@@ -34764,12 +34995,14 @@ IconFile=${currentUrl}favicon.ico\r
       setInputMemo(item.memo || item.remark || "");
       setInputDate(item.date || (/* @__PURE__ */ new Date()).toISOString().split("T")[0]);
       setExpandedItemId(null);
+      setShowPartDropdown(false);
       const el = document.getElementById("smart-item-input-box");
       if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
     };
     const startInsertAbove = (item) => {
       setFormMode("insert_above");
       setTargetItemId(item.id);
+      setInputCode("");
       setInputName("");
       setInputUnit("EA");
       setInputQty(1);
@@ -34777,8 +35010,40 @@ IconFile=${currentUrl}favicon.ico\r
       setInputMemo("");
       setInputDate((/* @__PURE__ */ new Date()).toISOString().split("T")[0]);
       setExpandedItemId(null);
+      setShowPartDropdown(false);
       const el = document.getElementById("smart-item-input-box");
       if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    };
+    const handleCodeOrNameChange = (val, field = "code") => {
+      if (field === "code") {
+        setInputCode(val);
+      } else {
+        setInputName(val);
+      }
+      if (!val || val.trim().length < 1) {
+        setMatchedParts([]);
+        setShowPartDropdown(false);
+        return;
+      }
+      const q = val.toLowerCase().trim();
+      const cleanQ = val.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+      const matches = (parts || []).filter((p) => {
+        const codeMatch = (p.code || "").toLowerCase().includes(q);
+        const cleanMatch = cleanQ && (p.cleanKey || p.code || "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase().includes(cleanQ);
+        const nameMatch = (p.name || "").toLowerCase().includes(q);
+        const specMatch = (p.spec || "").toLowerCase().includes(q);
+        return codeMatch || cleanMatch || nameMatch || specMatch;
+      }).slice(0, 6);
+      setMatchedParts(matches);
+      setShowPartDropdown(matches.length > 0);
+    };
+    const handleSelectAutocompletePart = (part) => {
+      setInputCode(part.code || "");
+      setInputName(part.name || "");
+      if (part.unit) setInputUnit(part.unit);
+      if (part.price) setInputPrice(String(part.price));
+      if (part.spec) setInputMemo((prev) => prev ? `${prev} / ${part.spec}` : part.spec);
+      setShowPartDropdown(false);
     };
     const handleDeleteItem = (item, idx) => {
       const itemName = item.name ? `[${item.name}]` : `#${idx + 1}번 품목`;
@@ -34810,15 +35075,19 @@ IconFile=${currentUrl}favicon.ico\r
       setExpandedItemId(null);
     };
     const handleSubmitItem = () => {
-      if (!inputName.trim()) {
-        alert("품명 및 규격을 입력해 주세요.");
+      let effectiveName = inputName.trim();
+      if (!effectiveName && inputCode.trim()) {
+        effectiveName = inputCode.trim();
+      }
+      if (!effectiveName) {
+        alert("품명 또는 부품번호를 입력해 주세요.");
         return;
       }
       const newItemData = {
         id: formMode === "edit" ? targetItemId : Date.now().toString(),
-        code: "",
+        code: normalizePartNo(inputCode),
         date: inputDate,
-        name: inputName.trim(),
+        name: effectiveName,
         unit: inputUnit.trim() || "EA",
         qty: Number(inputQty) || 1,
         price: Number(inputPrice) || 0,
@@ -34860,7 +35129,7 @@ IconFile=${currentUrl}favicon.ico\r
       const idx = items.findIndex((it) => it.id === targetItemId);
       return idx !== -1 ? idx + 1 : 1;
     };
-    return /* @__PURE__ */ import_react20.default.createElement("div", { className: "form-section", style: { backgroundColor: "#FFFFFF", borderRadius: "12px", padding: "0.875rem", border: "1px solid var(--border-color)", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" } }, /* @__PURE__ */ import_react20.default.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.625rem", paddingBottom: "0.5rem", borderBottom: "1.5px solid #F1F5F9" } }, /* @__PURE__ */ import_react20.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "6px" } }, /* @__PURE__ */ import_react20.default.createElement("span", { style: { fontSize: "0.9375rem", fontWeight: "900", color: "#0F172A" } }, "📦 등록된 품목 목록"), /* @__PURE__ */ import_react20.default.createElement("span", { style: { fontSize: "0.75rem", fontWeight: "800", backgroundColor: "#EFF6FF", color: "#1D4ED8", padding: "2px 8px", borderRadius: "12px", border: "1px solid #BFDBFE" } }, "총 ", displayItems.length, "건")), /* @__PURE__ */ import_react20.default.createElement("div", { style: { fontSize: "0.8125rem", fontWeight: "800", color: "#028A3E" } }, "합계: ", totalSupply.toLocaleString(), "원")), /* @__PURE__ */ import_react20.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "6px", marginBottom: "0.875rem" } }, displayItems.map((item, idx) => {
+    return /* @__PURE__ */ import_react20.default.createElement("div", { className: "form-section", style: { backgroundColor: "#FFFFFF", borderRadius: "12px", padding: "0.875rem", border: "1px solid var(--border-color)", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" } }, /* @__PURE__ */ import_react20.default.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.625rem", paddingBottom: "0.5rem", borderBottom: "1.5px solid #F1F5F9" } }, /* @__PURE__ */ import_react20.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "6px" } }, /* @__PURE__ */ import_react20.default.createElement("span", { style: { fontSize: "13px", fontWeight: "700", color: "#0F172A" } }, "품목 목록"), /* @__PURE__ */ import_react20.default.createElement("span", { style: { fontSize: "11px", fontWeight: "600", backgroundColor: "#EFF6FF", color: "#1D4ED8", padding: "1px 7px", borderRadius: "10px", border: "1px solid #BFDBFE" } }, "총 ", displayItems.length, "건")), /* @__PURE__ */ import_react20.default.createElement("div", { style: { fontSize: "12px", fontWeight: "700", color: "#028A3E" } }, "합계: ", totalSupply.toLocaleString(), "원")), /* @__PURE__ */ import_react20.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "6px", marginBottom: "0.875rem" } }, displayItems.map((item, idx) => {
       const itemTotal = (Number(item.qty) || 0) * (Number(item.price) || 0);
       const isExpanded = expandedItemId === (item.id || idx);
       const isBeingEdited = formMode === "edit" && targetItemId === item.id;
@@ -34883,7 +35152,7 @@ IconFile=${currentUrl}favicon.ico\r
             style: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", cursor: "pointer", gap: "8px" },
             onClick: () => setExpandedItemId(isExpanded ? null : item.id || idx)
           },
-          /* @__PURE__ */ import_react20.default.createElement("div", { style: { display: "flex", alignItems: "flex-start", gap: "6px", minWidth: 0, flex: 1 } }, /* @__PURE__ */ import_react20.default.createElement("span", { style: { fontSize: "0.6875rem", fontWeight: "800", color: "#64748B", backgroundColor: "#F1F5F9", padding: "2px 5px", borderRadius: "4px", marginTop: "1px", flexShrink: 0 } }, "#", idx + 1), /* @__PURE__ */ import_react20.default.createElement("div", { style: { minWidth: 0, flex: 1 } }, /* @__PURE__ */ import_react20.default.createElement("div", { style: { fontSize: "0.8125rem", fontWeight: "800", color: "#1E293B", wordBreak: "break-all", lineHeight: "1.3" } }, item.name || "(품명 미입력)", item.spec && /* @__PURE__ */ import_react20.default.createElement("span", { style: { fontSize: "0.6875rem", fontWeight: "normal", color: "#64748B", marginLeft: "4px" } }, "(", item.spec, ")")), /* @__PURE__ */ import_react20.default.createElement("div", { style: { fontSize: "0.6875rem", color: "#64748B", display: "flex", alignItems: "center", gap: "6px", marginTop: "3px", flexWrap: "wrap" } }, /* @__PURE__ */ import_react20.default.createElement("span", { style: { whiteSpace: "nowrap", fontWeight: "600" } }, item.qty || 1, " ", item.unit || "EA"), /* @__PURE__ */ import_react20.default.createElement("span", { style: { color: "#CBD5E1" } }, "·"), /* @__PURE__ */ import_react20.default.createElement("span", { style: { whiteSpace: "nowrap" } }, "단가 ", (Number(item.price) || 0).toLocaleString(), "원")), item.memo && /* @__PURE__ */ import_react20.default.createElement("div", { style: {
+          /* @__PURE__ */ import_react20.default.createElement("div", { style: { display: "flex", alignItems: "flex-start", gap: "6px", minWidth: 0, flex: 1 } }, /* @__PURE__ */ import_react20.default.createElement("span", { style: { fontSize: "0.6875rem", fontWeight: "800", color: "#64748B", backgroundColor: "#F1F5F9", padding: "2px 5px", borderRadius: "4px", marginTop: "1px", flexShrink: 0 } }, "#", idx + 1), /* @__PURE__ */ import_react20.default.createElement("div", { style: { minWidth: 0, flex: 1 } }, /* @__PURE__ */ import_react20.default.createElement("div", { style: { fontSize: "0.8125rem", fontWeight: "800", color: "#1E293B", wordBreak: "break-all", lineHeight: "1.3" } }, item.code && /* @__PURE__ */ import_react20.default.createElement("span", { style: { fontFamily: "monospace", fontWeight: "900", color: "#1D4ED8", backgroundColor: "#EFF6FF", padding: "1px 5px", borderRadius: "4px", marginRight: "6px", fontSize: "0.75rem" } }, item.code), item.name || "(품명 미입력)", item.spec && /* @__PURE__ */ import_react20.default.createElement("span", { style: { fontSize: "0.6875rem", fontWeight: "normal", color: "#64748B", marginLeft: "4px" } }, "(", item.spec, ")")), /* @__PURE__ */ import_react20.default.createElement("div", { style: { fontSize: "0.6875rem", color: "#64748B", display: "flex", alignItems: "center", gap: "6px", marginTop: "3px", flexWrap: "wrap" } }, /* @__PURE__ */ import_react20.default.createElement("span", { style: { whiteSpace: "nowrap", fontWeight: "600" } }, item.qty || 1, " ", item.unit || "EA"), /* @__PURE__ */ import_react20.default.createElement("span", { style: { color: "#CBD5E1" } }, "·"), /* @__PURE__ */ import_react20.default.createElement("span", { style: { whiteSpace: "nowrap" } }, "단가 ", (Number(item.price) || 0).toLocaleString(), "원")), item.memo && /* @__PURE__ */ import_react20.default.createElement("div", { style: {
             fontSize: "0.6875rem",
             color: "#028A3E",
             backgroundColor: "#F0FDF4",
@@ -34893,8 +35162,8 @@ IconFile=${currentUrl}favicon.ico\r
             marginTop: "4px",
             wordBreak: "break-all",
             lineHeight: "1.35"
-          } }, "📝 ", item.memo))),
-          /* @__PURE__ */ import_react20.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "6px", flexShrink: 0, marginLeft: "4px" } }, /* @__PURE__ */ import_react20.default.createElement("span", { style: { fontSize: "0.875rem", fontWeight: "900", color: "#1D4ED8", whiteSpace: "nowrap" } }, itemTotal.toLocaleString(), "원"), /* @__PURE__ */ import_react20.default.createElement(
+          } }, "메모: ", item.memo))),
+          /* @__PURE__ */ import_react20.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "6px", flexShrink: 0, marginLeft: "4px" } }, /* @__PURE__ */ import_react20.default.createElement("span", { style: { fontSize: "12px", fontWeight: "700", color: "#1D4ED8", whiteSpace: "nowrap" } }, itemTotal.toLocaleString(), "원"), /* @__PURE__ */ import_react20.default.createElement(
             "button",
             {
               type: "button",
@@ -34903,8 +35172,8 @@ IconFile=${currentUrl}favicon.ico\r
                 border: "1px solid #CBD5E1",
                 borderRadius: "4px",
                 padding: "2px 6px",
-                fontSize: "0.6875rem",
-                fontWeight: "700",
+                fontSize: "11px",
+                fontWeight: "600",
                 color: isExpanded ? "#1D4ED8" : "#475569",
                 cursor: "pointer",
                 whiteSpace: "nowrap"
@@ -34936,20 +35205,19 @@ IconFile=${currentUrl}favicon.ico\r
                 startEdit(item);
               },
               style: {
-                padding: "4px 10px",
+                padding: "4px 8px",
                 backgroundColor: "#EFF6FF",
                 border: "1px solid #BFDBFE",
                 color: "#1D4ED8",
-                borderRadius: "6px",
-                fontSize: "0.75rem",
-                fontWeight: "800",
+                borderRadius: "5px",
+                fontSize: "11px",
+                fontWeight: "700",
                 cursor: "pointer",
                 display: "inline-flex",
-                alignItems: "center",
-                gap: "3px"
+                alignItems: "center"
               }
             },
-            "✏️ 수정"
+            "수정"
           ), /* @__PURE__ */ import_react20.default.createElement(
             "button",
             {
@@ -34959,20 +35227,19 @@ IconFile=${currentUrl}favicon.ico\r
                 startInsertAbove(item);
               },
               style: {
-                padding: "4px 10px",
+                padding: "4px 8px",
                 backgroundColor: "#FAF5FF",
                 border: "1px solid #E9D5FF",
                 color: "#7E22CE",
-                borderRadius: "6px",
-                fontSize: "0.75rem",
-                fontWeight: "800",
+                borderRadius: "5px",
+                fontSize: "11px",
+                fontWeight: "700",
                 cursor: "pointer",
                 display: "inline-flex",
-                alignItems: "center",
-                gap: "3px"
+                alignItems: "center"
               }
             },
-            "➕ 위에 추가"
+            "위에 삽입"
           ), /* @__PURE__ */ import_react20.default.createElement(
             "button",
             {
@@ -34982,20 +35249,19 @@ IconFile=${currentUrl}favicon.ico\r
                 handleDeleteItem(item, idx);
               },
               style: {
-                padding: "4px 10px",
+                padding: "4px 8px",
                 backgroundColor: "#FEF2F2",
                 border: "1px solid #FECACA",
                 color: "#DC2626",
-                borderRadius: "6px",
-                fontSize: "0.75rem",
-                fontWeight: "800",
+                borderRadius: "5px",
+                fontSize: "11px",
+                fontWeight: "700",
                 cursor: "pointer",
                 display: "inline-flex",
-                alignItems: "center",
-                gap: "3px"
+                alignItems: "center"
               }
             },
-            "🗑️ 삭제"
+            "삭제"
           )),
           /* @__PURE__ */ import_react20.default.createElement("div", { style: { display: "flex", gap: "3px" } }, /* @__PURE__ */ import_react20.default.createElement(
             "button",
@@ -35056,7 +35322,15 @@ IconFile=${currentUrl}favicon.ico\r
           marginBottom: "0.75rem"
         }
       },
-      /* @__PURE__ */ import_react20.default.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" } }, /* @__PURE__ */ import_react20.default.createElement("span", { style: { fontSize: "0.8125rem", fontWeight: "800", color: formMode === "edit" ? "#B45309" : formMode === "insert_above" ? "#7E22CE" : "#0F172A" } }, formMode === "edit" ? `✏️ #${getTargetItemIndex()}번 품목 수정 중` : formMode === "insert_above" ? `➕ #${getTargetItemIndex()}번 품목 위에 끼워넣기` : `📝 새 품목 입력 (#${displayItems.length + 1})`), formMode !== "add" && /* @__PURE__ */ import_react20.default.createElement(
+      /* @__PURE__ */ import_react20.default.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" } }, /* @__PURE__ */ import_react20.default.createElement("span", { style: { fontSize: "13px", fontWeight: "700", color: formMode === "edit" ? "#B45309" : formMode === "insert_above" ? "#7E22CE" : "#0F172A" } }, formMode === "edit" ? `품목 수정 중 (#${getTargetItemIndex()})` : formMode === "insert_above" ? `상단 행 삽입 (#${getTargetItemIndex()})` : `새 품목 입력 (#${displayItems.length + 1})`), /* @__PURE__ */ import_react20.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px" } }, /* @__PURE__ */ import_react20.default.createElement("label", { style: { display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11px", fontWeight: "600", color: "#475569", cursor: "pointer", userSelect: "none" }, title: "명세서/견적서/청구서 본문 표에 부품번호 독립 열을 표시합니다" }, /* @__PURE__ */ import_react20.default.createElement(
+        "input",
+        {
+          type: "checkbox",
+          checked: showPartNoColumn,
+          onChange: (e) => onTogglePartNoColumn(e.target.checked),
+          style: { width: "13px", height: "13px", accentColor: "#1D4ED8", cursor: "pointer" }
+        }
+      ), /* @__PURE__ */ import_react20.default.createElement("span", null, "부품번호 열 사용")), formMode !== "add" && /* @__PURE__ */ import_react20.default.createElement(
         "button",
         {
           type: "button",
@@ -35065,14 +35339,66 @@ IconFile=${currentUrl}favicon.ico\r
             background: "none",
             border: "none",
             color: "#64748B",
-            fontSize: "0.75rem",
-            fontWeight: "700",
+            fontSize: "11px",
+            fontWeight: "600",
             cursor: "pointer",
             padding: "2px 6px"
           }
         },
-        "✕ 취소 (새 품목 모드로)"
-      )),
+        "취소 (신규 입력)"
+      ))),
+      showPartNoColumn && /* @__PURE__ */ import_react20.default.createElement("div", { style: { position: "relative", marginBottom: "6px" } }, /* @__PURE__ */ import_react20.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "150px 1fr", gap: "6px" } }, /* @__PURE__ */ import_react20.default.createElement("div", { style: { position: "relative", display: "flex" } }, /* @__PURE__ */ import_react20.default.createElement(
+        "input",
+        {
+          type: "text",
+          className: "form-input",
+          placeholder: "부품번호 (선택)",
+          value: inputCode,
+          onChange: (e) => handleCodeOrNameChange(e.target.value, "code"),
+          onKeyDown: (e) => {
+            if (e.key === "Enter") {
+              if (matchedParts.length > 0) {
+                e.preventDefault();
+                handleSelectAutocompletePart(matchedParts[0]);
+              } else {
+                document.getElementById("smart-item-name-input")?.focus();
+              }
+            }
+          },
+          style: { fontFamily: "monospace", fontWeight: "700", fontSize: "12px", backgroundColor: "#F8FAFC", width: "100%", borderRadius: "6px" }
+        }
+      )), /* @__PURE__ */ import_react20.default.createElement("div", { style: { display: "flex", alignItems: "center", fontSize: "11px", color: "#64748B" } }, "부품번호 입력 시 자동완성 (Enter 선택)")), showPartDropdown && matchedParts.length > 0 && /* @__PURE__ */ import_react20.default.createElement("div", { style: {
+        position: "absolute",
+        top: "100%",
+        left: 0,
+        right: 0,
+        backgroundColor: "#FFFFFF",
+        border: "1.5px solid #3B82F6",
+        borderRadius: "8px",
+        boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+        zIndex: 100,
+        marginTop: "2px",
+        overflow: "hidden"
+      } }, matchedParts.map((p) => /* @__PURE__ */ import_react20.default.createElement(
+        "div",
+        {
+          key: p.id || p.code,
+          onClick: () => handleSelectAutocompletePart(p),
+          style: {
+            padding: "8px 12px",
+            borderBottom: "1px solid #F1F5F9",
+            cursor: "pointer",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            fontSize: "0.8125rem"
+          },
+          onMouseEnter: (e) => e.currentTarget.style.backgroundColor = "#EFF6FF",
+          onMouseLeave: (e) => e.currentTarget.style.backgroundColor = "#FFFFFF"
+        },
+        /* @__PURE__ */ import_react20.default.createElement("div", null, /* @__PURE__ */ import_react20.default.createElement("span", { style: { fontFamily: "monospace", fontWeight: "900", color: "#1D4ED8", marginRight: "8px" } }, p.code), /* @__PURE__ */ import_react20.default.createElement("strong", { style: { color: "#0F172A" } }, p.name), p.spec && /* @__PURE__ */ import_react20.default.createElement("span", { style: { color: "#64748B", fontSize: "0.75rem", marginLeft: "6px" } }, "(", p.spec, ")")),
+        /* @__PURE__ */ import_react20.default.createElement("div", { style: { textAlign: "right" } }, /* @__PURE__ */ import_react20.default.createElement("span", { style: { fontWeight: "700", color: "#334155" } }, "₩ ", Number(p.price || 0).toLocaleString()), p.purchase_price ? /* @__PURE__ */ import_react20.default.createElement("span", { style: { fontSize: "0.6875rem", color: "#0284C7", marginLeft: "6px", fontWeight: "800" } }, "(내원가: ", Number(p.purchase_price).toLocaleString(), ")") : null)
+      )))),
       /* @__PURE__ */ import_react20.default.createElement("div", { style: { display: "grid", gridTemplateColumns: docType === "청구서" ? "110px 1fr" : "1fr", gap: "6px", marginBottom: "6px" } }, docType === "청구서" && /* @__PURE__ */ import_react20.default.createElement(
         "input",
         {
@@ -35080,20 +35406,21 @@ IconFile=${currentUrl}favicon.ico\r
           className: "form-input",
           value: inputDate,
           onChange: (e) => setInputDate(e.target.value),
-          style: { fontSize: "0.75rem", padding: "0.4rem", borderRadius: "6px" }
+          style: { fontSize: "12px", padding: "0.4rem", borderRadius: "6px" }
         }
       ), /* @__PURE__ */ import_react20.default.createElement(
         "input",
         {
+          id: "smart-item-name-input",
           type: "text",
           className: "form-input",
           placeholder: "품명 및 규격 (예: EC140EL 유압펌프 교환)",
           value: inputName,
-          onChange: (e) => setInputName(e.target.value),
+          onChange: (e) => handleCodeOrNameChange(e.target.value, "name"),
           onKeyDown: (e) => {
             if (e.key === "Enter") handleSubmitItem();
           },
-          style: { fontWeight: "700", borderRadius: "6px", fontSize: "0.875rem" }
+          style: { fontWeight: "600", borderRadius: "6px", fontSize: "12px" }
         }
       )),
       /* @__PURE__ */ import_react20.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "65px 75px 1fr", gap: "6px", marginBottom: "6px" } }, /* @__PURE__ */ import_react20.default.createElement(
@@ -35104,7 +35431,7 @@ IconFile=${currentUrl}favicon.ico\r
           placeholder: "단위",
           value: inputUnit,
           onChange: (e) => setInputUnit(e.target.value),
-          style: { textAlign: "center", borderRadius: "6px", fontSize: "0.8125rem" }
+          style: { textAlign: "center", borderRadius: "6px", fontSize: "12px" }
         }
       ), /* @__PURE__ */ import_react20.default.createElement(
         "input",
@@ -35114,7 +35441,7 @@ IconFile=${currentUrl}favicon.ico\r
           placeholder: "수량",
           value: inputQty === 0 ? "" : inputQty,
           onChange: (e) => setInputQty(e.target.value === "" ? "" : Number(e.target.value)),
-          style: { textAlign: "center", fontWeight: "700", borderRadius: "6px", fontSize: "0.875rem" }
+          style: { textAlign: "center", fontWeight: "600", borderRadius: "6px", fontSize: "12px" }
         }
       ), /* @__PURE__ */ import_react20.default.createElement(
         "input",
@@ -35127,7 +35454,7 @@ IconFile=${currentUrl}favicon.ico\r
           onKeyDown: (e) => {
             if (e.key === "Enter") handleSubmitItem();
           },
-          style: { textAlign: "right", fontWeight: "800", color: "#1D4ED8", borderRadius: "6px", fontSize: "0.875rem" }
+          style: { textAlign: "right", fontWeight: "700", color: "#1D4ED8", borderRadius: "6px", fontSize: "12px" }
         }
       )),
       /* @__PURE__ */ import_react20.default.createElement(
@@ -35141,7 +35468,7 @@ IconFile=${currentUrl}favicon.ico\r
           onKeyDown: (e) => {
             if (e.key === "Enter") handleSubmitItem();
           },
-          style: { fontSize: "0.75rem", borderRadius: "6px" }
+          style: { fontSize: "12px", borderRadius: "6px" }
         }
       )
     ), /* @__PURE__ */ import_react20.default.createElement("div", { style: { display: "flex", gap: "6px" } }, /* @__PURE__ */ import_react20.default.createElement(
@@ -35151,23 +35478,22 @@ IconFile=${currentUrl}favicon.ico\r
         onClick: handleSubmitItem,
         style: {
           flex: "3",
-          height: "40px",
-          borderRadius: "8px",
+          height: "38px",
+          borderRadius: "7px",
           backgroundColor: formMode === "edit" ? "#10B981" : formMode === "insert_above" ? "#7E22CE" : "#1D4ED8",
           color: "#FFFFFF",
           border: "none",
-          fontSize: "0.875rem",
-          fontWeight: "900",
+          fontSize: "13px",
+          fontWeight: "700",
           cursor: "pointer",
-          boxShadow: "0 2px 5px rgba(0,0,0,0.12)",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          gap: "5px",
           transition: "all 0.15s ease"
         }
       },
-      /* @__PURE__ */ import_react20.default.createElement("span", null, formMode === "edit" ? "✓ 수정 완료 (확인)" : formMode === "insert_above" ? "➕ 위에 삽입 완료" : "➕ 품목 추가하기")
+      /* @__PURE__ */ import_react20.default.createElement("span", null, formMode === "edit" ? "수정 완료" : formMode === "insert_above" ? "위에 삽입 완료" : "품목 추가")
     ), /* @__PURE__ */ import_react20.default.createElement(
       "button",
       {
@@ -35175,24 +35501,23 @@ IconFile=${currentUrl}favicon.ico\r
         onClick: () => setShowPreviewModal(true),
         style: {
           flex: "2",
-          height: "40px",
-          borderRadius: "8px",
+          height: "38px",
+          borderRadius: "7px",
           backgroundColor: "#0F172A",
           color: "#FFFFFF",
           border: "none",
-          fontSize: "0.8125rem",
-          fontWeight: "800",
+          fontSize: "12px",
+          fontWeight: "700",
           cursor: "pointer",
-          boxShadow: "0 2px 5px rgba(15,23,42,0.15)",
+          boxShadow: "0 1px 3px rgba(15,23,42,0.12)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          gap: "4px",
           whiteSpace: "nowrap"
         },
         title: "전체 품목 리스트를 팝업창으로 한눈에 확인"
       },
-      /* @__PURE__ */ import_react20.default.createElement("span", null, "👁️ 리스트 미리보기")
+      /* @__PURE__ */ import_react20.default.createElement("span", null, "목록 미리보기")
     )), showPreviewModal && /* @__PURE__ */ import_react20.default.createElement(
       "div",
       {
@@ -35240,7 +35565,7 @@ IconFile=${currentUrl}favicon.ico\r
               justifyContent: "space-between"
             }
           },
-          /* @__PURE__ */ import_react20.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px" } }, /* @__PURE__ */ import_react20.default.createElement("span", { style: { fontSize: "1.25rem" } }, "📦"), /* @__PURE__ */ import_react20.default.createElement("div", null, /* @__PURE__ */ import_react20.default.createElement("div", { style: { fontSize: "1.0625rem", fontWeight: "900" } }, "작성 중인 전체 품목 목록"), /* @__PURE__ */ import_react20.default.createElement("div", { style: { fontSize: "0.6875rem", color: "#D6E8EE", opacity: 0.85 } }, docType, " 품목 리스트 · 총 ", displayItems.length, "건"))),
+          /* @__PURE__ */ import_react20.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px" } }, /* @__PURE__ */ import_react20.default.createElement("div", null, /* @__PURE__ */ import_react20.default.createElement("div", { style: { fontSize: "15px", fontWeight: "700" } }, "전체 품목 목록"), /* @__PURE__ */ import_react20.default.createElement("div", { style: { fontSize: "11px", color: "#D6E8EE", opacity: 0.9, marginTop: "2px" } }, docType, " 품목 리스트 · 총 ", displayItems.length, "건"))),
           /* @__PURE__ */ import_react20.default.createElement(
             "button",
             {
@@ -35501,8 +35826,18 @@ IconFile=${currentUrl}favicon.ico\r
     draftsCount = 0,
     onUpdateScheduleStatus,
     onNavigateToDoc,
-    onOpenPurchaseImportModal
+    onOpenPurchaseImportModal,
+    partsList = [],
+    onConvertToNewDocument
   }) {
+    const [showPartNoColumn, setShowPartNoColumn] = (0, import_react21.useState)(() => {
+      const saved = localStorage.getItem("dd_show_part_no_col_v1");
+      return saved !== null ? saved === "true" : true;
+    });
+    const handleTogglePartNoColumn = (val) => {
+      setShowPartNoColumn(val);
+      localStorage.setItem("dd_show_part_no_col_v1", String(val));
+    };
     const [showAutocomplete, setShowAutocomplete] = (0, import_react21.useState)(false);
     const [selectedPartnerToAdd, setSelectedPartnerToAdd] = (0, import_react21.useState)("");
     const [isPartnersExpanded, setIsPartnersExpanded] = (0, import_react21.useState)(false);
@@ -35590,7 +35925,8 @@ IconFile=${currentUrl}favicon.ico\r
           vat,
           vatIncluded,
           paid,
-          remark
+          remark,
+          showPartNoColumn
         });
       } catch (err) {
         console.error("엑셀 내보내기 오류:", err);
@@ -35627,7 +35963,7 @@ IconFile=${currentUrl}favicon.ico\r
           alignItems: "center"
         }
       },
-      /* @__PURE__ */ import_react21.default.createElement("span", null, "✏️ 저장된 문서 [", docNo, "] 수정 중입니다."),
+      /* @__PURE__ */ import_react21.default.createElement("span", null, "저장된 문서 [", docNo, "] 수정 중입니다."),
       /* @__PURE__ */ import_react21.default.createElement(
         "button",
         {
@@ -35643,27 +35979,34 @@ IconFile=${currentUrl}favicon.ico\r
         },
         "신규 작성 전환"
       )
-    ), /* @__PURE__ */ import_react21.default.createElement("div", { className: "form-section" }, /* @__PURE__ */ import_react21.default.createElement("div", { className: "section-title", style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" } }, /* @__PURE__ */ import_react21.default.createElement("span", { style: { fontSize: "0.9375rem", fontWeight: "900" } }, "📄 ", docType, " 기본 설정"), onOpenConvertModal && /* @__PURE__ */ import_react21.default.createElement(
+    ), /* @__PURE__ */ import_react21.default.createElement("div", { className: "form-section" }, /* @__PURE__ */ import_react21.default.createElement("div", { className: "section-title", style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem", flexWrap: "wrap", gap: "6px" } }, /* @__PURE__ */ import_react21.default.createElement("span", { style: { fontSize: "13px", fontWeight: "700", color: "#0F172A" } }, docType, " 설정"), /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "6px" } }, /* @__PURE__ */ import_react21.default.createElement("label", { style: { display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11px", fontWeight: "600", color: "#1E293B", cursor: "pointer", padding: "2px 7px", backgroundColor: showPartNoColumn ? "#EFF6FF" : "#F8FAFC", border: `1px solid ${showPartNoColumn ? "#93C5FD" : "#CBD5E1"}`, borderRadius: "5px", userSelect: "none" }, title: "명세서/견적서/청구서 본문 표에 부품번호 독립 열을 표시합니다" }, /* @__PURE__ */ import_react21.default.createElement(
+      "input",
+      {
+        type: "checkbox",
+        checked: showPartNoColumn,
+        onChange: (e) => handleTogglePartNoColumn(e.target.checked),
+        style: { width: "12px", height: "12px", accentColor: "#1D4ED8", cursor: "pointer" }
+      }
+    ), /* @__PURE__ */ import_react21.default.createElement("span", null, "부품번호 열 사용")), onOpenConvertModal && /* @__PURE__ */ import_react21.default.createElement(
       "button",
       {
         type: "button",
         className: "btn btn-outline",
         style: {
-          fontSize: "0.75rem",
-          padding: "3px 8px",
+          fontSize: "11px",
+          padding: "2px 7px",
           borderColor: "#93c5fd",
           color: "#1d4ed8",
           backgroundColor: "#eff6ff",
-          fontWeight: "700",
+          fontWeight: "600",
           display: "flex",
-          alignItems: "center",
-          gap: "4px"
+          alignItems: "center"
         },
         onClick: onOpenConvertModal,
         title: "현재 문서를 다른 양식으로 복사 변환"
       },
-      "🔄 다른 양식으로 변환"
-    )), /* @__PURE__ */ import_react21.default.createElement("div", { className: "grid-2" }, /* @__PURE__ */ import_react21.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react21.default.createElement("label", { className: "form-label" }, "공급자 선택"), /* @__PURE__ */ import_react21.default.createElement(
+      "양식 변환"
+    ))), /* @__PURE__ */ import_react21.default.createElement("div", { className: "grid-2" }, /* @__PURE__ */ import_react21.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react21.default.createElement("label", { className: "form-label" }, "공급자 선택"), /* @__PURE__ */ import_react21.default.createElement(
       "select",
       {
         className: "form-select",
@@ -35731,7 +36074,7 @@ IconFile=${currentUrl}favicon.ico\r
           },
           style: { width: "16px", height: "16px", accentColor: "#4f46e5", cursor: "pointer" }
         }
-      ), /* @__PURE__ */ import_react21.default.createElement("span", { style: { fontSize: "0.8125rem", fontWeight: "800", color: isDocShared ? "#3730a3" : "#334155" } }, "🤝 공동작업 (협력 파트너 1인 / 2인 이상 다수 정산)")), isDocShared && /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "6px" } }, /* @__PURE__ */ import_react21.default.createElement("span", { style: { fontSize: "11px", fontWeight: "800", backgroundColor: "#4f46e5", color: "#ffffff", padding: "2px 8px", borderRadius: "9999px" } }, `공동작업 (${(partners || []).length}명 참여)`), /* @__PURE__ */ import_react21.default.createElement(
+      ), /* @__PURE__ */ import_react21.default.createElement("span", { style: { fontSize: "12px", fontWeight: "700", color: isDocShared ? "#3730a3" : "#334155" } }, "공동작업 (협력 파트너 정산)")), isDocShared && /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "6px" } }, /* @__PURE__ */ import_react21.default.createElement("span", { style: { fontSize: "11px", fontWeight: "700", backgroundColor: "#4f46e5", color: "#ffffff", padding: "2px 8px", borderRadius: "9999px" } }, `공동작업 (${(partners || []).length}명 참여)`), /* @__PURE__ */ import_react21.default.createElement(
         "button",
         {
           type: "button",
@@ -35741,7 +36084,7 @@ IconFile=${currentUrl}favicon.ico\r
             backgroundColor: isPartnersExpanded ? "#e0e7ff" : "#ffffff",
             color: "#4338ca",
             fontSize: "11px",
-            fontWeight: "800",
+            fontWeight: "700",
             padding: "2px 8px",
             borderRadius: "6px",
             cursor: "pointer",
@@ -35751,7 +36094,7 @@ IconFile=${currentUrl}favicon.ico\r
             transition: "all 0.15s ease"
           }
         },
-        isPartnersExpanded ? "▲ 접기" : "▼ 상세 확인/수정"
+        isPartnersExpanded ? "접기 ▲" : "상세 설정 ▼"
       ))),
       isDocShared && !isPartnersExpanded && /* @__PURE__ */ import_react21.default.createElement(
         "div",
@@ -35775,7 +36118,7 @@ IconFile=${currentUrl}favicon.ico\r
           onMouseLeave: (e) => e.currentTarget.style.backgroundColor = "#ffffff",
           title: "클릭하여 파트너 및 정산금 상세 설정 펼치기"
         },
-        (partners || []).length === 0 ? /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "0.75rem", color: "#d97706", fontWeight: "700" } }, "⚠️ 등록된 파트너가 없습니다. (클릭하여 파트너 추가)") : /* @__PURE__ */ import_react21.default.createElement(import_react21.default.Fragment, null, /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" } }, /* @__PURE__ */ import_react21.default.createElement("span", { style: { fontSize: "11px", fontWeight: "800", color: "#4338ca" } }, "👥 참여 파트너:"), (partners || []).map((p, idx) => /* @__PURE__ */ import_react21.default.createElement(
+        (partners || []).length === 0 ? /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "11px", color: "#d97706", fontWeight: "600" } }, "등록된 파트너가 없습니다. (클릭하여 파트너 추가)") : /* @__PURE__ */ import_react21.default.createElement(import_react21.default.Fragment, null, /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" } }, /* @__PURE__ */ import_react21.default.createElement("span", { style: { fontSize: "11px", fontWeight: "700", color: "#4338ca" } }, "참여 파트너:"), (partners || []).map((p, idx) => /* @__PURE__ */ import_react21.default.createElement(
           "span",
           {
             key: p.key || p.id || idx,
@@ -35792,7 +36135,7 @@ IconFile=${currentUrl}favicon.ico\r
           `${p.name || p.company || p.key} (${Number(p.amount || 0).toLocaleString()}원)`
         ))), /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px" } }, /* @__PURE__ */ import_react21.default.createElement("span", { style: { fontSize: "11px", fontWeight: "800", color: "#1e293b" } }, `총 정산 배분: ${(partners || []).reduce((s, p) => s + (Number(p.amount) || 0), 0).toLocaleString()}원`), /* @__PURE__ */ import_react21.default.createElement("span", { style: { fontSize: "10px", color: "#6366f1", textDecoration: "underline", fontWeight: "700" } }, "클릭하여 수정")))
       ),
-      isDocShared && isPartnersExpanded && /* @__PURE__ */ import_react21.default.createElement("div", { style: { marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px dashed #c7d2fe", display: "flex", flexDirection: "column", gap: "8px" } }, /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "6px" } }, /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } }, /* @__PURE__ */ import_react21.default.createElement("span", { style: { fontSize: "0.75rem", fontWeight: "800", color: "#4338ca" } }, "참여 협력 파트너 목록 (1명 ~ 다수 등록 가능):"), /* @__PURE__ */ import_react21.default.createElement("span", { style: { fontSize: "11px", fontWeight: "800", color: "#4f46e5" } }, `총 정산 배분: ${(partners || []).reduce((s, p) => s + (Number(p.amount) || 0), 0).toLocaleString()}원`)), (partners || []).length === 0 ? /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "0.75rem", color: "#64748b", backgroundColor: "#ffffff", padding: "6px 10px", borderRadius: "6px", border: "1px solid #e2e8f0" } }, "⚠️ 등록된 협력 파트너가 없습니다. 아래에서 파트너를 추가해 주세요.") : (partners || []).map((p, pIdx) => /* @__PURE__ */ import_react21.default.createElement(
+      isDocShared && isPartnersExpanded && /* @__PURE__ */ import_react21.default.createElement("div", { style: { marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px dashed #c7d2fe", display: "flex", flexDirection: "column", gap: "8px" } }, /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "6px" } }, /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } }, /* @__PURE__ */ import_react21.default.createElement("span", { style: { fontSize: "0.75rem", fontWeight: "800", color: "#4338ca" } }, "참여 협력 파트너 목록 (1명 ~ 다수 등록 가능):"), /* @__PURE__ */ import_react21.default.createElement("span", { style: { fontSize: "11px", fontWeight: "800", color: "#4f46e5" } }, `총 정산 배분: ${(partners || []).reduce((s, p) => s + (Number(p.amount) || 0), 0).toLocaleString()}원`)), (partners || []).length === 0 ? /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "0.75rem", color: "#64748b", backgroundColor: "#ffffff", padding: "6px 10px", borderRadius: "6px", border: "1px solid #e2e8f0" } }, "등록된 협력 파트너가 없습니다. 아래에서 파트너를 추가해 주세요.") : (partners || []).map((p, pIdx) => /* @__PURE__ */ import_react21.default.createElement(
         "div",
         {
           key: p.key || p.id || pIdx,
@@ -35900,7 +36243,7 @@ IconFile=${currentUrl}favicon.ico\r
           }
         },
         "+ 추가"
-      )), /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "0.6875rem", color: "#6366f1", lineHeight: "1.4" } }, "ℹ️ 고객용 출력 문서에는 대표 공급자(", currentSupplier.company || currentSupplier.name || "본사", ") 정보만 깔끔하게 단일 표기되며, 지정된 모든 협력사(", (partners || []).length, "개사)에 실시간 자동 공유 및 개별 정산 관리됩니다."), /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", justifyContent: "flex-end", marginTop: "2px" } }, /* @__PURE__ */ import_react21.default.createElement(
+      )), /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "0.6875rem", color: "#6366f1", lineHeight: "1.4" } }, "※ 고객용 출력 문서에는 대표 공급자(", currentSupplier.company || currentSupplier.name || "본사", ") 정보만 깔끔하게 단일 표기되며, 지정된 모든 협력사(", (partners || []).length, "개사)에 실시간 자동 공유 및 개별 정산 관리됩니다."), /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", justifyContent: "flex-end", marginTop: "2px" } }, /* @__PURE__ */ import_react21.default.createElement(
         "button",
         {
           type: "button",
@@ -35934,7 +36277,43 @@ IconFile=${currentUrl}favicon.ico\r
         value: docDate,
         onChange: (e) => setDocDate(e.target.value)
       }
-    )))), /* @__PURE__ */ import_react21.default.createElement(
+    )))), editingDocId && /* @__PURE__ */ import_react21.default.createElement(
+      "div",
+      {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "10px 14px",
+          marginBottom: "0.75rem",
+          backgroundColor: "#eff6ff",
+          border: "1.5px solid #60a5fa",
+          borderRadius: "8px",
+          boxShadow: "0 1px 3px rgba(37,99,235,0.08)"
+        }
+      },
+      /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px" } }, /* @__PURE__ */ import_react21.default.createElement("span", { style: { fontSize: "1.1rem" } }, "✏️"), /* @__PURE__ */ import_react21.default.createElement("div", null, /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "13px", fontWeight: "800", color: "#1e3a8a" } }, "기존 ", docType, " 수정 모드"), /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "11px", color: "#3b82f6", fontFamily: "monospace" } }, "문서번호: ", docNo || "(미정)", " | 저장 시 원본에 덮어씌워집니다."))),
+      onConvertToNewDocument && /* @__PURE__ */ import_react21.default.createElement(
+        "button",
+        {
+          type: "button",
+          className: "btn btn-outline",
+          style: {
+            fontSize: "11px",
+            fontWeight: "700",
+            padding: "4px 10px",
+            backgroundColor: "#ffffff",
+            borderColor: "#10b981",
+            color: "#059669",
+            borderRadius: "6px",
+            cursor: "pointer"
+          },
+          onClick: onConvertToNewDocument,
+          title: "현재 입력된 내용을 유지한 채 새 문서 번호로 전환합니다"
+        },
+        "✨ 새 문서로 전환"
+      )
+    ), /* @__PURE__ */ import_react21.default.createElement(
       "div",
       {
         style: {
@@ -35949,47 +36328,47 @@ IconFile=${currentUrl}favicon.ico\r
         {
           type: "button",
           className: "btn btn-primary",
-          style: { fontSize: "0.8125rem", padding: "0 6px", fontWeight: "800" },
+          style: { fontSize: "12px", padding: "0 6px", fontWeight: "700" },
           onClick: onResetForm
         },
-        "✨ 신규 작성"
+        "신규 작성"
       ),
       docType === "거래명세서" && /* @__PURE__ */ import_react21.default.createElement(
         "button",
         {
           type: "button",
           className: "btn btn-blue",
-          style: { fontSize: "0.8125rem", padding: "0 6px", fontWeight: "700" },
+          style: { fontSize: "12px", padding: "0 6px", fontWeight: "600" },
           onClick: () => onOpenPastStatementModal && onOpenPastStatementModal()
         },
-        "📂 지난 명세서"
+        "지난 명세서"
       ),
       docType === "거래명세서" && /* @__PURE__ */ import_react21.default.createElement(
         "button",
         {
           type: "button",
           className: "btn btn-outline",
-          style: { fontSize: "0.8125rem", padding: "0 6px", fontWeight: "700" },
+          style: { fontSize: "12px", padding: "0 6px", fontWeight: "600" },
           onClick: () => onOpenEstimateModal && onOpenEstimateModal("convert_to_statement")
         },
-        "📑 견적서 가져오기"
+        "견적서 가져오기"
       ),
       docType === "견적서" && /* @__PURE__ */ import_react21.default.createElement(
         "button",
         {
           type: "button",
           className: "btn btn-outline",
-          style: { fontSize: "0.8125rem", padding: "0 6px", fontWeight: "700" },
+          style: { fontSize: "12px", padding: "0 6px", fontWeight: "600" },
           onClick: () => onOpenEstimateModal && onOpenEstimateModal("import_estimate")
         },
-        "📂 견적서 목록"
+        "견적서 목록"
       ),
       docType === "청구서" && /* @__PURE__ */ import_react21.default.createElement(
         "button",
         {
           type: "button",
           className: "btn btn-blue",
-          style: { fontSize: "0.8125rem", padding: "0 6px", fontWeight: "700" },
+          style: { fontSize: "12px", padding: "0 6px", fontWeight: "600" },
           onClick: () => {
             if (!customer || !customer.name) {
               alert("먼저 거래처를 검색하거나 입력해주세요.");
@@ -35998,30 +36377,29 @@ IconFile=${currentUrl}favicon.ico\r
             onAggregateOpen();
           }
         },
-        "🧾 명세서 취합"
+        "명세서 취합"
       )
-    ), onOpenPurchaseImportModal && /* @__PURE__ */ import_react21.default.createElement("div", { style: { marginBottom: "1rem" } }, /* @__PURE__ */ import_react21.default.createElement(
+    ), onOpenPurchaseImportModal && /* @__PURE__ */ import_react21.default.createElement("div", { style: { marginBottom: "0.875rem" } }, /* @__PURE__ */ import_react21.default.createElement(
       "button",
       {
         type: "button",
         className: "btn btn-outline",
         style: {
           width: "100%",
-          minHeight: "36px",
-          fontSize: "0.8125rem",
-          fontWeight: "800",
+          minHeight: "34px",
+          fontSize: "12px",
+          fontWeight: "700",
           color: "#1e40af",
           backgroundColor: "#eff6ff",
           borderColor: "#93c5fd",
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
-          gap: "6px"
+          justifyContent: "center"
         },
         onClick: onOpenPurchaseImportModal
       },
-      "📦 과거 매입 품목 불러오기 (원가 확인 및 마진 적용)"
-    )), /* @__PURE__ */ import_react21.default.createElement("div", { className: "form-section" }, /* @__PURE__ */ import_react21.default.createElement("div", { className: "section-title", style: { marginBottom: "0.5rem" } }, /* @__PURE__ */ import_react21.default.createElement("span", { style: { fontWeight: "800", fontSize: "0.875rem", color: "var(--c-navy-dark)" } }, "🏢 공급받는자 (거래처)")), /* @__PURE__ */ import_react21.default.createElement(
+      "과거 매입 품목 불러오기 (원가 확인 및 마진 적용)"
+    )), /* @__PURE__ */ import_react21.default.createElement("div", { className: "form-section" }, /* @__PURE__ */ import_react21.default.createElement("div", { className: "section-title", style: { marginBottom: "0.5rem" } }, /* @__PURE__ */ import_react21.default.createElement("span", { style: { fontWeight: "700", fontSize: "13px", color: "#0F172A" } }, "공급받는자 (거래처)")), /* @__PURE__ */ import_react21.default.createElement(
       "div",
       {
         style: {
@@ -36036,7 +36414,7 @@ IconFile=${currentUrl}favicon.ico\r
         {
           type: "button",
           className: "btn btn-outline",
-          style: { fontSize: "0.8125rem", fontWeight: "700" },
+          style: { fontSize: "12px", fontWeight: "600" },
           onClick: () => onAddNewCustomer(customer.name || "")
         },
         "+ 신규 거래처"
@@ -36046,10 +36424,10 @@ IconFile=${currentUrl}favicon.ico\r
         {
           type: "button",
           className: "btn btn-light",
-          style: { fontSize: "0.8125rem", fontWeight: "700" },
+          style: { fontSize: "12px", fontWeight: "600" },
           onClick: () => onOpenOcrModal && onOpenOcrModal()
         },
-        "📷 명함/등록증 AI"
+        "명함/등록증 AI 인식"
       )
     ), /* @__PURE__ */ import_react21.default.createElement("div", { className: "form-group", style: { position: "relative" } }, /* @__PURE__ */ import_react21.default.createElement("label", { className: "form-label" }, "거래처명 검색 / 입력"), /* @__PURE__ */ import_react21.default.createElement(
       "input",
@@ -36181,7 +36559,10 @@ IconFile=${currentUrl}favicon.ico\r
         items,
         setItems,
         docType,
-        vatIncluded
+        vatIncluded,
+        parts: partsList,
+        showPartNoColumn,
+        onTogglePartNoColumn: handleTogglePartNoColumn
       }
     ), /* @__PURE__ */ import_react21.default.createElement("div", { className: "form-section" }, /* @__PURE__ */ import_react21.default.createElement(
       "label",
@@ -36224,7 +36605,7 @@ IconFile=${currentUrl}favicon.ico\r
         },
         "부가세 적용 (10%)"
       )
-    )), docType !== "견적서" && /* @__PURE__ */ import_react21.default.createElement("div", { className: "form-section" }, /* @__PURE__ */ import_react21.default.createElement("div", { className: "section-title" }, "💳 입금 · 수금 관리"), /* @__PURE__ */ import_react21.default.createElement("div", { style: { marginBottom: "10px" } }, /* @__PURE__ */ import_react21.default.createElement("div", { className: "form-group", style: { marginTop: "8px" } }, /* @__PURE__ */ import_react21.default.createElement("label", { className: "form-label" }, "입금금액 (미수금은 0)"), /* @__PURE__ */ import_react21.default.createElement(
+    )), docType !== "견적서" && /* @__PURE__ */ import_react21.default.createElement("div", { className: "form-section" }, /* @__PURE__ */ import_react21.default.createElement("div", { className: "section-title", style: { fontSize: "13px", fontWeight: "700", color: "#0F172A", marginBottom: "8px" } }, "입금 및 수금 관리"), /* @__PURE__ */ import_react21.default.createElement("div", { style: { marginBottom: "10px" } }, /* @__PURE__ */ import_react21.default.createElement("div", { className: "form-group", style: { marginTop: "8px" } }, /* @__PURE__ */ import_react21.default.createElement("label", { className: "form-label", style: { fontSize: "12px", fontWeight: "600", color: "#475569" } }, "입금금액 (미수금은 0)"), /* @__PURE__ */ import_react21.default.createElement(
       "input",
       {
         type: "number",
@@ -36252,9 +36633,10 @@ IconFile=${currentUrl}favicon.ico\r
           } else {
             setPaymentStatus("미수금");
           }
-        }
+        },
+        style: { fontSize: "12px" }
       }
-    )), /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginTop: "8px" } }, /* @__PURE__ */ import_react21.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react21.default.createElement("label", { className: "form-label" }, "입금방법"), /* @__PURE__ */ import_react21.default.createElement(
+    )), /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginTop: "8px" } }, /* @__PURE__ */ import_react21.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react21.default.createElement("label", { className: "form-label", style: { fontSize: "12px", fontWeight: "600", color: "#475569" } }, "입금방법"), /* @__PURE__ */ import_react21.default.createElement(
       "select",
       {
         className: "form-select",
@@ -36265,22 +36647,24 @@ IconFile=${currentUrl}favicon.ico\r
           if (m === "카드" || m === "신용카드" || m === "세금계산서") {
             setVatIncluded(true);
           }
-        }
+        },
+        style: { fontSize: "12px" }
       },
       ["계좌이체", "현금", "카드", "어음", "기타"].map((m) => /* @__PURE__ */ import_react21.default.createElement("option", { key: m, value: m }, m))
-    )), /* @__PURE__ */ import_react21.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react21.default.createElement("label", { className: "form-label" }, "입금일자"), /* @__PURE__ */ import_react21.default.createElement(
+    )), /* @__PURE__ */ import_react21.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react21.default.createElement("label", { className: "form-label", style: { fontSize: "12px", fontWeight: "600", color: "#475569" } }, "입금일자"), /* @__PURE__ */ import_react21.default.createElement(
       "input",
       {
         type: "date",
         className: "form-input",
         value: paymentDate,
-        onChange: (e) => setPaymentDate(e.target.value)
+        onChange: (e) => setPaymentDate(e.target.value),
+        style: { fontSize: "12px" }
       }
-    ))))), /* @__PURE__ */ import_react21.default.createElement("div", { className: "form-section" }, /* @__PURE__ */ import_react21.default.createElement("div", { className: "section-title" }, "📝 비고 / 특이사항"), /* @__PURE__ */ import_react21.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react21.default.createElement(
+    ))))), /* @__PURE__ */ import_react21.default.createElement("div", { className: "form-section" }, /* @__PURE__ */ import_react21.default.createElement("div", { className: "section-title", style: { fontSize: "13px", fontWeight: "700", color: "#0F172A", marginBottom: "8px" } }, "비고 및 특이사항"), /* @__PURE__ */ import_react21.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react21.default.createElement(
       "textarea",
       {
         className: "form-input",
-        style: { minHeight: "60px", resize: "vertical" },
+        style: { minHeight: "60px", resize: "vertical", fontSize: "12px" },
         value: remark,
         onChange: (e) => setRemark(e.target.value),
         placeholder: "명세서 하단에 인쇄될 비고를 입력하세요"
@@ -36297,8 +36681,8 @@ IconFile=${currentUrl}favicon.ico\r
           marginBottom: "0.25rem"
         }
       },
-      /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "0.75rem", fontWeight: "800", color: "#1e293b", marginBottom: "4px" } }, "🛡️ 문서 공개 설정 (타 공급자 달력 노출 여부)"),
-      /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", gap: "12px" } }, /* @__PURE__ */ import_react21.default.createElement("label", { style: { display: "flex", alignItems: "center", gap: "4px", cursor: "pointer", fontSize: "0.75rem", fontWeight: "700", color: "#c2410c" } }, /* @__PURE__ */ import_react21.default.createElement(
+      /* @__PURE__ */ import_react21.default.createElement("div", { style: { fontSize: "12px", fontWeight: "700", color: "#1e293b", marginBottom: "4px" } }, "문서 공개 설정 (타 공급자 달력 공유 여부)"),
+      /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", gap: "12px" } }, /* @__PURE__ */ import_react21.default.createElement("label", { style: { display: "flex", alignItems: "center", gap: "4px", cursor: "pointer", fontSize: "11px", fontWeight: "600", color: "#c2410c" } }, /* @__PURE__ */ import_react21.default.createElement(
         "input",
         {
           type: "radio",
@@ -36306,7 +36690,7 @@ IconFile=${currentUrl}favicon.ico\r
           checked: !isDocShared,
           onChange: () => setIsDocShared && setIsDocShared(false)
         }
-      ), /* @__PURE__ */ import_react21.default.createElement("span", null, "🔒 비공개 (기본값)")), /* @__PURE__ */ import_react21.default.createElement("label", { style: { display: "flex", alignItems: "center", gap: "4px", cursor: "pointer", fontSize: "0.75rem", fontWeight: "700", color: "#15803d" } }, /* @__PURE__ */ import_react21.default.createElement(
+      ), /* @__PURE__ */ import_react21.default.createElement("span", null, "비공개 (기본)")), /* @__PURE__ */ import_react21.default.createElement("label", { style: { display: "flex", alignItems: "center", gap: "4px", cursor: "pointer", fontSize: "11px", fontWeight: "600", color: "#15803d" } }, /* @__PURE__ */ import_react21.default.createElement(
         "input",
         {
           type: "radio",
@@ -36314,8 +36698,8 @@ IconFile=${currentUrl}favicon.ico\r
           checked: !!isDocShared,
           onChange: () => setIsDocShared && setIsDocShared(true)
         }
-      ), /* @__PURE__ */ import_react21.default.createElement("span", null, "🔓 공개 (공유)")))
-    ), /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.75rem" } }, /* @__PURE__ */ import_react21.default.createElement(
+      ), /* @__PURE__ */ import_react21.default.createElement("span", null, "공개 (공유)")))
+    ), /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.75rem" } }, editingDocId ? /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" } }, /* @__PURE__ */ import_react21.default.createElement(
       "button",
       {
         type: "button",
@@ -36323,18 +36707,66 @@ IconFile=${currentUrl}favicon.ico\r
         style: {
           width: "100%",
           minHeight: "44px",
-          fontSize: "0.9375rem",
+          fontSize: "13px",
           fontWeight: "800",
+          backgroundColor: "#2563eb",
+          borderColor: "#2563eb",
+          boxShadow: "0 2px 4px rgba(37,99,235,0.2)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "4px"
+        },
+        onClick: () => {
+          setIsPartnersExpanded(false);
+          if (onSaveDocument) onSaveDocument(false);
+        }
+      },
+      /* @__PURE__ */ import_react21.default.createElement("span", null, "✏️ 원본 수정 저장")
+    ), /* @__PURE__ */ import_react21.default.createElement(
+      "button",
+      {
+        type: "button",
+        className: "btn btn-primary",
+        style: {
+          width: "100%",
+          minHeight: "44px",
+          fontSize: "13px",
+          fontWeight: "800",
+          backgroundColor: "#059669",
+          borderColor: "#059669",
+          boxShadow: "0 2px 4px rgba(5,150,105,0.2)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "4px"
+        },
+        onClick: () => {
+          setIsPartnersExpanded(false);
+          if (onSaveDocument) onSaveDocument(true);
+        }
+      },
+      /* @__PURE__ */ import_react21.default.createElement("span", null, "✨ 새 문서로 저장")
+    )) : /* @__PURE__ */ import_react21.default.createElement(
+      "button",
+      {
+        type: "button",
+        className: "btn btn-primary",
+        style: {
+          width: "100%",
+          minHeight: "42px",
+          fontSize: "14px",
+          fontWeight: "700",
           backgroundColor: "#2563eb",
           borderColor: "#2563eb",
           boxShadow: "0 2px 4px rgba(37,99,235,0.2)"
         },
         onClick: () => {
           setIsPartnersExpanded(false);
-          if (onSaveDocument) onSaveDocument();
+          if (onSaveDocument) onSaveDocument(false);
         }
       },
-      "💾 문서 저장"
+      "문서 저장"
     ), onOpenConvertModal && /* @__PURE__ */ import_react21.default.createElement(
       "button",
       {
@@ -36342,29 +36774,28 @@ IconFile=${currentUrl}favicon.ico\r
         className: "btn btn-outline",
         style: {
           width: "100%",
-          minHeight: "36px",
-          fontSize: "0.8125rem",
-          fontWeight: "700",
+          minHeight: "34px",
+          fontSize: "12px",
+          fontWeight: "600",
           color: "#1d4ed8",
           borderColor: "#bfdbfe",
           backgroundColor: "#eff6ff",
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
-          gap: "6px"
+          justifyContent: "center"
         },
         onClick: onOpenConvertModal
       },
-      "🔄 다른 양식으로 변환 발행 (견적서 / 청구서)..."
+      "다른 양식으로 변환 발행 (견적서 / 청구서)"
     ), /* @__PURE__ */ import_react21.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "6px" } }, /* @__PURE__ */ import_react21.default.createElement(
       "button",
       {
         type: "button",
         className: "btn btn-outline",
         style: {
-          padding: "0.5rem 0.25rem",
-          fontSize: "0.75rem",
-          fontWeight: "700",
+          padding: "0.45rem 0.25rem",
+          fontSize: "12px",
+          fontWeight: "600",
           color: "#1e293b",
           borderColor: "#cbd5e1",
           backgroundColor: "#ffffff"
@@ -36372,16 +36803,16 @@ IconFile=${currentUrl}favicon.ico\r
         onClick: handleExportPNG,
         title: "이미지(PNG) 다운로드"
       },
-      "📸 이미지"
+      "이미지"
     ), /* @__PURE__ */ import_react21.default.createElement(
       "button",
       {
         type: "button",
         className: "btn btn-outline",
         style: {
-          padding: "0.5rem 0.25rem",
-          fontSize: "0.75rem",
-          fontWeight: "700",
+          padding: "0.45rem 0.25rem",
+          fontSize: "12px",
+          fontWeight: "600",
           color: "#1e293b",
           borderColor: "#cbd5e1",
           backgroundColor: "#ffffff"
@@ -36389,16 +36820,16 @@ IconFile=${currentUrl}favicon.ico\r
         onClick: handleExportPDF,
         title: "PDF 문서 다운로드"
       },
-      "📄 PDF"
+      "PDF"
     ), /* @__PURE__ */ import_react21.default.createElement(
       "button",
       {
         type: "button",
         className: "btn btn-outline",
         style: {
-          padding: "0.5rem 0.25rem",
-          fontSize: "0.75rem",
-          fontWeight: "700",
+          padding: "0.45rem 0.25rem",
+          fontSize: "12px",
+          fontWeight: "600",
           color: "#047857",
           borderColor: "#a7f3d0",
           backgroundColor: "#ecfdf5"
@@ -36406,16 +36837,16 @@ IconFile=${currentUrl}favicon.ico\r
         onClick: handleExportExcel,
         title: "엑셀(.xlsx) 파일 다운로드"
       },
-      "📊 엑셀"
+      "엑셀"
     ), /* @__PURE__ */ import_react21.default.createElement(
       "button",
       {
         type: "button",
         className: "btn btn-outline",
         style: {
-          padding: "0.5rem 0.25rem",
-          fontSize: "0.75rem",
-          fontWeight: "700",
+          padding: "0.45rem 0.25rem",
+          fontSize: "12px",
+          fontWeight: "600",
           color: "#1e293b",
           borderColor: "#cbd5e1",
           backgroundColor: "#ffffff"
@@ -36425,7 +36856,7 @@ IconFile=${currentUrl}favicon.ico\r
         },
         title: "인쇄"
       },
-      "🖨️ 인쇄"
+      "인쇄"
     )), /* @__PURE__ */ import_react21.default.createElement(
       "button",
       {
@@ -36445,8 +36876,39 @@ IconFile=${currentUrl}favicon.ico\r
         },
         onClick: handleOpenShareModal
       },
-      "📱 모바일 공유하기 (카톡 / 문자)"
-    ))), /* @__PURE__ */ import_react21.default.createElement("div", { className: "preview-panel" }, /* @__PURE__ */ import_react21.default.createElement(
+      "모바일 공유 (카톡 / 문자)"
+    ))), /* @__PURE__ */ import_react21.default.createElement("div", { className: "preview-panel" }, /* @__PURE__ */ import_react21.default.createElement("div", { style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: "8px",
+      padding: "6px 12px",
+      backgroundColor: "#FFFFFF",
+      border: "1px solid #E2E8F0",
+      borderRadius: "8px",
+      boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+    } }, /* @__PURE__ */ import_react21.default.createElement("span", { style: { fontSize: "12px", fontWeight: "700", color: "#1E293B" } }, docType, " 미리보기 (A4 정식 양식)"), /* @__PURE__ */ import_react21.default.createElement("label", { style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "5px",
+      fontSize: "11px",
+      fontWeight: "600",
+      color: "#334155",
+      cursor: "pointer",
+      padding: "3px 8px",
+      backgroundColor: showPartNoColumn ? "#EFF6FF" : "#F8FAFC",
+      border: `1px solid ${showPartNoColumn ? "#93C5FD" : "#CBD5E1"}`,
+      borderRadius: "5px",
+      userSelect: "none"
+    }, title: "명세서/견적서/청구서 본문 표에 부품번호 독립 열을 표시합니다" }, /* @__PURE__ */ import_react21.default.createElement(
+      "input",
+      {
+        type: "checkbox",
+        checked: showPartNoColumn,
+        onChange: (e) => handleTogglePartNoColumn(e.target.checked),
+        style: { width: "13px", height: "13px", accentColor: "#1D4ED8", cursor: "pointer" }
+      }
+    ), /* @__PURE__ */ import_react21.default.createElement("span", null, "부품번호 열 표시"))), /* @__PURE__ */ import_react21.default.createElement(
       DocumentCanvas,
       {
         docType,
@@ -36460,6 +36922,7 @@ IconFile=${currentUrl}favicon.ico\r
         vatIncluded,
         paid,
         remark,
+        showPartNoColumn,
         setItems,
         setCustomer,
         setRemark
@@ -36503,6 +36966,10 @@ IconFile=${currentUrl}favicon.ico\r
     }, [selectedInvoice, viewReceiptImage]);
     const filteredPurchases = (0, import_react22.useMemo)(() => {
       return purchasesList.filter((p) => {
+        const userRole = sessionStorage.getItem("dd_user_role") || "supplier";
+        if (userRole === "supplier" && !areSupplierKeysEquivalent(p.supplier_key, selectedSupplierKey)) {
+          return false;
+        }
         if (supplierFilter !== "all") {
           if (!areSupplierKeysEquivalent(p.supplier_key, supplierFilter)) return false;
         }
@@ -36511,12 +36978,14 @@ IconFile=${currentUrl}favicon.ico\r
           const vendorMatch = (p.vendor_name || "").toLowerCase().includes(q);
           const biznoMatch = (p.vendor_bizno || "").includes(q);
           const memoMatch = (p.memo || "").toLowerCase().includes(q);
-          const itemMatch = Array.isArray(p.items) && p.items.some((it) => (it.name || "").toLowerCase().includes(q));
+          const itemMatch = Array.isArray(p.items) && p.items.some(
+            (it) => (it.name || "").toLowerCase().includes(q) || (it.part_no || "").toLowerCase().includes(q)
+          );
           return vendorMatch || biznoMatch || memoMatch || itemMatch;
         }
         return true;
       });
-    }, [purchasesList, supplierFilter, search]);
+    }, [purchasesList, supplierFilter, search, selectedSupplierKey]);
     const stats = (0, import_react22.useMemo)(() => {
       const totalAmount = filteredPurchases.reduce((sum, p) => sum + (Number(p.total_amount) || 0), 0);
       const totalCount = filteredPurchases.length;
@@ -36678,7 +37147,7 @@ IconFile=${currentUrl}favicon.ico\r
           },
           "✕ 닫기"
         )),
-        /* @__PURE__ */ import_react22.default.createElement("div", { style: { padding: "1.25rem", overflowY: "auto", flex: 1 } }, /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "10px", marginBottom: "1rem", backgroundColor: "#F8FAFC", padding: "12px", borderRadius: "10px" } }, /* @__PURE__ */ import_react22.default.createElement("div", null, /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: "11px", color: "#64748B" } }, "매입처 상호"), /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontWeight: "800", color: "#0F172A" } }, selectedInvoice.vendor_name)), /* @__PURE__ */ import_react22.default.createElement("div", null, /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: "11px", color: "#64748B" } }, "사업자번호"), /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontFamily: "monospace", fontWeight: "600" } }, selectedInvoice.vendor_bizno || "-")), /* @__PURE__ */ import_react22.default.createElement("div", null, /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: "11px", color: "#64748B" } }, "전표 일자"), /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontFamily: "monospace", fontWeight: "600" } }, selectedInvoice.invoice_date)), /* @__PURE__ */ import_react22.default.createElement("div", null, /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: "11px", color: "#64748B" } }, "총 매입금액"), /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontWeight: "900", color: "#2563EB", fontSize: "14px" } }, (Number(selectedInvoice.total_amount) || 0).toLocaleString(), "원"))), /* @__PURE__ */ import_react22.default.createElement("div", { style: { marginBottom: "1rem" } }, /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: "12px", fontWeight: "800", marginBottom: "6px", color: "#1E293B" } }, "📦 세부 품목 목록"), /* @__PURE__ */ import_react22.default.createElement("div", { style: { border: "1px solid #E2E8F0", borderRadius: "8px", overflow: "hidden" } }, /* @__PURE__ */ import_react22.default.createElement("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: "11px" } }, /* @__PURE__ */ import_react22.default.createElement("thead", null, /* @__PURE__ */ import_react22.default.createElement("tr", { style: { backgroundColor: "#F1F5F9", borderBottom: "1px solid #E2E8F0", color: "#475569" } }, /* @__PURE__ */ import_react22.default.createElement("th", { style: { padding: "6px 8px", textAlign: "left" } }, "품목명"), /* @__PURE__ */ import_react22.default.createElement("th", { style: { padding: "6px 8px", textAlign: "left" } }, "규격"), /* @__PURE__ */ import_react22.default.createElement("th", { style: { padding: "6px 8px", textAlign: "right" } }, "수량"), /* @__PURE__ */ import_react22.default.createElement("th", { style: { padding: "6px 8px", textAlign: "right" } }, "매입단가"), /* @__PURE__ */ import_react22.default.createElement("th", { style: { padding: "6px 8px", textAlign: "right" } }, "금액"))), /* @__PURE__ */ import_react22.default.createElement("tbody", null, Array.isArray(selectedInvoice.items) && selectedInvoice.items.map((it, idx) => /* @__PURE__ */ import_react22.default.createElement("tr", { key: idx, style: { borderBottom: "1px solid #F1F5F9" } }, /* @__PURE__ */ import_react22.default.createElement("td", { style: { padding: "6px 8px", fontWeight: "700" } }, it.name), /* @__PURE__ */ import_react22.default.createElement("td", { style: { padding: "6px 8px", color: "#64748B" } }, it.spec || "-"), /* @__PURE__ */ import_react22.default.createElement("td", { style: { padding: "6px 8px", textAlign: "right" } }, it.qty), /* @__PURE__ */ import_react22.default.createElement("td", { style: { padding: "6px 8px", textAlign: "right" } }, (Number(it.unit_price) || 0).toLocaleString(), "원"), /* @__PURE__ */ import_react22.default.createElement("td", { style: { padding: "6px 8px", textAlign: "right", fontWeight: "700" } }, (Number(it.amount) || 0).toLocaleString(), "원"))))))), selectedInvoice.receipt_image && /* @__PURE__ */ import_react22.default.createElement("div", { style: { marginTop: "1rem" } }, /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: "12px", fontWeight: "800", marginBottom: "6px", color: "#1E293B" } }, "📷 첨부된 원본 전표 사진"), /* @__PURE__ */ import_react22.default.createElement("div", { style: { textAlign: "center", backgroundColor: "#0F172A", padding: "10px", borderRadius: "10px" } }, /* @__PURE__ */ import_react22.default.createElement(
+        /* @__PURE__ */ import_react22.default.createElement("div", { style: { padding: "1.25rem", overflowY: "auto", flex: 1 } }, /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "10px", marginBottom: "1rem", backgroundColor: "#F8FAFC", padding: "12px", borderRadius: "10px" } }, /* @__PURE__ */ import_react22.default.createElement("div", null, /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: "11px", color: "#64748B" } }, "매입처 상호"), /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontWeight: "800", color: "#0F172A" } }, selectedInvoice.vendor_name)), /* @__PURE__ */ import_react22.default.createElement("div", null, /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: "11px", color: "#64748B" } }, "사업자번호"), /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontFamily: "monospace", fontWeight: "600" } }, selectedInvoice.vendor_bizno || "-")), /* @__PURE__ */ import_react22.default.createElement("div", null, /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: "11px", color: "#64748B" } }, "전표 일자"), /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontFamily: "monospace", fontWeight: "600" } }, selectedInvoice.invoice_date)), /* @__PURE__ */ import_react22.default.createElement("div", null, /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: "11px", color: "#64748B" } }, "총 매입금액"), /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontWeight: "900", color: "#2563EB", fontSize: "14px" } }, (Number(selectedInvoice.total_amount) || 0).toLocaleString(), "원"))), /* @__PURE__ */ import_react22.default.createElement("div", { style: { marginBottom: "1rem" } }, /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: "12px", fontWeight: "800", marginBottom: "6px", color: "#1E293B" } }, "📦 세부 품목 목록"), /* @__PURE__ */ import_react22.default.createElement("div", { style: { border: "1px solid #E2E8F0", borderRadius: "8px", overflow: "hidden" } }, /* @__PURE__ */ import_react22.default.createElement("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: "11px" } }, /* @__PURE__ */ import_react22.default.createElement("thead", null, /* @__PURE__ */ import_react22.default.createElement("tr", { style: { backgroundColor: "#F1F5F9", borderBottom: "1px solid #E2E8F0", color: "#475569" } }, /* @__PURE__ */ import_react22.default.createElement("th", { style: { padding: "6px 8px", textAlign: "left" } }, "부품번호"), /* @__PURE__ */ import_react22.default.createElement("th", { style: { padding: "6px 8px", textAlign: "left" } }, "품목명"), /* @__PURE__ */ import_react22.default.createElement("th", { style: { padding: "6px 8px", textAlign: "left" } }, "규격"), /* @__PURE__ */ import_react22.default.createElement("th", { style: { padding: "6px 8px", textAlign: "right" } }, "수량"), /* @__PURE__ */ import_react22.default.createElement("th", { style: { padding: "6px 8px", textAlign: "right" } }, "매입단가"), /* @__PURE__ */ import_react22.default.createElement("th", { style: { padding: "6px 8px", textAlign: "right" } }, "금액"))), /* @__PURE__ */ import_react22.default.createElement("tbody", null, Array.isArray(selectedInvoice.items) && selectedInvoice.items.map((it, idx) => /* @__PURE__ */ import_react22.default.createElement("tr", { key: idx, style: { borderBottom: "1px solid #F1F5F9" } }, /* @__PURE__ */ import_react22.default.createElement("td", { style: { padding: "6px 8px", fontFamily: "monospace", fontWeight: "800", color: "#1D4ED8" } }, it.part_no || it.code || "-"), /* @__PURE__ */ import_react22.default.createElement("td", { style: { padding: "6px 8px", fontWeight: "700" } }, it.name), /* @__PURE__ */ import_react22.default.createElement("td", { style: { padding: "6px 8px", color: "#64748B" } }, it.spec || "-"), /* @__PURE__ */ import_react22.default.createElement("td", { style: { padding: "6px 8px", textAlign: "right" } }, it.qty), /* @__PURE__ */ import_react22.default.createElement("td", { style: { padding: "6px 8px", textAlign: "right" } }, (Number(it.unit_price) || 0).toLocaleString(), "원"), /* @__PURE__ */ import_react22.default.createElement("td", { style: { padding: "6px 8px", textAlign: "right", fontWeight: "700" } }, (Number(it.amount) || 0).toLocaleString(), "원"))))))), selectedInvoice.receipt_image && /* @__PURE__ */ import_react22.default.createElement("div", { style: { marginTop: "1rem" } }, /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: "12px", fontWeight: "800", marginBottom: "6px", color: "#1E293B" } }, "📷 첨부된 원본 전표 사진"), /* @__PURE__ */ import_react22.default.createElement("div", { style: { textAlign: "center", backgroundColor: "#0F172A", padding: "10px", borderRadius: "10px" } }, /* @__PURE__ */ import_react22.default.createElement(
           "img",
           {
             src: selectedInvoice.receipt_image,
@@ -39568,25 +40037,366 @@ IconFile=${currentUrl}favicon.ico\r
   var import_react29 = __toESM(require_react(), 1);
   function PartsTab({
     parts = [],
-    onSelectPart
+    setParts,
+    selectedSupplierKey = "sejin",
+    userRole = "supplier",
+    onSelectPart = () => {
+    }
   }) {
-    return /* @__PURE__ */ import_react29.default.createElement("div", { className: "management-container" }, /* @__PURE__ */ import_react29.default.createElement("div", { className: "card-box" }, /* @__PURE__ */ import_react29.default.createElement("div", { className: "card-box-header" }, /* @__PURE__ */ import_react29.default.createElement("h2", { style: { fontSize: "1.125rem", fontWeight: "900" } }, "🛠️ 부품 및 재고 관리")), /* @__PURE__ */ import_react29.default.createElement("div", { className: "mobile-cards-view" }, parts.map((p) => /* @__PURE__ */ import_react29.default.createElement("div", { key: p.id, className: "mobile-data-card" }, /* @__PURE__ */ import_react29.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" } }, /* @__PURE__ */ import_react29.default.createElement("span", { style: { fontWeight: "900", fontSize: "0.9375rem" } }, p.name), /* @__PURE__ */ import_react29.default.createElement("span", { style: { fontSize: "0.6875rem", backgroundColor: "#dcfce7", color: "#166534", padding: "2px 6px", borderRadius: "9999px", fontWeight: "700" } }, "재고 ", p.stock)), /* @__PURE__ */ import_react29.default.createElement("div", { style: { fontSize: "0.75rem", color: "#4b5563", marginBottom: "0.5rem" } }, /* @__PURE__ */ import_react29.default.createElement("div", null, "단가: ₩ ", Number(p.price).toLocaleString(), " | 분류: ", p.category)), /* @__PURE__ */ import_react29.default.createElement(
+    const [selectedCategory, setSelectedCategory] = (0, import_react29.useState)("전체");
+    const [searchQuery, setSearchQuery] = (0, import_react29.useState)("");
+    const [onlyMyPriced, setOnlyMyPriced] = (0, import_react29.useState)(false);
+    const [isModalOpen, setIsModalOpen] = (0, import_react29.useState)(false);
+    const [modalMode, setModalMode] = (0, import_react29.useState)("add");
+    const [formData, setFormData] = (0, import_react29.useState)({
+      id: "",
+      code: "",
+      name: "",
+      spec: "",
+      category: "기타소모품",
+      unit: "EA",
+      machine_models: "",
+      price: "",
+      purchase_price: "",
+      vendor_name: "",
+      stock: 0,
+      min_stock: 0,
+      bin_location: "",
+      private_memo: ""
+    });
+    const filteredParts = (0, import_react29.useMemo)(() => {
+      return parts.filter((p) => {
+        if (selectedCategory !== "전체" && p.category !== selectedCategory) {
+          return false;
+        }
+        if (onlyMyPriced && !p.purchase_price) {
+          return false;
+        }
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase().trim();
+          const codeMatch = (p.code || "").toLowerCase().includes(q);
+          const nameMatch = (p.name || "").toLowerCase().includes(q);
+          const specMatch = (p.spec || "").toLowerCase().includes(q);
+          const modelMatch = (p.machine_models || "").toLowerCase().includes(q);
+          return codeMatch || nameMatch || specMatch || modelMatch;
+        }
+        return true;
+      });
+    }, [parts, selectedCategory, searchQuery, onlyMyPriced]);
+    const handleOpenAdd = () => {
+      setModalMode("add");
+      setFormData({
+        id: "",
+        code: "",
+        name: "",
+        spec: "",
+        category: "유압계통",
+        unit: "EA",
+        machine_models: "",
+        price: "",
+        purchase_price: "",
+        vendor_name: "",
+        stock: 0,
+        min_stock: 2,
+        bin_location: "",
+        private_memo: ""
+      });
+      setIsModalOpen(true);
+    };
+    const handleOpenEdit = (p) => {
+      setModalMode("edit");
+      setFormData({
+        id: p.id || "",
+        code: p.code ? String(p.code).replace(/^PART[-_]?/i, "") : "",
+        name: p.name || "",
+        spec: p.spec || "",
+        category: p.category || "기타소모품",
+        unit: p.unit || "EA",
+        machine_models: p.machine_models || "",
+        price: p.price ? String(p.price) : "",
+        purchase_price: p.purchase_price ? String(p.purchase_price) : "",
+        vendor_name: p.vendor_name || "",
+        stock: p.stock !== void 0 ? p.stock : 0,
+        min_stock: p.min_stock !== void 0 ? p.min_stock : 0,
+        bin_location: p.bin_location || "",
+        private_memo: p.private_memo || ""
+      });
+      setIsModalOpen(true);
+    };
+    const handleSave = async (e) => {
+      e.preventDefault();
+      if (!formData.code.trim()) {
+        alert("부품번호를 입력해 주세요.");
+        return;
+      }
+      if (!formData.name.trim()) {
+        alert("품명을 입력해 주세요.");
+        return;
+      }
+      try {
+        const updatedList = await savePartWithPricing({
+          partData: {
+            ...formData,
+            price: Number(formData.price) || 0,
+            purchase_price: formData.purchase_price ? Number(formData.purchase_price) : null,
+            stock: Number(formData.stock) || 0,
+            min_stock: Number(formData.min_stock) || 0
+          },
+          selectedSupplierKey,
+          isEdit: modalMode === "edit",
+          currentList: parts
+        });
+        if (setParts) setParts(updatedList);
+        setIsModalOpen(false);
+        alert("부품 정보가 안전하게 저장되었습니다.");
+      } catch (err) {
+        alert("저장 중 오류: " + err.message);
+      }
+    };
+    const handleUnlink = async (part) => {
+      if (!window.confirm(`[${part.code}] ${part.name}
+내 사업자의 매입단가 및 재고 설정을 초기화하시겠습니까?
+(공용 부품 마스터는 보존됩니다)`)) {
+        return;
+      }
+      try {
+        const updatedList = await unlinkPartFromMyPricing(part.code, selectedSupplierKey);
+        if (setParts) setParts(updatedList);
+      } catch (err) {
+        alert("처리 중 오류: " + err.message);
+      }
+    };
+    return /* @__PURE__ */ import_react29.default.createElement("div", { className: "management-container", style: { maxWidth: "1200px", margin: "0 auto", padding: "1rem" } }, /* @__PURE__ */ import_react29.default.createElement("div", { className: "card-box", style: { marginBottom: "1rem", padding: "1.25rem", backgroundColor: "#FFFFFF", borderRadius: "12px", border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" } }, /* @__PURE__ */ import_react29.default.createElement("div", { style: { display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" } }, /* @__PURE__ */ import_react29.default.createElement("div", null, /* @__PURE__ */ import_react29.default.createElement("h2", { style: { fontSize: "1.25rem", fontWeight: "900", color: "#0F172A", display: "flex", alignItems: "center", gap: "8px", margin: 0 } }, /* @__PURE__ */ import_react29.default.createElement("span", null, "🛠️"), " 부품 및 재고 마스터 관리"), /* @__PURE__ */ import_react29.default.createElement("p", { style: { fontSize: "0.8125rem", color: "#64748B", marginTop: "4px", margin: 0 } }, "부품번호/규격은 전체 파트너와 공유되며, ", /* @__PURE__ */ import_react29.default.createElement("strong", { style: { color: "#0284C7" } }, "매입원가는 본인 사업자에게만 비밀 보장"), "됩니다.")), /* @__PURE__ */ import_react29.default.createElement(
       "button",
       {
+        type: "button",
         className: "btn btn-primary",
-        style: { width: "100%", minHeight: "36px", fontSize: "0.75rem" },
-        onClick: () => onSelectPart(p)
+        onClick: handleOpenAdd,
+        style: { fontWeight: "800", fontSize: "0.875rem", padding: "8px 16px", borderRadius: "8px", display: "inline-flex", alignItems: "center", gap: "6px" }
       },
-      "명세서 항목으로 선택"
-    )))), /* @__PURE__ */ import_react29.default.createElement("div", { className: "desktop-table-view" }, /* @__PURE__ */ import_react29.default.createElement("table", { className: "data-table" }, /* @__PURE__ */ import_react29.default.createElement("thead", null, /* @__PURE__ */ import_react29.default.createElement("tr", null, /* @__PURE__ */ import_react29.default.createElement("th", null, "코드"), /* @__PURE__ */ import_react29.default.createElement("th", null, "품명"), /* @__PURE__ */ import_react29.default.createElement("th", null, "카테고리"), /* @__PURE__ */ import_react29.default.createElement("th", null, "단가"), /* @__PURE__ */ import_react29.default.createElement("th", null, "재고"), /* @__PURE__ */ import_react29.default.createElement("th", null, "작업"))), /* @__PURE__ */ import_react29.default.createElement("tbody", null, parts.map((p) => /* @__PURE__ */ import_react29.default.createElement("tr", { key: p.id }, /* @__PURE__ */ import_react29.default.createElement("td", null, p.code), /* @__PURE__ */ import_react29.default.createElement("td", { style: { fontWeight: "700" } }, p.name), /* @__PURE__ */ import_react29.default.createElement("td", null, p.category), /* @__PURE__ */ import_react29.default.createElement("td", null, "₩ ", Number(p.price).toLocaleString()), /* @__PURE__ */ import_react29.default.createElement("td", null, p.stock), /* @__PURE__ */ import_react29.default.createElement("td", null, /* @__PURE__ */ import_react29.default.createElement(
+      /* @__PURE__ */ import_react29.default.createElement("span", null, "➕"),
+      " 새 부품 등록"
+    )), /* @__PURE__ */ import_react29.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "0.75rem" } }, /* @__PURE__ */ import_react29.default.createElement(
+      "input",
+      {
+        type: "text",
+        className: "form-input",
+        placeholder: "🔍 부품번호, 품명, 규격, 기종 검색...",
+        value: searchQuery,
+        onChange: (e) => setSearchQuery(e.target.value),
+        style: { fontSize: "0.875rem", padding: "0.55rem 0.75rem", borderRadius: "8px" }
+      }
+    ), /* @__PURE__ */ import_react29.default.createElement(
+      "select",
+      {
+        className: "form-input",
+        value: selectedCategory,
+        onChange: (e) => setSelectedCategory(e.target.value),
+        style: { fontSize: "0.875rem", padding: "0.55rem 0.75rem", borderRadius: "8px" }
+      },
+      PART_CATEGORIES.map((cat) => /* @__PURE__ */ import_react29.default.createElement("option", { key: cat, value: cat }, cat === "전체" ? "📂 전체 카테고리" : cat))
+    ), /* @__PURE__ */ import_react29.default.createElement("label", { style: { display: "flex", alignItems: "center", gap: "8px", fontSize: "0.875rem", fontWeight: "700", color: "#334155", cursor: "pointer", padding: "0 0.5rem" } }, /* @__PURE__ */ import_react29.default.createElement(
+      "input",
+      {
+        type: "checkbox",
+        checked: onlyMyPriced,
+        onChange: (e) => setOnlyMyPriced(e.target.checked),
+        style: { width: "16px", height: "16px", cursor: "pointer" }
+      }
+    ), /* @__PURE__ */ import_react29.default.createElement("span", null, "내 매입단가 등록된 부품만 보기")))), /* @__PURE__ */ import_react29.default.createElement("div", { className: "card-box", style: { backgroundColor: "#FFFFFF", borderRadius: "12px", border: "1px solid #E2E8F0", padding: "1rem", overflowX: "auto" } }, /* @__PURE__ */ import_react29.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem", paddingBottom: "0.5rem", borderBottom: "1.5px solid #F1F5F9" } }, /* @__PURE__ */ import_react29.default.createElement("span", { style: { fontSize: "0.875rem", fontWeight: "800", color: "#475569" } }, "검색 결과 총 ", /* @__PURE__ */ import_react29.default.createElement("strong", { style: { color: "#0284C7" } }, filteredParts.length), "개 품목")), /* @__PURE__ */ import_react29.default.createElement("table", { className: "data-table", style: { width: "100%", borderCollapse: "collapse", fontSize: "0.8125rem" } }, /* @__PURE__ */ import_react29.default.createElement("thead", null, /* @__PURE__ */ import_react29.default.createElement("tr", { style: { backgroundColor: "#F8FAFC", borderBottom: "2px solid #E2E8F0", color: "#475569", textAlign: "left" } }, /* @__PURE__ */ import_react29.default.createElement("th", { style: { padding: "10px 12px" } }, "부품번호(Part No)"), /* @__PURE__ */ import_react29.default.createElement("th", { style: { padding: "10px 12px" } }, "품명 및 규격"), /* @__PURE__ */ import_react29.default.createElement("th", { style: { padding: "10px 12px" } }, "적용기종"), /* @__PURE__ */ import_react29.default.createElement("th", { style: { padding: "10px 12px" } }, "분류"), /* @__PURE__ */ import_react29.default.createElement("th", { style: { padding: "10px 12px", textAlign: "right" } }, "기준 판매가"), /* @__PURE__ */ import_react29.default.createElement("th", { style: { padding: "10px 12px", textAlign: "right", backgroundColor: "#F0F9FF", color: "#0369A1" } }, "🔒 내 매입단가"), /* @__PURE__ */ import_react29.default.createElement("th", { style: { padding: "10px 12px", textAlign: "center" } }, "내 재고"), /* @__PURE__ */ import_react29.default.createElement("th", { style: { padding: "10px 12px", textAlign: "center" } }, "작업"))), /* @__PURE__ */ import_react29.default.createElement("tbody", null, filteredParts.length === 0 ? /* @__PURE__ */ import_react29.default.createElement("tr", null, /* @__PURE__ */ import_react29.default.createElement("td", { colSpan: "8", style: { textAlign: "center", padding: "2.5rem", color: "#94A3B8" } }, "등록되거나 검색된 부품이 없습니다.")) : filteredParts.map((p) => /* @__PURE__ */ import_react29.default.createElement("tr", { key: p.id || p.code, style: { borderBottom: "1px solid #F1F5F9" } }, /* @__PURE__ */ import_react29.default.createElement("td", { style: { padding: "10px 12px" } }, /* @__PURE__ */ import_react29.default.createElement("span", { style: { fontFamily: "monospace", fontWeight: "900", color: "#1E293B", backgroundColor: "#F1F5F9", padding: "2px 6px", borderRadius: "4px" } }, p.code ? String(p.code).replace(/^PART[-_]?/i, "") : "-")), /* @__PURE__ */ import_react29.default.createElement("td", { style: { padding: "10px 12px" } }, /* @__PURE__ */ import_react29.default.createElement("div", { style: { fontWeight: "800", color: "#0F172A" } }, p.name), p.spec && /* @__PURE__ */ import_react29.default.createElement("div", { style: { fontSize: "0.75rem", color: "#64748B" } }, p.spec)), /* @__PURE__ */ import_react29.default.createElement("td", { style: { padding: "10px 12px", color: "#475569", fontSize: "0.75rem" } }, p.machine_models || "-"), /* @__PURE__ */ import_react29.default.createElement("td", { style: { padding: "10px 12px" } }, /* @__PURE__ */ import_react29.default.createElement("span", { style: { fontSize: "0.75rem", padding: "2px 8px", borderRadius: "9999px", backgroundColor: "#F3F4F6", color: "#374151", fontWeight: "700" } }, p.category)), /* @__PURE__ */ import_react29.default.createElement("td", { style: { padding: "10px 12px", textAlign: "right", fontWeight: "700", color: "#334155" } }, p.price ? `₩ ${Number(p.price).toLocaleString()}` : "-"), /* @__PURE__ */ import_react29.default.createElement("td", { style: { padding: "10px 12px", textAlign: "right", backgroundColor: "#F0F9FF", fontWeight: "900", color: p.purchase_price ? "#0284C7" : "#94A3B8" } }, p.purchase_price ? `₩ ${Number(p.purchase_price).toLocaleString()}` : "미등록", p.vendor_name && /* @__PURE__ */ import_react29.default.createElement("div", { style: { fontSize: "0.6875rem", color: "#0284C7", fontWeight: "500" } }, "(", p.vendor_name, ")")), /* @__PURE__ */ import_react29.default.createElement("td", { style: { padding: "10px 12px", textAlign: "center" } }, /* @__PURE__ */ import_react29.default.createElement("span", { style: {
+      display: "inline-block",
+      padding: "2px 8px",
+      borderRadius: "9999px",
+      fontSize: "0.75rem",
+      fontWeight: "800",
+      backgroundColor: (p.stock || 0) > 0 ? "#DCFCE7" : "#FEE2E2",
+      color: (p.stock || 0) > 0 ? "#166534" : "#991B1B"
+    } }, p.stock || 0, " ", p.unit), p.bin_location && /* @__PURE__ */ import_react29.default.createElement("div", { style: { fontSize: "0.6875rem", color: "#64748B" } }, "위치: ", p.bin_location)), /* @__PURE__ */ import_react29.default.createElement("td", { style: { padding: "10px 12px", textAlign: "center" } }, /* @__PURE__ */ import_react29.default.createElement("div", { style: { display: "flex", justifyContent: "center", gap: "4px" } }, /* @__PURE__ */ import_react29.default.createElement(
       "button",
       {
+        type: "button",
         className: "btn btn-primary",
-        style: { fontSize: "10px", padding: "2px 6px" },
-        onClick: () => onSelectPart(p)
+        style: { fontSize: "0.6875rem", padding: "3px 8px", fontWeight: "800" },
+        onClick: () => onSelectPart(p),
+        title: "작성 중인 거래명세서 품목으로 추가"
       },
       "명세서 선택"
-    )))))))));
+    ), /* @__PURE__ */ import_react29.default.createElement(
+      "button",
+      {
+        type: "button",
+        style: { fontSize: "0.6875rem", padding: "3px 6px", border: "1px solid #CBD5E1", borderRadius: "4px", backgroundColor: "#FFFFFF", cursor: "pointer" },
+        onClick: () => handleOpenEdit(p),
+        title: "단가 및 재고 수정"
+      },
+      "✏️"
+    ), p.has_my_pricing && /* @__PURE__ */ import_react29.default.createElement(
+      "button",
+      {
+        type: "button",
+        style: { fontSize: "0.6875rem", padding: "3px 6px", border: "1px solid #FECACA", borderRadius: "4px", backgroundColor: "#FEF2F2", color: "#DC2626", cursor: "pointer" },
+        onClick: () => handleUnlink(p),
+        title: "내 매입단가 연동 해제"
+      },
+      "✕"
+    )))))))), isModalOpen && /* @__PURE__ */ import_react29.default.createElement("div", { style: {
+      position: "fixed",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(15, 23, 42, 0.65)",
+      backdropFilter: "blur(4px)",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 9999,
+      padding: "1rem"
+    } }, /* @__PURE__ */ import_react29.default.createElement("div", { style: {
+      backgroundColor: "#FFFFFF",
+      borderRadius: "16px",
+      width: "100%",
+      maxWidth: "560px",
+      maxHeight: "90vh",
+      overflowY: "auto",
+      boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+      padding: "1.5rem"
+    } }, /* @__PURE__ */ import_react29.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem", borderBottom: "1px solid #E2E8F0", paddingBottom: "0.75rem" } }, /* @__PURE__ */ import_react29.default.createElement("h3", { style: { fontSize: "1.125rem", fontWeight: "900", color: "#0F172A", margin: 0 } }, modalMode === "add" ? "➕ 새 부품 등록" : "✏️ 부품 정보 및 내 단가/재고 수정"), /* @__PURE__ */ import_react29.default.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: () => setIsModalOpen(false),
+        style: { background: "none", border: "none", fontSize: "1.25rem", cursor: "pointer", color: "#64748B" }
+      },
+      "✕"
+    )), /* @__PURE__ */ import_react29.default.createElement("form", { onSubmit: handleSave }, /* @__PURE__ */ import_react29.default.createElement("div", { style: { backgroundColor: "#F8FAFC", padding: "1rem", borderRadius: "10px", marginBottom: "1rem", border: "1px solid #E2E8F0" } }, /* @__PURE__ */ import_react29.default.createElement("div", { style: { fontSize: "0.8125rem", fontWeight: "900", color: "#0284C7", marginBottom: "0.75rem" } }, "🌐 공용 부품 정보 (모든 파트너 공유)"), /* @__PURE__ */ import_react29.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "0.75rem" } }, /* @__PURE__ */ import_react29.default.createElement("div", null, /* @__PURE__ */ import_react29.default.createElement("label", { style: { display: "block", fontSize: "0.75rem", fontWeight: "800", color: "#334155", marginBottom: "4px" } }, "부품번호 (Part No) *"), /* @__PURE__ */ import_react29.default.createElement(
+      "input",
+      {
+        type: "text",
+        className: "form-input",
+        placeholder: "예: VOE14532101",
+        value: formData.code,
+        onChange: (e) => setFormData({ ...formData, code: normalizePartNo(e.target.value) }),
+        required: true,
+        style: { fontFamily: "monospace", fontWeight: "800" }
+      }
+    )), /* @__PURE__ */ import_react29.default.createElement("div", null, /* @__PURE__ */ import_react29.default.createElement("label", { style: { display: "block", fontSize: "0.75rem", fontWeight: "800", color: "#334155", marginBottom: "4px" } }, "카테고리 *"), /* @__PURE__ */ import_react29.default.createElement(
+      "select",
+      {
+        className: "form-input",
+        value: formData.category,
+        onChange: (e) => setFormData({ ...formData, category: e.target.value })
+      },
+      PART_CATEGORIES.filter((c) => c !== "전체").map((c) => /* @__PURE__ */ import_react29.default.createElement("option", { key: c, value: c }, c))
+    ))), /* @__PURE__ */ import_react29.default.createElement("div", { style: { marginBottom: "0.75rem" } }, /* @__PURE__ */ import_react29.default.createElement("label", { style: { display: "block", fontSize: "0.75rem", fontWeight: "800", color: "#334155", marginBottom: "4px" } }, "표준 품명 *"), /* @__PURE__ */ import_react29.default.createElement(
+      "input",
+      {
+        type: "text",
+        className: "form-input",
+        placeholder: "예: 메인펌프 비례제어밸브",
+        value: formData.name,
+        onChange: (e) => setFormData({ ...formData, name: e.target.value }),
+        required: true
+      }
+    )), /* @__PURE__ */ import_react29.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "0.75rem" } }, /* @__PURE__ */ import_react29.default.createElement("div", null, /* @__PURE__ */ import_react29.default.createElement("label", { style: { display: "block", fontSize: "0.75rem", fontWeight: "800", color: "#334155", marginBottom: "4px" } }, "규격 / 사양"), /* @__PURE__ */ import_react29.default.createElement(
+      "input",
+      {
+        type: "text",
+        className: "form-input",
+        placeholder: "예: 24V 2W-08",
+        value: formData.spec,
+        onChange: (e) => setFormData({ ...formData, spec: e.target.value })
+      }
+    )), /* @__PURE__ */ import_react29.default.createElement("div", null, /* @__PURE__ */ import_react29.default.createElement("label", { style: { display: "block", fontSize: "0.75rem", fontWeight: "800", color: "#334155", marginBottom: "4px" } }, "적용 장비 (호환 기종)"), /* @__PURE__ */ import_react29.default.createElement(
+      "input",
+      {
+        type: "text",
+        className: "form-input",
+        placeholder: "예: EC140EL, DX140",
+        value: formData.machine_models,
+        onChange: (e) => setFormData({ ...formData, machine_models: e.target.value })
+      }
+    ))), /* @__PURE__ */ import_react29.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" } }, /* @__PURE__ */ import_react29.default.createElement("div", null, /* @__PURE__ */ import_react29.default.createElement("label", { style: { display: "block", fontSize: "0.75rem", fontWeight: "800", color: "#334155", marginBottom: "4px" } }, "단위"), /* @__PURE__ */ import_react29.default.createElement(
+      "input",
+      {
+        type: "text",
+        className: "form-input",
+        placeholder: "EA, SET 등",
+        value: formData.unit,
+        onChange: (e) => setFormData({ ...formData, unit: e.target.value })
+      }
+    )), /* @__PURE__ */ import_react29.default.createElement("div", null, /* @__PURE__ */ import_react29.default.createElement("label", { style: { display: "block", fontSize: "0.75rem", fontWeight: "800", color: "#334155", marginBottom: "4px" } }, "기준 판매단가 (공개)"), /* @__PURE__ */ import_react29.default.createElement(
+      "input",
+      {
+        type: "number",
+        className: "form-input",
+        placeholder: "고객 판매 기준가",
+        value: formData.price,
+        onChange: (e) => setFormData({ ...formData, price: e.target.value })
+      }
+    )))), /* @__PURE__ */ import_react29.default.createElement("div", { style: { backgroundColor: "#F0F9FF", padding: "1rem", borderRadius: "10px", marginBottom: "1.25rem", border: "1px solid #BAE6FD" } }, /* @__PURE__ */ import_react29.default.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" } }, /* @__PURE__ */ import_react29.default.createElement("div", { style: { fontSize: "0.8125rem", fontWeight: "900", color: "#0369A1", display: "flex", alignItems: "center", gap: "4px" } }, /* @__PURE__ */ import_react29.default.createElement("span", null, "🔒"), " 내 사업자 전용 정보 (타 사업자 절대 비공개)"), /* @__PURE__ */ import_react29.default.createElement("span", { style: { fontSize: "0.6875rem", backgroundColor: "#E0F2FE", color: "#0284C7", padding: "2px 6px", borderRadius: "4px", fontWeight: "800" } }, "보안 격리")), /* @__PURE__ */ import_react29.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "0.75rem" } }, /* @__PURE__ */ import_react29.default.createElement("div", null, /* @__PURE__ */ import_react29.default.createElement("label", { style: { display: "block", fontSize: "0.75rem", fontWeight: "800", color: "#0369A1", marginBottom: "4px" } }, "🔒 실제 매입단가 (원가)"), /* @__PURE__ */ import_react29.default.createElement(
+      "input",
+      {
+        type: "number",
+        className: "form-input",
+        placeholder: "내가 구매한 단가",
+        value: formData.purchase_price,
+        onChange: (e) => setFormData({ ...formData, purchase_price: e.target.value }),
+        style: { fontWeight: "800", borderColor: "#7DD3FC" }
+      }
+    )), /* @__PURE__ */ import_react29.default.createElement("div", null, /* @__PURE__ */ import_react29.default.createElement("label", { style: { display: "block", fontSize: "0.75rem", fontWeight: "800", color: "#0369A1", marginBottom: "4px" } }, "주 매입처 상호"), /* @__PURE__ */ import_react29.default.createElement(
+      "input",
+      {
+        type: "text",
+        className: "form-input",
+        placeholder: "구매처 상호",
+        value: formData.vendor_name,
+        onChange: (e) => setFormData({ ...formData, vendor_name: e.target.value })
+      }
+    ))), /* @__PURE__ */ import_react29.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "0.75rem" } }, /* @__PURE__ */ import_react29.default.createElement("div", null, /* @__PURE__ */ import_react29.default.createElement("label", { style: { display: "block", fontSize: "0.75rem", fontWeight: "800", color: "#0369A1", marginBottom: "4px" } }, "현재 보유 재고"), /* @__PURE__ */ import_react29.default.createElement(
+      "input",
+      {
+        type: "number",
+        className: "form-input",
+        value: formData.stock,
+        onChange: (e) => setFormData({ ...formData, stock: e.target.value })
+      }
+    )), /* @__PURE__ */ import_react29.default.createElement("div", null, /* @__PURE__ */ import_react29.default.createElement("label", { style: { display: "block", fontSize: "0.75rem", fontWeight: "800", color: "#0369A1", marginBottom: "4px" } }, "보관 위치 (선반/랙 번호)"), /* @__PURE__ */ import_react29.default.createElement(
+      "input",
+      {
+        type: "text",
+        className: "form-input",
+        placeholder: "예: 창고 B열-2번",
+        value: formData.bin_location,
+        onChange: (e) => setFormData({ ...formData, bin_location: e.target.value })
+      }
+    ))), /* @__PURE__ */ import_react29.default.createElement("div", null, /* @__PURE__ */ import_react29.default.createElement("label", { style: { display: "block", fontSize: "0.75rem", fontWeight: "800", color: "#0369A1", marginBottom: "4px" } }, "나만의 비밀 메모"), /* @__PURE__ */ import_react29.default.createElement(
+      "input",
+      {
+        type: "text",
+        className: "form-input",
+        placeholder: "타인에게 보이지 않는 내부 메모",
+        value: formData.private_memo,
+        onChange: (e) => setFormData({ ...formData, private_memo: e.target.value })
+      }
+    ))), /* @__PURE__ */ import_react29.default.createElement("div", { style: { display: "flex", justifyContent: "flex-end", gap: "0.75rem" } }, /* @__PURE__ */ import_react29.default.createElement(
+      "button",
+      {
+        type: "button",
+        className: "btn",
+        onClick: () => setIsModalOpen(false),
+        style: { backgroundColor: "#F1F5F9", color: "#475569", fontWeight: "700" }
+      },
+      "취소"
+    ), /* @__PURE__ */ import_react29.default.createElement(
+      "button",
+      {
+        type: "submit",
+        className: "btn btn-primary",
+        style: { fontWeight: "800" }
+      },
+      modalMode === "add" ? "등록 완료" : "수정사항 저장"
+    ))))));
   }
 
   // src/pages/DocHistoryTab.jsx
@@ -40202,9 +41012,9 @@ IconFile=${currentUrl}favicon.ico\r
     connectionMessage,
     onTestConnection,
     userRole = "supplier",
-    isAdmin = false
+    isAdmin: isAdmin2 = false
   }) {
-    const isUserAdmin = isAdmin || userRole === "admin" || sessionStorage.getItem("dd_user_role") === "admin";
+    const isUserAdmin = isAdmin2 || userRole === "admin" || sessionStorage.getItem("dd_user_role") === "admin";
     const [copiedSQL, setCopiedSQL] = (0, import_react31.useState)(false);
     const [saveSuccess, setSaveSuccess] = (0, import_react31.useState)(false);
     const [geminiApiKey, setGeminiApiKey] = (0, import_react31.useState)(() => localStorage.getItem("gemini_api_key") || "");
@@ -40857,44 +41667,45 @@ IconFile=${currentUrl}favicon.ico\r
         setPurchasesList(data);
       });
     }, []);
+    const handleReloadParts = (0, import_react32.useCallback)(() => {
+      fetchPartsWithPricing(loggedInSupplierKey, userRole).then((data) => {
+        setPartsList(data);
+      });
+    }, [loggedInSupplierKey, userRole]);
     (0, import_react32.useEffect)(() => {
       handleReloadDocuments();
       handleReloadPurchases();
-    }, [handleReloadDocuments, handleReloadPurchases]);
+      handleReloadParts();
+    }, [handleReloadDocuments, handleReloadPurchases, handleReloadParts]);
     const handleSavePurchase = async (purchaseData, autoRegisterParts = true) => {
       try {
         const saved = await dbSave("purchase_invoices", purchaseData);
         setPurchasesList((prev) => [saved, ...prev.filter((p) => p.id !== saved.id)]);
         if (autoRegisterParts && Array.isArray(purchaseData.items)) {
-          let updatedParts = [...partsList];
           for (const item of purchaseData.items) {
             if (!item.name || !item.name.trim()) continue;
-            const existingIdx = updatedParts.findIndex((p) => p.name.trim().toLowerCase() === item.name.trim().toLowerCase());
-            if (existingIdx !== -1) {
-              const existing = updatedParts[existingIdx];
-              const updated = {
-                ...existing,
-                price: item.unit_price || existing.price,
-                spec: item.spec || existing.spec
-              };
-              await dbSave("parts", updated);
-              updatedParts[existingIdx] = updated;
-            } else {
-              const newCode = `PART-${Date.now().toString().slice(-4)}${Math.floor(Math.random() * 100)}`;
-              const newPart = {
-                code: newCode,
-                name: item.name,
-                spec: item.spec || "",
-                unit: "EA",
-                price: item.unit_price || 0,
-                stock: item.qty || 0,
-                supplier_key: purchaseData.supplier_key
-              };
-              const savedPart = await dbSave("parts", newPart);
-              updatedParts.push(savedPart);
-            }
+            const rawPartCode = item.part_no || item.code || "";
+            const partCode = rawPartCode ? rawPartCode.replace(/^PART[-_]?/i, "").trim() : `${Date.now().toString().slice(-4)}${Math.floor(Math.random() * 100)}`;
+            await savePartWithPricing({
+              partData: {
+                code: partCode,
+                name: item.name.trim(),
+                spec: (item.spec || "").trim(),
+                category: "기타소모품",
+                unit: item.unit || "EA",
+                price: item.unit_price ? Math.round(Number(item.unit_price) * 1.3) : 0,
+                // 권장 판매가: 원가 + 30% 마진 기본 가이드
+                purchase_price: item.unit_price ? Number(item.unit_price) : null,
+                // 🔒 실제 매입단가 (본인만 조회 가능)
+                vendor_name: purchaseData.vendor_name || "",
+                stock: Number(item.qty) || 1
+              },
+              selectedSupplierKey: loggedInSupplierKey,
+              isEdit: false,
+              currentList: partsList
+            });
           }
-          setPartsList(updatedParts);
+          handleReloadParts();
         }
         alert("✓ 매입전표가 성공적으로 저장되었습니다.");
         setIsPurchaseOcrModalOpen(false);
@@ -41499,10 +42310,15 @@ IconFile=${currentUrl}favicon.ico\r
       } catch (err) {
         console.error("Customer master upsert error:", err);
       }
+      const isEditMode = !saveAsNew && !!editingDocId;
+      let targetDocNo = docNo;
+      if (saveAsNew) {
+        targetDocNo = generateNextDocNo(docDate, documentsList, selectedSupplierKey, customer, docType, suppliersList, customersList);
+      }
       const saveRes = await saveDocument({
-        id: editingDocId,
+        id: isEditMode ? editingDocId : null,
         docType,
-        docNo,
+        docNo: targetDocNo,
         docDate,
         docTime,
         customer,
@@ -41531,11 +42347,28 @@ IconFile=${currentUrl}favicon.ico\r
         settlement_memo: collaborativePartners[0]?.memo || settlementMemo,
         partners: isDocShared ? collaborativePartners : []
       });
-      const finalSavedNo = saveRes && saveRes.docNo ? saveRes.docNo : docNo;
+      const finalSavedNo = saveRes && saveRes.docNo ? saveRes.docNo : targetDocNo;
+      const finalDocId = saveRes && saveRes.docId ? saveRes.docId : isEditMode ? editingDocId : null;
       setDocNo(finalSavedNo);
+      setEditingDocId(finalDocId);
       setIsSavedThisSession(true);
-      alert(`✓ ${docType} (번호: ${finalSavedNo}) 저장/수정 완료!`);
+      if (isEditMode) {
+        alert(`✓ ${docType} (번호: ${finalSavedNo}) 기존 문서가 성공적으로 수정(덮어쓰기)되었습니다.`);
+      } else {
+        alert(`✓ ${docType} (번호: ${finalSavedNo}) 신규 문서로 안전하게 저장되었습니다.`);
+      }
       handleReloadDocuments();
+    };
+    const handleConvertToNewDocument = () => {
+      if (!editingDocId) {
+        alert("이미 신규 문서 작성 모드입니다.");
+        return;
+      }
+      const newDocNo = generateNextDocNo(docDate, documentsList, selectedSupplierKey, customer, docType, suppliersList, customersList);
+      setEditingDocId(null);
+      setDocNo(newDocNo);
+      alert(`✓ 새 문서 작성 모드로 전환되었습니다.
+새 문서 번호: ${newDocNo}`);
     };
     const handleExecuteDocConvert = async (targetType) => {
       if (!customer || !customer.name || customer.name.trim() === "") {
@@ -42070,6 +42903,7 @@ IconFile=${currentUrl}favicon.ico\r
         setRemark,
         onResetForm: handleRequestResetForm,
         onSaveDocument: handleSaveDocument,
+        onConvertToNewDocument: handleConvertToNewDocument,
         onAddNewCustomer: (name) => {
           setQuickCustomerInitialName(name || "");
           setQuickCustomerModalOpen(true);
@@ -42078,7 +42912,8 @@ IconFile=${currentUrl}favicon.ico\r
         documentsList,
         onLoadDocument: handleLoadDocument,
         onCopyDocument: handleCopyDocument,
-        onOpenPurchaseImportModal: () => setIsPurchaseImportModalOpen(true)
+        onOpenPurchaseImportModal: () => setIsPurchaseImportModalOpen(true),
+        partsList
       }
     ), activeTab === "purchase" && /* @__PURE__ */ import_react32.default.createElement(
       PurchaseTab,
@@ -42171,8 +43006,9 @@ IconFile=${currentUrl}favicon.ico\r
       PartsTab,
       {
         parts: partsList,
-        onSavePart: handleSavePart,
-        onDeletePart: handleDeletePart,
+        setParts: setPartsList,
+        selectedSupplierKey: loggedInSupplierKey,
+        userRole,
         onSelectPart: (p) => {
           setItems((prev) => [...prev, {
             id: Date.now().toString(),
@@ -42204,12 +43040,12 @@ IconFile=${currentUrl}favicon.ico\r
         userRole,
         isAdmin: userRole === "admin"
       }
-    ))), (pendingTab || pendingReset) && /* @__PURE__ */ import_react32.default.createElement("div", { className: "modal-overlay", style: { zIndex: 9999 } }, /* @__PURE__ */ import_react32.default.createElement("div", { className: "modal-content", style: { maxWidth: "420px", textAlign: "center", padding: "1.75rem 1.25rem" } }, /* @__PURE__ */ import_react32.default.createElement("div", { style: { fontSize: "2.5rem", marginBottom: "0.5rem" } }, "💾"), /* @__PURE__ */ import_react32.default.createElement("h3", { style: { fontSize: "1.125rem", fontWeight: "900", marginBottom: "0.5rem", color: "var(--text-main)" } }, "작성 중인 문서를 저장하시겠습니까?"), /* @__PURE__ */ import_react32.default.createElement("p", { style: { fontSize: "0.8125rem", color: "var(--text-secondary)", marginBottom: "1.25rem", lineHeight: "1.5" } }, pendingReset ? "신규 문서를 작성하기 전에 현재 작성 중인 명세서를 저장하시겠습니까?" : `'${pendingTab === "history" ? "문서조회" : pendingTab === "customers" ? "고객관리" : pendingTab === "suppliers" ? "공급자" : "부품관리"}' 페이지로 이동하기 전에 저장하시겠습니까?`), /* @__PURE__ */ import_react32.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "8px" } }, /* @__PURE__ */ import_react32.default.createElement(
+    ))), (pendingTab || pendingReset) && /* @__PURE__ */ import_react32.default.createElement("div", { className: "modal-overlay", style: { zIndex: 9999 } }, /* @__PURE__ */ import_react32.default.createElement("div", { className: "modal-content", style: { maxWidth: "420px", textAlign: "center", padding: "1.75rem 1.25rem" } }, /* @__PURE__ */ import_react32.default.createElement("h3", { style: { fontSize: "1.125rem", fontWeight: "900", marginBottom: "0.5rem", color: "var(--text-main)" } }, "작성 중인 문서를 저장하시겠습니까?"), /* @__PURE__ */ import_react32.default.createElement("p", { style: { fontSize: "0.8125rem", color: "var(--text-secondary)", marginBottom: "1.25rem", lineHeight: "1.5" } }, pendingReset ? "신규 문서를 작성하기 전에 현재 작성 중인 명세서를 저장하시겠습니까?" : `'${pendingTab === "history" ? "문서조회" : pendingTab === "customers" ? "고객관리" : pendingTab === "suppliers" ? "공급자" : "부품관리"}' 페이지로 이동하기 전에 저장하시겠습니까?`), /* @__PURE__ */ import_react32.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "8px" } }, /* @__PURE__ */ import_react32.default.createElement(
       "button",
       {
         type: "button",
         className: "btn btn-primary",
-        style: { width: "100%", minHeight: "44px", fontWeight: "800", backgroundColor: "#16a34a", borderColor: "#16a34a", fontSize: "0.875rem" },
+        style: { width: "100%", minHeight: "42px", fontWeight: "700", backgroundColor: "#16a34a", borderColor: "#16a34a", fontSize: "13px" },
         onClick: async () => {
           await handleSaveDocument();
           if (pendingTab) {
@@ -42220,13 +43056,13 @@ IconFile=${currentUrl}favicon.ico\r
           }
         }
       },
-      "💾 저장 후 진행하기"
+      "저장 후 진행하기"
     ), /* @__PURE__ */ import_react32.default.createElement(
       "button",
       {
         type: "button",
         className: "btn btn-outline",
-        style: { width: "100%", minHeight: "40px", fontWeight: "700", color: "#dc2626", borderColor: "#fca5a5", fontSize: "0.8125rem" },
+        style: { width: "100%", minHeight: "38px", fontWeight: "600", color: "#dc2626", borderColor: "#fca5a5", fontSize: "12px" },
         onClick: () => {
           if (pendingTab) {
             setActiveTab(pendingTab);
@@ -42236,19 +43072,19 @@ IconFile=${currentUrl}favicon.ico\r
           }
         }
       },
-      "🚀 저장하지 않고 진행"
+      "저장하지 않고 진행"
     ), /* @__PURE__ */ import_react32.default.createElement(
       "button",
       {
         type: "button",
         className: "btn btn-outline",
-        style: { width: "100%", minHeight: "36px", fontSize: "0.8125rem" },
+        style: { width: "100%", minHeight: "36px", fontSize: "12px" },
         onClick: () => {
           setPendingTab(null);
           setPendingReset(false);
         }
       },
-      "✕ 취소 (현재 명세서 작성 계속)"
+      "취소 (현재 명세서 작성 계속)"
     )))), /* @__PURE__ */ import_react32.default.createElement(
       ExitConfirmModal,
       {

@@ -12,6 +12,7 @@ import { generateNextDocNo } from './utils/numbering.js';
 // Services
 import { fetchDocuments, saveDocument as dbSaveDocument, deleteDocument as dbDeleteDocument, updateDocumentPaid as dbUpdateDocumentPaid, updateDocumentSettlement as dbUpdateDocumentSettlement } from './services/documentService.js';
 import { syncCustomersFromDocuments } from './services/customerService.js';
+import { fetchPartsWithPricing, savePartWithPricing } from './services/partsService.js';
 
 // Components
 import Header from './components/Header.jsx';
@@ -184,50 +185,49 @@ export default function App() {
     });
   }, []);
 
+  const handleReloadParts = useCallback(() => {
+    fetchPartsWithPricing(loggedInSupplierKey, userRole).then(data => {
+      setPartsList(data);
+    });
+  }, [loggedInSupplierKey, userRole]);
+
   useEffect(() => {
     handleReloadDocuments();
     handleReloadPurchases();
-  }, [handleReloadDocuments, handleReloadPurchases]);
+    handleReloadParts();
+  }, [handleReloadDocuments, handleReloadPurchases, handleReloadParts]);
 
-  // 매입전표 저장 핸들러 (품목 자동 부품함 등록 포함)
+  // 매입전표 저장 핸들러 (품목 자동 부품함 등록 및 사업자별 매입원가 격리 저장)
   const handleSavePurchase = async (purchaseData, autoRegisterParts = true) => {
     try {
       const saved = await dbSave('purchase_invoices', purchaseData);
       setPurchasesList(prev => [saved, ...prev.filter(p => p.id !== saved.id)]);
 
-      // 품목들을 부품/재고 목록(parts)에 자동 등록 또는 단가 갱신
+      // 품목들을 부품/재고 목록(parts)에 자동 등록 또는 단가 갱신 (보안 격리 적용)
       if (autoRegisterParts && Array.isArray(purchaseData.items)) {
-        let updatedParts = [...partsList];
         for (const item of purchaseData.items) {
           if (!item.name || !item.name.trim()) continue;
-          const existingIdx = updatedParts.findIndex(p => p.name.trim().toLowerCase() === item.name.trim().toLowerCase());
-          if (existingIdx !== -1) {
-            // 기존 부품 매입단가 갱신
-            const existing = updatedParts[existingIdx];
-            const updated = {
-              ...existing,
-              price: item.unit_price || existing.price,
-              spec: item.spec || existing.spec
-            };
-            await dbSave('parts', updated);
-            updatedParts[existingIdx] = updated;
-          } else {
-            // 신규 부품 등록
-            const newCode = `PART-${Date.now().toString().slice(-4)}${Math.floor(Math.random() * 100)}`;
-            const newPart = {
-              code: newCode,
-              name: item.name,
-              spec: item.spec || '',
-              unit: 'EA',
-              price: item.unit_price || 0,
-              stock: item.qty || 0,
-              supplier_key: purchaseData.supplier_key
-            };
-            const savedPart = await dbSave('parts', newPart);
-            updatedParts.push(savedPart);
-          }
+          const rawPartCode = item.part_no || item.code || '';
+          const partCode = rawPartCode ? rawPartCode.replace(/^PART[-_]?/i, '').trim() : `${Date.now().toString().slice(-4)}${Math.floor(Math.random() * 100)}`;
+          
+          await savePartWithPricing({
+            partData: {
+              code: partCode,
+              name: item.name.trim(),
+              spec: (item.spec || '').trim(),
+              category: '기타소모품',
+              unit: item.unit || 'EA',
+              price: item.unit_price ? Math.round(Number(item.unit_price) * 1.3) : 0, // 권장 판매가: 원가 + 30% 마진 기본 가이드
+              purchase_price: item.unit_price ? Number(item.unit_price) : null, // 🔒 실제 매입단가 (본인만 조회 가능)
+              vendor_name: purchaseData.vendor_name || '',
+              stock: Number(item.qty) || 1
+            },
+            selectedSupplierKey: loggedInSupplierKey,
+            isEdit: false,
+            currentList: partsList
+          });
         }
-        setPartsList(updatedParts);
+        handleReloadParts();
       }
 
       alert('✓ 매입전표가 성공적으로 저장되었습니다.');
@@ -793,10 +793,18 @@ export default function App() {
       console.error('Customer master upsert error:', err);
     }
 
+    const isEditMode = !saveAsNew && !!editingDocId;
+    let targetDocNo = docNo;
+
+    // 새 문서로 저장 요청 시 새로운 번호 채번
+    if (saveAsNew) {
+      targetDocNo = generateNextDocNo(docDate, documentsList, selectedSupplierKey, customer, docType, suppliersList, customersList);
+    }
+
     const saveRes = await dbSaveDocument({
-      id: editingDocId,
+      id: isEditMode ? editingDocId : null,
       docType,
-      docNo,
+      docNo: targetDocNo,
       docDate,
       docTime,
       customer,
@@ -825,11 +833,32 @@ export default function App() {
       settlement_memo: collaborativePartners[0]?.memo || settlementMemo,
       partners: isDocShared ? collaborativePartners : []
     });
-    const finalSavedNo = saveRes && saveRes.docNo ? saveRes.docNo : docNo;
+
+    const finalSavedNo = saveRes && saveRes.docNo ? saveRes.docNo : targetDocNo;
+    const finalDocId = saveRes && saveRes.docId ? saveRes.docId : (isEditMode ? editingDocId : null);
+
     setDocNo(finalSavedNo);
+    setEditingDocId(finalDocId);
     setIsSavedThisSession(true);
-    alert(`✓ ${docType} (번호: ${finalSavedNo}) 저장/수정 완료!`);
+
+    if (isEditMode) {
+      alert(`✓ ${docType} (번호: ${finalSavedNo}) 기존 문서가 성공적으로 수정(덮어쓰기)되었습니다.`);
+    } else {
+      alert(`✓ ${docType} (번호: ${finalSavedNo}) 신규 문서로 안전하게 저장되었습니다.`);
+    }
+
     handleReloadDocuments();
+  };
+
+  const handleConvertToNewDocument = () => {
+    if (!editingDocId) {
+      alert('이미 신규 문서 작성 모드입니다.');
+      return;
+    }
+    const newDocNo = generateNextDocNo(docDate, documentsList, selectedSupplierKey, customer, docType, suppliersList, customersList);
+    setEditingDocId(null);
+    setDocNo(newDocNo);
+    alert(`✓ 새 문서 작성 모드로 전환되었습니다.\n새 문서 번호: ${newDocNo}`);
   };
 
   const handleExecuteDocConvert = async (targetType) => {
@@ -1391,6 +1420,7 @@ export default function App() {
               setRemark={setRemark}
               onResetForm={handleRequestResetForm}
               onSaveDocument={handleSaveDocument}
+              onConvertToNewDocument={handleConvertToNewDocument}
               onAddNewCustomer={name => {
                 setQuickCustomerInitialName(name || '');
                 setQuickCustomerModalOpen(true);
@@ -1400,6 +1430,7 @@ export default function App() {
               onLoadDocument={handleLoadDocument}
               onCopyDocument={handleCopyDocument}
               onOpenPurchaseImportModal={() => setIsPurchaseImportModalOpen(true)}
+              partsList={partsList}
             />
           )}
 
@@ -1506,8 +1537,9 @@ export default function App() {
           {activeTab === 'parts' && (
             <PartsTab
               parts={partsList}
-              onSavePart={handleSavePart}
-              onDeletePart={handleDeletePart}
+              setParts={setPartsList}
+              selectedSupplierKey={loggedInSupplierKey}
+              userRole={userRole}
               onSelectPart={p => {
                 setItems(prev => [...prev, {
                   id: Date.now().toString(),
@@ -1549,7 +1581,6 @@ export default function App() {
       {(pendingTab || pendingReset) && (
         <div className="modal-overlay" style={{ zIndex: 9999 }}>
           <div className="modal-content" style={{ maxWidth: '420px', textAlign: 'center', padding: '1.75rem 1.25rem' }}>
-            <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>💾</div>
             <h3 style={{ fontSize: '1.125rem', fontWeight: '900', marginBottom: '0.5rem', color: 'var(--text-main)' }}>
               작성 중인 문서를 저장하시겠습니까?
             </h3>
@@ -1562,7 +1593,7 @@ export default function App() {
               <button
                 type="button"
                 className="btn btn-primary"
-                style={{ width: '100%', minHeight: '44px', fontWeight: '800', backgroundColor: '#16a34a', borderColor: '#16a34a', fontSize: '0.875rem' }}
+                style={{ width: '100%', minHeight: '42px', fontWeight: '700', backgroundColor: '#16a34a', borderColor: '#16a34a', fontSize: '13px' }}
                 onClick={async () => {
                   await handleSaveDocument();
                   if (pendingTab) {
@@ -1573,12 +1604,12 @@ export default function App() {
                   }
                 }}
               >
-                💾 저장 후 진행하기
+                저장 후 진행하기
               </button>
               <button
                 type="button"
                 className="btn btn-outline"
-                style={{ width: '100%', minHeight: '40px', fontWeight: '700', color: '#dc2626', borderColor: '#fca5a5', fontSize: '0.8125rem' }}
+                style={{ width: '100%', minHeight: '38px', fontWeight: '600', color: '#dc2626', borderColor: '#fca5a5', fontSize: '12px' }}
                 onClick={() => {
                   if (pendingTab) {
                     setActiveTab(pendingTab);
@@ -1588,18 +1619,18 @@ export default function App() {
                   }
                 }}
               >
-                🚀 저장하지 않고 진행
+                저장하지 않고 진행
               </button>
               <button
                 type="button"
                 className="btn btn-outline"
-                style={{ width: '100%', minHeight: '36px', fontSize: '0.8125rem' }}
+                style={{ width: '100%', minHeight: '36px', fontSize: '12px' }}
                 onClick={() => {
                   setPendingTab(null);
                   setPendingReset(false);
                 }}
               >
-                ✕ 취소 (현재 명세서 작성 계속)
+                취소 (현재 명세서 작성 계속)
               </button>
             </div>
           </div>

@@ -131,7 +131,10 @@ export async function parsePurchaseInvoiceImage(base64Data, mimeType = 'image/jp
 2. vendor_bizno: 공급자의 사업자등록번호 (000-00-00000 형태).
 3. invoice_date: 거래일자/작성일자 (YYYY-MM-DD 형식, 연도가 생략된 경우 올해 연도 적용).
 4. items: 전표 내 품목 목록 테이블의 각 행을 배열로 추출:
-   - name: 품목명 (부품명, 작업명 등)
+   - part_no: 부품번호, 품번, 부품코드, P/N, 도번 (영문/숫자 코드, 하이픈 포함).
+     * 필독: 전표 테이블에 '부품번호', '품번', 'Part No', 'P/N', 'Item Code', '도번', '코드' 열이 있다면 해당 열의 영문/숫자 코드를 절대 빠뜨리지 말고 추출하세요.
+     * 필독: 만약 별도의 부품번호 열이 없더라도 품명란에 영문/숫자 코드(예: 'VOE14532101 HUB', '1453-2101', '14532101 씰' 등)가 함께 적혀 있다면, 영문/숫자 부품코드를 분리하여 part_no에 넣고 name에는 순수 품명을 넣으세요. 없으면 ""
+   - name: 품목명 (순수 부품명, 한글/영문 품명)
    - spec: 규격/모델명 (없으면 "")
    - qty: 수량 (숫자, 기본값 1)
    - unit_price: 단가 (숫자, 콤마 제외)
@@ -152,6 +155,7 @@ export async function parsePurchaseInvoiceImage(base64Data, mimeType = 'image/jp
   "vat_amount": 10000,
   "items": [
     {
+      "part_no": "VOE14532101",
       "name": "유압호스 1/2",
       "spec": "2W-08",
       "qty": 2,
@@ -249,6 +253,7 @@ export async function parsePurchaseInvoiceImage(base64Data, mimeType = 'image/jp
         supply_amount: Number(parsed.supply_amount) || 0,
         vat_amount: Number(parsed.vat_amount) || 0,
         items: Array.isArray(parsed.items) ? parsed.items.map(it => ({
+          part_no: (it.part_no || it.code || it.part_number || it.partNo || '').trim(),
           name: it.name || '',
           spec: it.spec || '',
           qty: Number(it.qty) || 1,

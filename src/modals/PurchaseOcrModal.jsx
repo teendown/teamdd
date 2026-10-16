@@ -102,8 +102,16 @@ export default function PurchaseOcrModal({
         vendor_name: result.vendor_name || '',
         vendor_bizno: result.vendor_bizno || '',
         invoice_date: result.invoice_date || new Date().toISOString().split('T')[0],
-        items: (result.items && result.items.length > 0) ? result.items : [
-          { name: '', spec: '', qty: 1, unit_price: 0, amount: 0, memo: '' }
+        items: (result.items && result.items.length > 0) ? result.items.map(it => ({
+          part_no: it.part_no || it.code || '',
+          name: it.name || '',
+          spec: it.spec || '',
+          qty: Number(it.qty) || 1,
+          unit_price: Number(it.unit_price) || 0,
+          amount: Number(it.amount) || ((Number(it.qty) || 1) * (Number(it.unit_price) || 0)),
+          memo: it.memo || ''
+        })) : [
+          { part_no: '', name: '', spec: '', qty: 1, unit_price: 0, amount: 0, memo: '' }
         ],
         total_amount: result.total_amount || 0,
         supply_amount: result.supply_amount || 0,
@@ -151,7 +159,7 @@ export default function PurchaseOcrModal({
       ...form,
       items: [
         ...form.items,
-        { name: '', spec: '', qty: 1, unit_price: 0, amount: 0, memo: '' }
+        { part_no: '', name: '', spec: '', qty: 1, unit_price: 0, amount: 0, memo: '' }
       ]
     });
   };
@@ -495,17 +503,28 @@ export default function PurchaseOcrModal({
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', textAlign: 'left' }}>
                       <thead>
                         <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569' }}>
-                          <th style={{ padding: '6px 8px', width: '35%' }}>품목명 *</th>
-                          <th style={{ padding: '6px 8px', width: '20%' }}>규격/모델</th>
-                          <th style={{ padding: '6px 8px', width: '12%', textAlign: 'right' }}>수량</th>
-                          <th style={{ padding: '6px 8px', width: '18%', textAlign: 'right' }}>매입단가</th>
-                          <th style={{ padding: '6px 8px', width: '15%', textAlign: 'right' }}>공급가액</th>
+                          <th style={{ padding: '6px 8px', width: '22%' }}>부품번호(선택)</th>
+                          <th style={{ padding: '6px 8px', width: '28%' }}>품목명 *</th>
+                          <th style={{ padding: '6px 8px', width: '16%' }}>규격/모델</th>
+                          <th style={{ padding: '6px 8px', width: '10%', textAlign: 'right' }}>수량</th>
+                          <th style={{ padding: '6px 8px', width: '12%', textAlign: 'right' }}>매입단가</th>
+                          <th style={{ padding: '6px 8px', width: '12%', textAlign: 'right' }}>공급가액</th>
                           <th style={{ padding: '6px 4px', width: '30px', textAlign: 'center' }}></th>
                         </tr>
                       </thead>
                       <tbody>
                         {form.items.map((it, idx) => (
                           <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                            <td style={{ padding: '4px 6px' }}>
+                              <input
+                                type="text"
+                                className="form-input"
+                                style={{ padding: '4px 6px', fontSize: '11px', fontFamily: 'monospace', fontWeight: '700' }}
+                                placeholder="예: VOE14532101"
+                                value={it.part_no || ''}
+                                onChange={(e) => handleItemChange(idx, 'part_no', e.target.value.toUpperCase())}
+                              />
+                            </td>
                             <td style={{ padding: '4px 6px' }}>
                               <input
                                 type="text"

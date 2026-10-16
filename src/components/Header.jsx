@@ -62,8 +62,8 @@ export default function Header({
             title="이전 화면으로 이동"
             aria-label="이전 화면으로 이동"
           >
-            <span>⬅️</span>
-            <span className="hide-on-mobile-sm" style={{ fontSize: '0.75rem' }}>뒤로</span>
+            <span style={{ fontSize: '10px' }}>◀</span>
+            <span className="hide-on-mobile-sm" style={{ fontSize: '11px', fontWeight: '600' }}>뒤로</span>
           </button>
         )}
 
@@ -77,8 +77,7 @@ export default function Header({
         </button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
-          <span style={{ fontSize: '1.25rem', flexShrink: 0 }}>{page.icon}</span>
-          <h1 className="header-page-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <h1 className="header-page-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '15px', fontWeight: '700', color: '#0F172A', margin: 0 }}>
             {page.title}
           </h1>
         </div>
@@ -91,9 +90,10 @@ export default function Header({
           className={`status-badge ${isConnected ? 'connected' : 'disconnected'}`}
           title={connectionMessage || (isConnected ? '클라우드 DB 정상 연결됨' : '로컬 모드')}
           onClick={() => setActiveTab('settings')}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
         >
-          <span>{isConnected ? '🟢' : '🔴'}</span>
-          <span className="hide-on-mobile-xs">{isConnected ? '동기화됨' : '오프라인'}</span>
+          <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: isConnected ? '#10B981' : '#EF4444', display: 'inline-block' }} />
+          <span className="hide-on-mobile-xs" style={{ fontSize: '11px', fontWeight: '600' }}>{isConnected ? '동기화됨' : '오프라인'}</span>
         </span>
 
         {/* Explicit Exit / Leave Button */}
@@ -103,22 +103,20 @@ export default function Header({
             className="btn btn-outline"
             style={{
               padding: '0.35rem 0.625rem',
-              fontSize: '0.75rem',
-              fontWeight: '800',
+              fontSize: '11px',
+              fontWeight: '700',
               color: '#dc2626',
               borderColor: '#fca5a5',
               backgroundColor: '#fff5f5',
-              borderRadius: '8px',
+              borderRadius: '6px',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '4px',
               cursor: 'pointer'
             }}
             onClick={onOpenExitModal}
             title="프로그램 나가기 / 종료"
             aria-label="프로그램 나가기 / 종료"
           >
-            <span>🚪</span>
             <span>나가기</span>
           </button>
         )}

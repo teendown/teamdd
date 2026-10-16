@@ -104,39 +104,63 @@ export async function saveDocument(docData) {
   };
   
   const payload = packRow(rawPayload, 'documents');
+  let actualDocId = docId;
+
   if (sb) {
     try {
       if (docData.id && !String(docData.id).startsWith('doc_')) {
         const { error } = await sb.from('documents').update(payload).eq('id', docData.id);
         if (error) console.error('Supabase update error:', error);
       } else {
-        const { error } = await sb.from('documents').insert(payload);
-        if (error) console.error('Supabase insert error:', error);
+        // docData.id가 없거나 doc_ 로 시작하는 경우, 같은 doc_no 및 supplier_key를 가진 문서가 있는지 확인하여 중복 INSERT 방지
+        let matchedRecord = null;
+        if (isEditing && finalDocNo) {
+          const { data: existingRows } = await sb.from('documents')
+            .select('id')
+            .eq('doc_no', finalDocNo)
+            .limit(1);
+          if (existingRows && existingRows.length > 0) {
+            matchedRecord = existingRows[0];
+          }
+        }
+
+        if (matchedRecord && matchedRecord.id) {
+          actualDocId = matchedRecord.id;
+          const { error } = await sb.from('documents').update(payload).eq('id', matchedRecord.id);
+          if (error) console.error('Supabase matched update error:', error);
+        } else {
+          const { data: insertedRows, error } = await sb.from('documents').insert(payload).select('id');
+          if (error) {
+            console.error('Supabase insert error:', error);
+          } else if (insertedRows && insertedRows.length > 0 && insertedRows[0].id) {
+            actualDocId = insertedRows[0].id;
+          }
+        }
       }
     } catch (e) {
       console.error(e);
     }
   }
 
-  const existingIdx = local.findIndex(d => d.id === docId);
+  const existingIdx = local.findIndex(d => d.id === docId || (actualDocId && d.id === actualDocId));
   let updated;
   const localPayload = unpackRow(payload);
   if (existingIdx >= 0) {
     updated = [...local];
     updated[existingIdx] = {
       ...localPayload,
-      id: local[existingIdx].id,
+      id: actualDocId,
       updated_at: new Date().toISOString()
     };
   } else {
     updated = [{
       ...localPayload,
-      id: docId,
+      id: actualDocId,
       created_at: new Date().toISOString()
     }, ...local];
   }
   setLocalItem(STORAGE_KEYS.DOCUMENTS, updated);
-  return { list: updated, docNo: finalDocNo };
+  return { list: updated, docNo: finalDocNo, docId: actualDocId };
 }
 
 export async function fetchDocuments() {

@@ -249,12 +249,13 @@ export default function PastStatementImportModal({
                           alignItems: 'center',
                           gap: '3px'
                         }}
+                        title="거래처와 품목을 가져와 오늘 날짜의 신규 명세서로 작성합니다"
                         onClick={() => {
                           onApplyStatement(doc, 'copy_to_new');
                           onClose();
                         }}
                       >
-                        ✨ 새 명세서로 복사
+                        ✨ 새 문서로 복사
                       </button>
                     </div>
 
@@ -263,17 +264,21 @@ export default function PastStatementImportModal({
                       className="btn btn-outline"
                       style={{
                         fontSize: '0.75rem',
-                        padding: '4px 8px',
-                        color: '#475569',
+                        padding: '5px 8px',
+                        color: '#1d4ed8',
+                        borderColor: '#93c5fd',
+                        backgroundColor: '#eff6ff',
+                        fontWeight: '700',
                         width: '100%',
                         textAlign: 'center'
                       }}
+                      title="이 문서 원본을 불러와 수정/덮어씁니다"
                       onClick={() => {
                         onApplyStatement(doc, 'edit_original');
                         onClose();
                       }}
                     >
-                      ✏️ 원본 수정
+                      ✏️ 기존 원본 수정
                     </button>
                   </div>
                 </div>

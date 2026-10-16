@@ -56,18 +56,18 @@ export default function Sidebar({
   };
 
   const navItems = [
-    { id: 'dashboard', label: '대시보드', icon: '📊', isDoc: false, isActive: activeTab === 'dashboard' },
-    { id: 'doc_statement', label: '거래명세서 작성', icon: '📄', isDoc: true, docType: '거래명세서', isActive: activeTab === 'doc' && docType === '거래명세서' },
-    { id: 'doc_estimate', label: '견적서 작성', icon: '📑', isDoc: true, docType: '견적서', isActive: activeTab === 'doc' && docType === '견적서' },
-    { id: 'doc_invoice', label: '청구서 작성', icon: '🧾', isDoc: true, docType: '청구서', isActive: activeTab === 'doc' && docType === '청구서' },
-    { id: 'history', label: '문서조회 (발행내역)', icon: '📁', isDoc: false, isActive: activeTab === 'history' },
-    { id: 'schedule', label: '일정 / 예약', icon: '📅', isDoc: false, isActive: activeTab === 'schedule', badge: badgeCounts.todayWork > 0 ? `${badgeCounts.todayWork}건` : null },
-    { id: 'customers', label: '고객관리', icon: '👥', isDoc: false, isActive: activeTab === 'customers' },
-    { id: 'purchase', label: '매입관리 / 전표', icon: '🧾', isDoc: false, isActive: activeTab === 'purchase' },
-    ...(isAdmin ? [{ id: 'suppliers', label: '공급자 관리', icon: '🏢', isDoc: false, isActive: activeTab === 'suppliers' }] : []),
-    { id: 'accounting', label: '미수금 / 회계', icon: '💡', isDoc: false, isActive: activeTab === 'accounting', badge: badgeCounts.unpaidCount > 0 ? `${badgeCounts.unpaidCount}건` : null },
-    { id: 'parts', label: '부품재고', icon: '🛠️', isDoc: false, isActive: activeTab === 'parts' },
-    { id: 'settings', label: '설정', icon: '⚙️', isDoc: false, isActive: activeTab === 'settings' }
+    { id: 'dashboard', label: '대시보드', isDoc: false, isActive: activeTab === 'dashboard' },
+    { id: 'doc_statement', label: '거래명세서 작성', isDoc: true, docType: '거래명세서', isActive: activeTab === 'doc' && docType === '거래명세서' },
+    { id: 'doc_estimate', label: '견적서 작성', isDoc: true, docType: '견적서', isActive: activeTab === 'doc' && docType === '견적서' },
+    { id: 'doc_invoice', label: '청구서 작성', isDoc: true, docType: '청구서', isActive: activeTab === 'doc' && docType === '청구서' },
+    { id: 'history', label: '문서조회 (발행내역)', isDoc: false, isActive: activeTab === 'history' },
+    { id: 'schedule', label: '일정 / 예약', isDoc: false, isActive: activeTab === 'schedule', badge: badgeCounts.todayWork > 0 ? `${badgeCounts.todayWork}건` : null },
+    { id: 'customers', label: '고객관리', isDoc: false, isActive: activeTab === 'customers' },
+    { id: 'purchase', label: '매입관리 / 전표', isDoc: false, isActive: activeTab === 'purchase' },
+    ...(isAdmin ? [{ id: 'suppliers', label: '공급자 관리', isDoc: false, isActive: activeTab === 'suppliers' }] : []),
+    { id: 'accounting', label: '미수금 / 회계', isDoc: false, isActive: activeTab === 'accounting', badge: badgeCounts.unpaidCount > 0 ? `${badgeCounts.unpaidCount}건` : null },
+    { id: 'parts', label: '부품재고', isDoc: false, isActive: activeTab === 'parts' },
+    { id: 'settings', label: '설정', isDoc: false, isActive: activeTab === 'settings' }
   ];
 
   return (
@@ -96,8 +96,7 @@ export default function Sidebar({
               onClick={() => handleMenuClick(item)}
             >
               <div className="sidebar-item-left">
-                <span className="sidebar-item-icon">{item.icon}</span>
-                <span>{item.label}</span>
+                <span style={{ fontSize: '13px', fontWeight: item.isActive ? '700' : '500' }}>{item.label}</span>
               </div>
               {item.badge && (
                 <span className="sidebar-badge alert">
@@ -112,8 +111,8 @@ export default function Sidebar({
         <div className="sidebar-footer">
           {/* User Profile Info (Admin Support) */}
           <div className="sidebar-user-box" style={{ backgroundColor: isAdmin ? 'rgba(234, 179, 8, 0.15)' : 'rgba(255, 255, 255, 0.04)', border: isAdmin ? '1px solid rgba(234, 179, 8, 0.3)' : 'none' }}>
-            <div className="sidebar-user-avatar" style={{ backgroundColor: isAdmin ? '#ca8a04' : '#2563eb' }}>
-              {isAdmin ? '👑' : (supplierDisplayName ? supplierDisplayName.slice(0, 1) : '공')}
+            <div className="sidebar-user-avatar" style={{ backgroundColor: isAdmin ? '#ca8a04' : '#2563eb', fontSize: '12px', fontWeight: '700' }}>
+              {isAdmin ? '관' : (supplierDisplayName ? supplierDisplayName.slice(0, 1) : '공')}
             </div>
             <div className="sidebar-user-info">
               <div className="sidebar-user-name" style={{ color: isAdmin ? '#fef08a' : '#ffffff' }} title={supplierDisplayName}>
@@ -167,7 +166,6 @@ export default function Sidebar({
                 }}
                 title="프로그램 나가기 / 종료"
               >
-                <span>🚪</span>
                 <span>종료</span>
               </button>
             )}
@@ -178,21 +176,19 @@ export default function Sidebar({
                 className="btn btn-outline"
                 style={{
                   flex: 1,
-                  fontSize: '0.75rem',
+                  fontSize: '11px',
                   padding: '0.4rem 0.5rem',
                   color: '#94a3b8',
                   borderColor: '#475569',
                   backgroundColor: '#1e293b',
-                  fontWeight: '700',
+                  fontWeight: '600',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '4px'
+                  justifyContent: 'center'
                 }}
                 onClick={onLogout}
                 title="로그아웃"
               >
-                <span>🔒</span>
                 <span>로그아웃</span>
               </button>
             )}

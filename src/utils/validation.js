@@ -69,7 +69,7 @@ export function packRow(r, table) {
     if (!payload.phone && payload.customer_phone) payload.phone = payload.customer_phone;
     if (!payload.machine && payload.machine_info) payload.machine = payload.machine_info;
   } else if (table === 'parts') {
-    standardCols = ['id', 'created_at', 'code', 'name', 'category', 'unit', 'price', 'stock', 'min_stock', 'location', 'memo', 'supplier_key'];
+    standardCols = ['id', 'created_at', 'code', 'name', 'spec', 'category', 'unit', 'price', 'stock', 'min_stock', 'location', 'memo', 'machine_models', 'is_shared', 'supplier_key'];
   }
 
   const extra = {};
