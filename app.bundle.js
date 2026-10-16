@@ -42256,7 +42256,7 @@ IconFile=${currentUrl}favicon.ico\r
       if (!window.confirm("부품을 삭제하시겠습니까?")) return;
       setPartsList(await dbDelete("parts", id, partsList));
     };
-    const handleSaveDocument = async () => {
+    const handleSaveDocument = async (saveAsNew = false) => {
       if (!customer || !customer.name || customer.name.trim() === "") {
         alert("❌ 거래처(공급받는자)를 입력해 주세요.\n거래처가 비어 있으면 저장이 불가합니다.");
         return;
@@ -42310,9 +42310,10 @@ IconFile=${currentUrl}favicon.ico\r
       } catch (err) {
         console.error("Customer master upsert error:", err);
       }
-      const isEditMode = !saveAsNew && !!editingDocId;
+      const isSaveAsNew = saveAsNew === true;
+      const isEditMode = !isSaveAsNew && !!editingDocId;
       let targetDocNo = docNo;
-      if (saveAsNew) {
+      if (isSaveAsNew) {
         targetDocNo = generateNextDocNo(docDate, documentsList, selectedSupplierKey, customer, docType, suppliersList, customersList);
       }
       const saveRes = await saveDocument({

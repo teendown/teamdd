@@ -748,7 +748,7 @@ export default function App() {
     setPartsList(await dbDelete('parts', id, partsList));
   };
 
-  const handleSaveDocument = async () => {
+  const handleSaveDocument = async (saveAsNew = false) => {
     if (!customer || !customer.name || customer.name.trim() === '') {
       alert('❌ 거래처(공급받는자)를 입력해 주세요.\n거래처가 비어 있으면 저장이 불가합니다.');
       return;
@@ -793,11 +793,12 @@ export default function App() {
       console.error('Customer master upsert error:', err);
     }
 
-    const isEditMode = !saveAsNew && !!editingDocId;
+    const isSaveAsNew = saveAsNew === true;
+    const isEditMode = !isSaveAsNew && !!editingDocId;
     let targetDocNo = docNo;
 
     // 새 문서로 저장 요청 시 새로운 번호 채번
-    if (saveAsNew) {
+    if (isSaveAsNew) {
       targetDocNo = generateNextDocNo(docDate, documentsList, selectedSupplierKey, customer, docType, suppliersList, customersList);
     }
 
